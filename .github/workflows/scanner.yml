@@ -1,4 +1,4 @@
-name: Audit Hunt Scanner
+﻿name: Audit Hunt Scanner
 
 on:
   schedule:

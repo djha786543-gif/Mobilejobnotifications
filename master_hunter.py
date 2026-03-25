@@ -4,14 +4,12 @@ import time
 import requests
 import pandas as pd
 from jobspy import scrape_jobs
-from google import genai
 
 # --- CONFIG ---
-GEMINI_KEY   = os.getenv("GEMINI_API_KEY")
-NTFY_TOPIC   = os.getenv("NTFY_TOPIC", "dj-audit-hunt")   # set your own secret topic name
-CSV_PATH     = "Scored_Audit_Leads.csv"
-
-client = genai.Client(api_key=GEMINI_KEY)
+OPENROUTER_KEY = os.getenv("OPENROUTER_API_KEY")
+NTFY_TOPIC     = os.getenv("NTFY_TOPIC", "dj-audit-786543")
+CSV_PATH       = "Scored_Audit_Leads.csv"
+MODEL          = "google/gemma-3-12b-it:free"   # free tier on OpenRouter
 
 MANDATORY = [
     "audit", "sox", "itgc", "compliance", "cisa",
@@ -20,15 +18,14 @@ MANDATORY = [
 
 # ---------------------------------------------------------------------------
 def push_notification(title: str, message: str, priority: str = "default"):
-    """Send a push notification to phone via ntfy.sh (free, no account needed).
-    Install the free 'ntfy' app on iOS/Android and subscribe to your NTFY_TOPIC."""
+    """Send a push notification to phone via ntfy.sh (free, no account needed)."""
     try:
         requests.post(
             f"https://ntfy.sh/{NTFY_TOPIC}",
             data=message.encode("utf-8"),
             headers={
-                "Title":    title,
-                "Priority": priority,   # urgent | high | default | low | min
+                "Title":    title.encode("ascii", errors="replace").decode("ascii"),
+                "Priority": priority,
                 "Tags":     "briefcase",
             },
             timeout=10,
@@ -50,8 +47,23 @@ Job description:
 {desc[:2500]}
 
 Return ONLY a single integer 0-100. No explanation, no punctuation."""
-    res = client.models.generate_content(model="gemini-2.0-flash-lite", contents=prompt)
-    match = re.search(r"\b(\d{1,3})\b", res.text)
+
+    response = requests.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {OPENROUTER_KEY}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": MODEL,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 10,
+        },
+        timeout=30,
+    )
+    response.raise_for_status()
+    text = response.json()["choices"][0]["message"]["content"].strip()
+    match = re.search(r"\b(\d{1,3})\b", text)
     return min(int(match.group(1)), 100) if match else 0
 
 
@@ -94,7 +106,7 @@ def master_hunt():
         for _, row in filtered.head(25).iterrows():
             desc = str(row.get("description", ""))
             try:
-                score = score_job(desc)
+                score   = score_job(desc)
                 title   = row.get("title", "Unknown")
                 company = row.get("company", "")
                 print(f"  [{score:3d}] {title} @ {company}")
@@ -118,7 +130,7 @@ def master_hunt():
                 })
             except Exception as e:
                 print(f"  [Skip] {row.get('title', '?')}: {e}")
-            time.sleep(1.2)   # respect Gemini rate limits
+            time.sleep(3)   # throttle for OpenRouter free tier rate limit
 
         if not scored_list:
             print("[Scanner] No jobs scored.")

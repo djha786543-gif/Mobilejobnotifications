@@ -21,11 +21,11 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install "git+https://github.com/Bunsly/JobSpy.git" "google-genai>=0.8.0" pandas requests
+        run: pip install "git+https://github.com/Bunsly/JobSpy.git" pandas requests
 
       - name: Run scanner
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: python master_hunter.py
 

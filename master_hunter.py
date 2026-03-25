@@ -116,7 +116,7 @@ def master_hunt():
                     "Link":     row.get("job_url", ""),
                     "Posted":   str(row.get("date_posted", "")),
                 })
-            except (ValueError, AttributeError) as e:
+            except Exception as e:
                 print(f"  [Skip] {row.get('title', '?')}: {e}")
             time.sleep(1.2)   # respect Gemini rate limits
 

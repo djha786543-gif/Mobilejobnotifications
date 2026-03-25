@@ -37,7 +37,7 @@ if "scheduler" not in st.session_state:
 # ---------------------------------------------------------------------------
 st.set_page_config(
     page_title="DJ's Audit Hunt",
-    page_icon="briefcase",
+    page_icon="💼",
     layout="wide",
     initial_sidebar_state="collapsed",   # collapsed by default on mobile
 )
@@ -83,7 +83,7 @@ with col_b:
 with col_c:
     if auto_on and job.next_run_time:
         next_run = job.next_run_time.strftime("%b %d %H:%M")
-        st.info(f"Next auto-scan: {next_run}", icon="clock")
+        st.info(f"Next auto-scan: {next_run}", icon="🕐")
     else:
         st.caption("Auto-scan is off.")
 
@@ -154,5 +154,5 @@ else:
         "**Mobile push notifications:** Install the free **ntfy** app "
         f"(iOS / Android) and subscribe to topic `{NTFY_TOPIC}` "
         "to receive instant alerts when a high-match job is found.",
-        icon="bell",
+        icon="🔔",
     )

@@ -19,7 +19,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install jobspy google-genai pandas requests
+        run: pip install "git+https://github.com/Bunsly/JobSpy.git" "google-genai>=0.8.0" pandas requests
 
       - name: Run scanner
         env:

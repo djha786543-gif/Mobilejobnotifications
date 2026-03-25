@@ -50,7 +50,7 @@ Job description:
 {desc[:2500]}
 
 Return ONLY a single integer 0-100. No explanation, no punctuation."""
-    res = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+    res = client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
     match = re.search(r"\b(\d{1,3})\b", res.text)
     return min(int(match.group(1)), 100) if match else 0
 

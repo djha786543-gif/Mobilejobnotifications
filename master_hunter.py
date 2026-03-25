@@ -48,23 +48,30 @@ Job description:
 
 Return ONLY a single integer 0-100. No explanation, no punctuation."""
 
-    response = requests.post(
-        "https://openrouter.ai/api/v1/chat/completions",
-        headers={
-            "Authorization": f"Bearer {OPENROUTER_KEY}",
-            "Content-Type": "application/json",
-        },
-        json={
-            "model": MODEL,
-            "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": 10,
-        },
-        timeout=30,
-    )
-    response.raise_for_status()
-    text = response.json()["choices"][0]["message"]["content"].strip()
-    match = re.search(r"\b(\d{1,3})\b", text)
-    return min(int(match.group(1)), 100) if match else 0
+    for attempt in range(3):
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": MODEL,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 10,
+            },
+            timeout=30,
+        )
+        if response.status_code == 429:
+            wait = 60 * (attempt + 1)
+            print(f"  [Rate limit] Waiting {wait}s before retry...")
+            time.sleep(wait)
+            continue
+        response.raise_for_status()
+        text = response.json()["choices"][0]["message"]["content"].strip()
+        match = re.search(r"\b(\d{1,3})\b", text)
+        return min(int(match.group(1)), 100) if match else 0
+    raise Exception("Rate limit exceeded after 3 retries")
 
 
 # ---------------------------------------------------------------------------

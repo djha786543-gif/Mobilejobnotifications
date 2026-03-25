@@ -99,7 +99,7 @@ def master_hunt():
                 company = row.get("company", "")
                 print(f"  [{score:3d}] {title} @ {company}")
 
-                if score >= 85 and alerts_sent < 3:
+                if score >= 50 and alerts_sent < 3:
                     push_notification(
                         title=f"High Match {score}% — {title}",
                         message=f"{company}\n{row.get('job_url', '')}",

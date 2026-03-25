@@ -107,7 +107,7 @@ if os.path.exists(CSV_PATH):
     # Filter controls
     fc1, fc2 = st.columns([1, 2])
     with fc1:
-        min_score = st.slider("Min score", 0, 100, 60, step=5)
+        min_score = st.slider("Min score", 0, 100, 40, step=5)
     with fc2:
         search_text = st.text_input("Search title / company", placeholder="e.g. manager, deloitte")
 

@@ -356,6 +356,74 @@ def score_job(title: str, desc: str, location: str = "") -> tuple[int, str]:
     return keyword_score(title, desc, location), "keyword"
 
 
+def llm_score_batch(batch: list[dict]) -> list[int | None]:
+    """Score up to 10 jobs in a single Groq call.
+    Each dict must have keys: title, desc, company, location.
+    Returns a list of ints (or None on failure) in the same order."""
+    if not GROQ_API_KEY or not batch:
+        return [None] * len(batch)
+
+    n = len(batch)
+    blocks = []
+    for i, j in enumerate(batch, 1):
+        blocks.append(
+            f"[{i}] {j['title']} @ {j['company']} | {j['location']}\n"
+            f"{j['desc'][:400]}"
+        )
+
+    prompt = (
+        f"Rate each of the {n} jobs below 0-100 for fit with this candidate.\n"
+        f"Return ONLY {n} integers separated by commas, in order. No other text.\n\n"
+        "Candidate — Pooja Choubey, Ph.D.:\n"
+        "- Ph.D. Molecular Genetics; 10+ years preclinical cardiovascular research\n"
+        "- Co-first author Nature Communications 2026 (PTRH2 / peripartum cardiomyopathy)\n"
+        "- In vivo: Langendorff, echocardiography, mouse colony (200+ mice, 3 transgenic lines)\n"
+        "- Assays: FACS, Western blot, IHC/ICC, ELISA, qRT-PCR, TUNEL, Beta-gal\n"
+        "- Omics: RNA-seq, scRNA-seq, Xenium/Visium spatial transcriptomics, IPA, STRING\n"
+        "- Visa: J1 (US work authorized); open to on-site US or international relocation\n"
+        "- Target: R&D / Preclinical / Translational Scientist at biotech/pharma/CRO\n\n"
+        "Scoring guide:\n"
+        "90-100: Perfect — cardiovascular/preclinical R&D, PhD required, in vivo/mouse, biotech/pharma/CRO\n"
+        "70-89:  Strong — relevant preclinical/translational, good skill overlap, industry setting\n"
+        "50-69:  Decent — adjacent area or relevant techniques, partial match\n"
+        "30-49:  Partial — bioinformatics-heavy, missing core preclinical skills\n"
+        "0-29:   Poor — wrong field (clinical admin, sales, software, QA, postdoc, academic)\n\n"
+        "Jobs:\n" +
+        "\n\n".join(blocks) +
+        f"\n\nReturn {n} comma-separated integers only:"
+    )
+
+    for attempt in range(3):
+        try:
+            r = requests.post(
+                GROQ_ENDPOINT,
+                headers={"Authorization": f"Bearer {GROQ_API_KEY}",
+                         "Content-Type": "application/json"},
+                json={"model": GROQ_MODEL,
+                      "messages": [{"role": "user", "content": prompt}],
+                      "max_tokens": 60,
+                      "temperature": 0},
+                timeout=30,
+            )
+            if r.status_code == 429:
+                wait = 10 if attempt == 0 else 25
+                sprint(f"  [Rate limit] Waiting {wait}s...")
+                time.sleep(wait)
+                continue
+            r.raise_for_status()
+            text = r.json()["choices"][0]["message"]["content"].strip()
+            nums = re.findall(r"\b(\d{1,3})\b", text)
+            if len(nums) >= n:
+                return [min(int(x), 100) for x in nums[:n]]
+            sprint(f"  [Batch] Expected {n} scores, got {len(nums)} — falling back to keyword")
+            return [None] * n
+        except Exception as e:
+            sprint(f"  [Batch LLM error attempt {attempt+1}]: {e}")
+            if attempt < 2:
+                time.sleep(3)
+    return [None] * n
+
+
 # ---------------------------------------------------------------------------
 # Search configuration — 18 passes: US hubs + Europe + India
 # Pooja is open to relocation anywhere globally; we search all major pharma/biotech markets
@@ -382,7 +450,7 @@ def build_search_configs() -> list[dict]:
                          'OR "Cardiac Research Scientist" OR "Cardiomyopathy" OR '
                          '"Heart Failure Research Scientist"'),
             "location": "United States",
-            "results":  100,
+            "results":  25,
             "region":   "US",
         },
         # 2 — US nationwide (LinkedIn + Indeed)
@@ -392,7 +460,7 @@ def build_search_configs() -> list[dict]:
                          'OR "In Vivo Scientist" OR "In Vivo Research Scientist" '
                          'OR "Disease Model Scientist" OR "Animal Model Scientist"'),
             "location": "United States",
-            "results":  125,
+            "results":  25,
             "region":   "US",
         },
         # 3 — EUROPE: Cambridge UK — AstraZeneca HQ, Wellcome Sanger, GSK
@@ -400,7 +468,7 @@ def build_search_configs() -> list[dict]:
             "label":    "Research Scientist — Cambridge UK (AstraZeneca / GSK / Wellcome Sanger)",
             "term":     _HUB_TERM,
             "location": "Cambridge, United Kingdom",
-            "results":  75,
+            "results":  25,
             "region":   "Europe",
             "sites":    ["linkedin"],
         },
@@ -409,7 +477,7 @@ def build_search_configs() -> list[dict]:
             "label":    "Research Scientist — London UK (GSK / UCB / Immunocore)",
             "term":     _HUB_TERM,
             "location": "London, United Kingdom",
-            "results":  75,
+            "results":  25,
             "region":   "Europe",
             "sites":    ["linkedin"],
         },
@@ -420,7 +488,7 @@ def build_search_configs() -> list[dict]:
                          'OR "Biomarker Scientist" OR "Biomarker Discovery" '
                          'OR "Drug Discovery Scientist" OR "Pharmacologist"'),
             "location": "United States",
-            "results":  100,
+            "results":  25,
             "region":   "US",
         },
         # 6 — US nationwide (LinkedIn + Indeed)
@@ -430,7 +498,7 @@ def build_search_configs() -> list[dict]:
                          'OR "Principal Scientist" OR "Scientist II" OR "Scientist III" '
                          'OR "Associate Scientist" cardiovascular OR preclinical'),
             "location": "United States",
-            "results":  125,
+            "results":  25,
             "region":   "US",
         },
         # 7 — US hub: LA / Torrance (current location)
@@ -439,7 +507,7 @@ def build_search_configs() -> list[dict]:
             "term":     ('"Research Scientist" OR "Senior Scientist" OR "Translational Scientist" '
                          'OR "Preclinical Scientist" OR "Cardiovascular" OR "In Vivo"'),
             "location": "Torrance, CA",
-            "results":  75,
+            "results":  25,
             "distance": 40,
             "region":   "US",
         },
@@ -448,7 +516,7 @@ def build_search_configs() -> list[dict]:
             "label":    "Research Scientist — Basel Switzerland (Novartis / Roche / Lonza)",
             "term":     _HUB_TERM,
             "location": "Basel, Switzerland",
-            "results":  60,
+            "results":  25,
             "region":   "Europe",
             "sites":    ["linkedin"],
         },
@@ -457,7 +525,7 @@ def build_search_configs() -> list[dict]:
             "label":    "Research Scientist — Boston / Cambridge MA",
             "term":     _HUB_TERM,
             "location": "Cambridge, MA",
-            "results":  100,
+            "results":  25,
             "distance": 30,
             "region":   "US",
         },
@@ -466,7 +534,7 @@ def build_search_configs() -> list[dict]:
             "label":    "Research Scientist — Munich Germany (BioNTech / Bayer / Helmholtz)",
             "term":     _HUB_TERM,
             "location": "Munich, Germany",
-            "results":  60,
+            "results":  25,
             "region":   "Europe",
             "sites":    ["linkedin"],
         },
@@ -475,7 +543,7 @@ def build_search_configs() -> list[dict]:
             "label":    "Research Scientist — San Diego CA",
             "term":     _HUB_TERM,
             "location": "San Diego, CA",
-            "results":  75,
+            "results":  25,
             "distance": 30,
             "region":   "US",
         },
@@ -484,7 +552,7 @@ def build_search_configs() -> list[dict]:
             "label":    "Research Scientist — Paris France (Sanofi / Institut Pasteur)",
             "term":     _HUB_TERM,
             "location": "Paris, France",
-            "results":  50,
+            "results":  25,
             "region":   "Europe",
             "sites":    ["linkedin"],
         },
@@ -493,7 +561,7 @@ def build_search_configs() -> list[dict]:
             "label":    "Research Scientist — San Francisco Bay Area",
             "term":     _HUB_TERM,
             "location": "South San Francisco, CA",
-            "results":  75,
+            "results":  25,
             "distance": 40,
             "region":   "US",
         },
@@ -502,7 +570,7 @@ def build_search_configs() -> list[dict]:
             "label":    "Research Scientist — Philadelphia / NJ pharma corridor",
             "term":     _HUB_TERM,
             "location": "Philadelphia, PA",
-            "results":  75,
+            "results":  25,
             "distance": 50,
             "region":   "US",
         },
@@ -511,7 +579,7 @@ def build_search_configs() -> list[dict]:
             "label":    "Research Scientist — Bangalore India (Biocon / AstraZeneca / Syngene)",
             "term":     _HUB_TERM,
             "location": "Bengaluru",
-            "results":  75,
+            "results":  25,
             "region":   "India",
             "sites":    ["linkedin", "naukri"],
         },
@@ -520,7 +588,7 @@ def build_search_configs() -> list[dict]:
             "label":    "Research Scientist — Hyderabad India (Dr Reddy's / Aurobindo / Cipla)",
             "term":     _HUB_TERM,
             "location": "Hyderabad",
-            "results":  60,
+            "results":  25,
             "region":   "India",
             "sites":    ["linkedin", "naukri"],
         },
@@ -529,7 +597,7 @@ def build_search_configs() -> list[dict]:
             "label":    "Research Scientist — Research Triangle Park NC",
             "term":     _HUB_TERM,
             "location": "Durham, NC",
-            "results":  60,
+            "results":  25,
             "distance": 30,
             "region":   "US",
         },
@@ -538,62 +606,9 @@ def build_search_configs() -> list[dict]:
             "label":    "Research Scientist — Pune India (Serum Institute / Lupin / Piramal)",
             "term":     _HUB_TERM,
             "location": "Pune",
-            "results":  50,
+            "results":  25,
             "region":   "India",
             "sites":    ["linkedin", "naukri"],
-        },
-        # --- Europe: UK (AstraZeneca, GSK, Pfizer Sandwich, MedImmune) ---
-        {
-            "label": "Research Scientist — UK (London / Cambridge / Oxford)",
-            "term":  ('"Research Scientist" OR "Senior Scientist" OR "Preclinical Scientist" '
-                      'OR "Cardiovascular Scientist" OR "Translational Scientist" '
-                      'OR "In Vivo Scientist" OR "Biomarker Scientist"'),
-            "location": "London, United Kingdom",
-            "results": 75,
-            "distance": 60,
-            "sites": ["linkedin"],
-        },
-        # --- Europe: Switzerland / Germany (Roche, Novartis, Bayer, Boehringer) ---
-        {
-            "label": "Research Scientist — Basel / Zurich / Munich",
-            "term":  ('"Research Scientist" OR "Senior Scientist" OR "Preclinical Scientist" '
-                      'OR "Cardiovascular Scientist" OR "Translational Scientist" '
-                      'OR "In Vivo Scientist"'),
-            "location": "Basel, Switzerland",
-            "results": 60,
-            "distance": 80,
-            "sites": ["linkedin"],
-        },
-        # --- Europe: Netherlands / Belgium (Janssen, UCB, Galapagos) ---
-        {
-            "label": "Research Scientist — Amsterdam / Brussels",
-            "term":  ('"Research Scientist" OR "Senior Scientist" OR "Preclinical Scientist" '
-                      'OR "Cardiovascular Scientist" OR "Translational Scientist"'),
-            "location": "Amsterdam, Netherlands",
-            "results": 50,
-            "distance": 60,
-            "sites": ["linkedin"],
-        },
-        # --- India: Bengaluru (AstraZeneca, Syngene, GE Healthcare Life Sciences) ---
-        {
-            "label": "Research Scientist — Bengaluru India",
-            "term":  ('"Research Scientist" OR "Senior Scientist" OR "Preclinical Scientist" '
-                      'OR "Translational Scientist" OR "Biomarker Scientist" '
-                      'OR "Drug Discovery Scientist"'),
-            "location": "Bengaluru, India",
-            "results": 60,
-            "distance": 30,
-            "sites": ["linkedin"],
-        },
-        # --- India: Hyderabad / Mumbai (Dr. Reddy's, Sun Pharma, Cipla, Novartis India) ---
-        {
-            "label": "Research Scientist — Hyderabad / Mumbai India",
-            "term":  ('"Research Scientist" OR "Senior Scientist" OR "Preclinical Scientist" '
-                      'OR "Translational Scientist" OR "Drug Discovery Scientist"'),
-            "location": "Hyderabad, India",
-            "results": 60,
-            "distance": 40,
-            "sites": ["linkedin"],
         },
     ]
 
@@ -676,55 +691,75 @@ def pooja_hunt():
     to_score = filtered.head(SCORE_TOP_N)
     sprint(f"[Score]  Scoring top {len(to_score)} jobs...\n")
 
-    # --- Score each job ---
+    # --- Score jobs in batches of 10 (one Groq call per batch) ---
+    BATCH_SIZE  = 10
     scored_list = []
-    for _, row in to_score.iterrows():
-        title    = str(row.get("title", "Unknown"))
-        desc     = str(row.get("description", ""))
-        company  = str(row.get("company", "Unknown"))
-        location = str(row.get("location", ""))
-        url      = str(row.get("job_url", ""))
-        src      = str(row.get("_search_pass", ""))
-        region   = str(row.get("_region", "US"))
+    rows        = list(to_score.iterrows())
 
-        try:
-            score, method = score_job(title, desc, location)
+    for b_start in range(0, len(rows), BATCH_SIZE):
+        batch = rows[b_start:b_start + BATCH_SIZE]
 
-            if score >= 80:   tag = "STRONG"
-            elif score >= 70: tag = "HIGH  "
-            elif score >= 50: tag = "fair  "
-            else:             tag = "low   "
+        payload = [
+            {
+                "title":    str(r.get("title", "")),
+                "desc":     str(r.get("description", "")),
+                "company":  str(r.get("company", "")),
+                "location": str(r.get("location", "")),
+            }
+            for _, r in batch
+        ]
+        batch_scores = llm_score_batch(payload)
 
-            sprint(f"  [{score:3d}][{tag}][{method}] {title[:48]:<48} @ {company[:25]}")
+        for (_, row), llm in zip(batch, batch_scores):
+            title    = str(row.get("title", "Unknown"))
+            desc     = str(row.get("description", ""))
+            company  = str(row.get("company", "Unknown"))
+            location = str(row.get("location", ""))
+            url      = str(row.get("job_url", ""))
+            src      = str(row.get("_search_pass", ""))
+            region   = str(row.get("_region", "US"))
 
-            if score >= 60 and alerts_sent < MAX_ALERTS:
-                priority = "urgent" if score >= 82 else "high"
-                push_notification(
-                    title=f"{score}% — {title[:48]}",
-                    message=f"{company}\n{location}\n{url}",
-                    priority=priority,
-                )
-                alerts_sent += 1
+            try:
+                if llm is not None:
+                    score, method = llm, "llm-batch"
+                else:
+                    score, method = keyword_score(title, desc, location), "keyword"
 
-            if score >= MIN_SAVE_SCORE:
-                scored_list.append({
-                    "Score":     score,
-                    "Title":     title,
-                    "Company":   company,
-                    "Location":  location,
-                    "Type":      row.get("job_type", ""),
-                    "Link":      url,
-                    "Posted":    str(row.get("date_posted", "")),
-                    "ScoredBy":  method,
-                    "Source":    src,
-                    "Region":    region,
-                    "ScannedAt": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                })
+                if score >= 80:   tag = "STRONG"
+                elif score >= 70: tag = "HIGH  "
+                elif score >= 50: tag = "fair  "
+                else:             tag = "low   "
 
-        except Exception as e:
-            sprint(f"  [Error] {title[:40]}: {e}")
+                sprint(f"  [{score:3d}][{tag}][{method}] {title[:48]:<48} @ {company[:25]}")
 
-        time.sleep(1)
+                if score >= 60 and alerts_sent < MAX_ALERTS:
+                    priority = "urgent" if score >= 82 else "high"
+                    push_notification(
+                        title=f"{score}% — {title[:48]}",
+                        message=f"{company}\n{location}\n{url}",
+                        priority=priority,
+                    )
+                    alerts_sent += 1
+
+                if score >= MIN_SAVE_SCORE:
+                    scored_list.append({
+                        "Score":     score,
+                        "Title":     title,
+                        "Company":   company,
+                        "Location":  location,
+                        "Type":      row.get("job_type", ""),
+                        "Link":      url,
+                        "Posted":    str(row.get("date_posted", "")),
+                        "ScoredBy":  method,
+                        "Source":    src,
+                        "Region":    region,
+                        "ScannedAt": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    })
+
+            except Exception as e:
+                sprint(f"  [Error] {title[:40]}: {e}")
+
+        time.sleep(2)   # polite delay between batch API calls
 
     if not scored_list:
         sprint("\n[Pooja Scanner] No jobs met the minimum score threshold.")

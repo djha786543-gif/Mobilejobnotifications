@@ -67,13 +67,40 @@ col_a, col_b = st.columns([1, 3])
 
 with col_a:
     if st.button("Run Scan Now", width="stretch", type="primary"):
-        with st.spinner("Scanning biotech/pharma job boards — this takes a few minutes..."):
-            result = subprocess.run(
-                [sys.executable, "pooja_hunter.py"],
-                capture_output=True, text=True
-            )
-        if result.returncode != 0:
-            st.error(f"Scan failed:\n{result.stderr[:500]}")
+        TOTAL_PASSES = 18
+        status_box   = st.empty()
+        prog_bar     = st.progress(0, text="Starting scan…")
+        log_box      = st.empty()
+        lines        = []
+        pass_done    = 0
+
+        proc = subprocess.Popen(
+            [sys.executable, "-u", "pooja_hunter.py"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+        for line in proc.stdout:
+            line = line.rstrip()
+            lines.append(line)
+            if "[Search]" in line:
+                pass_done += 1
+                pct   = min(pass_done / TOTAL_PASSES, 0.95)
+                label = line.replace("[Search]", "").strip()
+                prog_bar.progress(pct, text=f"Pass {pass_done}/{TOTAL_PASSES}: {label}")
+                status_box.info(f"Scanning: **{label}**", icon="🔍")
+            elif "[Score]" in line:
+                status_box.info(line.strip(), icon="⚡")
+            elif "[Done]" in line:
+                status_box.success(line.strip(), icon="✅")
+            log_box.code("\n".join(lines[-20:]), language=None)
+
+        proc.wait()
+        prog_bar.progress(1.0, text="Scan complete!")
+
+        if proc.returncode != 0:
+            st.error(f"Scan failed:\n{''.join(lines[-10:])}")
         else:
             st.success("Scan complete — refreshing results.")
             st.rerun()

@@ -457,79 +457,87 @@ def build_search_configs() -> list[dict]:
             "distance": 30,
             "region":   "US",
         },
-        # ── EUROPE ───────────────────────────────────────────────────────────
+        # ── EUROPE — LinkedIn only (globally supported; Indeed needs country-specific setup) ──
         # Cambridge UK — AstraZeneca global HQ, Wellcome Sanger, GSK research park
         {
             "label":    "Research Scientist — Cambridge UK (AstraZeneca / GSK / Wellcome Sanger)",
             "term":     _HUB_TERM,
-            "location": "Cambridge, United Kingdom",
+            "location": "Cambridge, England, United Kingdom",
             "results":  75,
             "distance": 25,
             "region":   "Europe",
+            "sites":    ["linkedin"],
         },
         # London UK — GSK HQ, UCB Pharma, MedImmune, Immunocore
         {
             "label":    "Research Scientist — London UK (GSK / UCB / Immunocore)",
             "term":     _HUB_TERM,
-            "location": "London, United Kingdom",
+            "location": "London, England, United Kingdom",
             "results":  75,
             "distance": 25,
             "region":   "Europe",
+            "sites":    ["linkedin"],
         },
         # Basel Switzerland — Novartis global HQ, Roche global HQ, Lonza
         {
             "label":    "Research Scientist — Basel Switzerland (Novartis / Roche / Lonza)",
             "term":     _HUB_TERM,
-            "location": "Basel, Switzerland",
+            "location": "Basel, Basel-Stadt, Switzerland",
             "results":  60,
             "distance": 30,
             "region":   "Europe",
+            "sites":    ["linkedin"],
         },
         # Munich Germany — BioNTech R&D hub, Bayer AG, Helmholtz Munich, Roche Diagnostics
         {
             "label":    "Research Scientist — Munich Germany (BioNTech / Bayer / Helmholtz)",
             "term":     _HUB_TERM,
-            "location": "Munich, Germany",
+            "location": "Munich, Bavaria, Germany",
             "results":  60,
             "distance": 25,
             "region":   "Europe",
+            "sites":    ["linkedin"],
         },
         # Paris France — Sanofi global HQ, Institut Pasteur, Servier
         {
             "label":    "Research Scientist — Paris France (Sanofi / Institut Pasteur)",
             "term":     _HUB_TERM,
-            "location": "Paris, France",
+            "location": "Paris, Ile-de-France, France",
             "results":  50,
             "distance": 25,
             "region":   "Europe",
+            "sites":    ["linkedin"],
         },
-        # ── INDIA ────────────────────────────────────────────────────────────
-        # Bangalore — Biocon, AstraZeneca India R&D, Novo Nordisk India, Syngene, Strand
+        # ── INDIA — LinkedIn only ─────────────────────────────────────────────
+        # Bengaluru — Biocon, AstraZeneca India R&D, Novo Nordisk India, Syngene, Strand
         {
             "label":    "Research Scientist — Bangalore India (Biocon / AstraZeneca / Syngene)",
             "term":     _HUB_TERM,
-            "location": "Bangalore, India",
+            "location": "Bengaluru, Karnataka, India",
             "results":  75,
             "distance": 30,
             "region":   "India",
+            "sites":    ["linkedin"],
         },
         # Hyderabad — Dr. Reddy's, Aurobindo, MSN Labs, Cipla R&D centre
         {
             "label":    "Research Scientist — Hyderabad India (Dr Reddy's / Aurobindo / Cipla)",
             "term":     _HUB_TERM,
-            "location": "Hyderabad, India",
+            "location": "Hyderabad, Telangana, India",
             "results":  60,
             "distance": 30,
             "region":   "India",
+            "sites":    ["linkedin"],
         },
         # Pune — Serum Institute, Lupin R&D, Piramal, Indoco
         {
             "label":    "Research Scientist — Pune India (Serum Institute / Lupin / Piramal)",
             "term":     _HUB_TERM,
-            "location": "Pune, India",
+            "location": "Pune, Maharashtra, India",
             "results":  50,
             "distance": 25,
             "region":   "India",
+            "sites":    ["linkedin"],
         },
     ]
 
@@ -547,12 +555,14 @@ def pooja_hunt():
     for cfg in build_search_configs():
         sprint(f"\n[Search] {cfg['label']} ({cfg['results']} results)...")
         kwargs = dict(
-            site_name=["linkedin", "indeed"],
+            site_name=cfg.get("sites", ["linkedin", "indeed"]),
             search_term=cfg["term"],
             location=cfg["location"],
             results_wanted=cfg["results"],
-            is_remote=False,   # Pooja is open to on-site relocation
         )
+        # is_remote=False only works reliably for US/Indeed; skip for international passes
+        if cfg.get("region", "US") == "US":
+            kwargs["is_remote"] = False
         if "distance" in cfg:
             kwargs["distance"] = cfg["distance"]
 

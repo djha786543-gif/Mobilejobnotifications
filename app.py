@@ -1,11 +1,9 @@
 import os
 import sys
-import time
 import subprocess
 import pandas as pd
 import streamlit as st
 from datetime import datetime, timedelta
-from apscheduler.schedulers.background import BackgroundScheduler
 
 # Load .env for local dev (no-op if not present or python-dotenv not installed)
 try:
@@ -17,39 +15,6 @@ except ImportError:
 CSV_PATH   = "Scored_Audit_Leads.csv"
 LOG_PATH   = "scan_log.txt"
 NTFY_TOPIC = os.getenv("NTFY_TOPIC", "dj-audit-786543")
-SCAN_HOURS = 12
-
-# ---------------------------------------------------------------------------
-# Scheduler — runs master_hunter.py every 12 hours
-# ---------------------------------------------------------------------------
-def run_scan():
-    try:
-        with open(LOG_PATH, "a") as log:
-            log.write(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Scheduled scan started\n")
-        subprocess.run([sys.executable, "master_hunter.py"], capture_output=False)
-        with open(LOG_PATH, "a") as log:
-            log.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Scan finished\n")
-    except Exception as e:
-        try:
-            with open(LOG_PATH, "a") as log:
-                log.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Scan error: {e}\n")
-        except Exception:
-            pass
-
-@st.cache_resource
-def get_scheduler():
-    # Brief boot delay — lets Streamlit's /healthz respond before background
-    # threads start. Only runs once per process (cached by @st.cache_resource).
-    time.sleep(10)
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(
-        run_scan, "interval",
-        hours=SCAN_HOURS,
-        id="auto_scan",
-        next_run_time=None,   # paused on boot; user enables via button
-    )
-    scheduler.start()
-    return scheduler
 
 # ---------------------------------------------------------------------------
 # Page config
@@ -64,13 +29,13 @@ st.set_page_config(
 st.title("IT Audit Contract Leads")
 st.caption(
     f"Remote · EAD (J2) authorized · All levels · "
-    f"ntfy topic: `{NTFY_TOPIC}` · Auto-scan: every {SCAN_HOURS}h"
+    f"ntfy topic: `{NTFY_TOPIC}` · Auto-scan: every 12h via cloud scheduler"
 )
 
 # ---------------------------------------------------------------------------
 # Action bar
 # ---------------------------------------------------------------------------
-col_a, col_b, col_c = st.columns([1, 1, 2])
+col_a, col_b = st.columns([1, 3])
 
 with col_a:
     if st.button("Run Scan Now", width="stretch", type="primary"):
@@ -86,26 +51,18 @@ with col_a:
             st.rerun()
 
 with col_b:
-    scheduler = get_scheduler()
-    job = scheduler.get_job("auto_scan")
-    auto_on = job is not None and job.next_run_time is not None
-
-    label = "Stop Auto-Scan" if auto_on else f"Start Auto-Scan ({SCAN_HOURS}h)"
-    if st.button(label, width="stretch"):
-        if auto_on:
-            scheduler.pause_job("auto_scan")
-            st.toast("Auto-scan paused.")
-        else:
-            scheduler.resume_job("auto_scan")
-            st.toast(f"Auto-scan active — runs every {SCAN_HOURS} hours.")
-        st.rerun()
-
-with col_c:
-    if auto_on and job.next_run_time:
-        nxt = job.next_run_time.strftime("%b %d %H:%M")
-        st.info(f"Next auto-scan: {nxt}", icon="🕐")
-    else:
-        st.caption("Auto-scan is off — click above to enable.")
+    # Last scan time from log
+    last_scan = "—"
+    if os.path.exists(LOG_PATH):
+        try:
+            with open(LOG_PATH) as f:
+                for line in reversed(f.readlines()):
+                    if "Scan finished" in line or "Scan started" in line:
+                        last_scan = line.strip().lstrip("[").split("]")[0]
+                        break
+        except Exception:
+            pass
+    st.info(f"Auto-scan: every 12 h via cloud scheduler  ·  Last scan: {last_scan}", icon="🕐")
 
 st.divider()
 

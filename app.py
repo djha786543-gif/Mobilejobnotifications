@@ -6,6 +6,13 @@ import streamlit as st
 from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 
+# Load .env for local dev (no-op if not present or python-dotenv not installed)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 CSV_PATH   = "Scored_Audit_Leads.csv"
 LOG_PATH   = "scan_log.txt"
 NTFY_TOPIC = os.getenv("NTFY_TOPIC", "dj-audit-786543")

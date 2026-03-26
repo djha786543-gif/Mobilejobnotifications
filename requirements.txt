@@ -3,3 +3,4 @@ pandas>=2.0.0
 git+https://github.com/Bunsly/JobSpy.git
 requests>=2.31.0
 apscheduler>=3.10.0
+python-dotenv>=1.0.0

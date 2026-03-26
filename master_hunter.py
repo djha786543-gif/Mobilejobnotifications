@@ -7,6 +7,13 @@ import pandas as pd
 from datetime import datetime
 from jobspy import scrape_jobs
 
+# Load .env for local dev
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # Safe print for Windows terminals
 def sprint(*args, **kwargs):
     text = " ".join(str(a) for a in args)
@@ -15,10 +22,11 @@ def sprint(*args, **kwargs):
     print(safe, **kwargs)
 
 # --- CONFIG ---
-OPENROUTER_KEY  = os.getenv("OPENROUTER_API_KEY")
+GROQ_API_KEY    = os.getenv("GROQ_API_KEY")
 NTFY_TOPIC      = os.getenv("NTFY_TOPIC", "dj-audit-786543")
 CSV_PATH        = "Scored_Audit_Leads.csv"
-MODEL           = "google/gemma-3-12b-it:free"
+GROQ_MODEL      = "llama-3.3-70b-versatile"   # fast, capable, free tier
+GROQ_ENDPOINT   = "https://api.groq.com/openai/v1/chat/completions"
 MIN_SAVE_SCORE  = 35    # jobs below this are NOT saved
 MAX_ALERTS      = 10    # max push alerts per scan run
 SCORE_TOP_N     = 120   # score top N after title filter (increased)
@@ -279,10 +287,10 @@ def keyword_score(title: str, desc: str, location: str = "") -> int:
 
 
 # ---------------------------------------------------------------------------
-# LLM scorer (OpenRouter) — updated to reflect LA area preference
+# LLM scorer via Groq — very fast, free tier, llama-3.3-70b
 # ---------------------------------------------------------------------------
 def llm_score(desc: str, location: str = "") -> int | None:
-    if not OPENROUTER_KEY:
+    if not GROQ_API_KEY:
         return None
 
     la_context = (
@@ -317,16 +325,17 @@ Return ONLY a single integer 0–100. No explanation."""
     for attempt in range(3):
         try:
             r = requests.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers={"Authorization": f"Bearer {OPENROUTER_KEY}",
+                GROQ_ENDPOINT,
+                headers={"Authorization": f"Bearer {GROQ_API_KEY}",
                          "Content-Type": "application/json"},
-                json={"model": MODEL,
+                json={"model": GROQ_MODEL,
                       "messages": [{"role": "user", "content": prompt}],
-                      "max_tokens": 10},
-                timeout=25,
+                      "max_tokens": 10,
+                      "temperature": 0},
+                timeout=20,
             )
             if r.status_code == 429:
-                wait = 20 if attempt == 0 else 45
+                wait = 10 if attempt == 0 else 25
                 sprint(f"  [Rate limit] Waiting {wait}s...")
                 time.sleep(wait)
                 continue
@@ -337,7 +346,7 @@ Return ONLY a single integer 0–100. No explanation."""
         except Exception as e:
             sprint(f"  [LLM error attempt {attempt+1}]: {e}")
             if attempt < 2:
-                time.sleep(5)
+                time.sleep(3)
     return None
 
 

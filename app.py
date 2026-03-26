@@ -28,7 +28,8 @@ def run_scan():
     with open(LOG_PATH, "a") as log:
         log.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Scan finished\n")
 
-def start_scheduler():
+@st.cache_resource
+def get_scheduler():
     scheduler = BackgroundScheduler()
     scheduler.add_job(
         run_scan, "interval",
@@ -38,9 +39,6 @@ def start_scheduler():
     )
     scheduler.start()
     return scheduler
-
-if "scheduler" not in st.session_state:
-    st.session_state.scheduler = start_scheduler()
 
 # ---------------------------------------------------------------------------
 # Page config
@@ -77,7 +75,7 @@ with col_a:
             st.rerun()
 
 with col_b:
-    scheduler = st.session_state.scheduler
+    scheduler = get_scheduler()
     job = scheduler.get_job("auto_scan")
     auto_on = job is not None and job.next_run_time is not None
 

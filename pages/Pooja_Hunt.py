@@ -97,15 +97,21 @@ st.divider()
 # Key biotech/pharma hubs tracked
 # ---------------------------------------------------------------------------
 BIOTECH_HUBS = [
+    # US hubs
     "cambridge", "boston", "san diego", "san francisco", "south san francisco",
     "torrance", "los angeles", "irvine", "orange county",
     "philadelphia", "new jersey", "nj", "durham", "raleigh", "research triangle",
     "seattle", "new york", "nyc", "new haven", "connecticut",
     "gaithersburg", "rockville", "maryland", "bethesda",
     "chicago", "houston", "austin", "indianapolis",
-    # International
-    "london", "cambridge uk", "oxford", "basel", "zurich", "munich",
-    "amsterdam", "paris", "tokyo", "singapore",
+    # Europe hubs
+    "london", "oxford", "cambridge, united kingdom", "cambridge uk",
+    "basel", "zurich", "geneva", "munich", "frankfurt", "berlin", "heidelberg",
+    "amsterdam", "leiden", "paris", "lyon", "stockholm", "copenhagen",
+    "milan", "dublin", "brussels",
+    # India hubs
+    "bangalore", "bengaluru", "hyderabad", "pune", "mumbai", "chennai", "delhi",
+    "gurugram", "gurgaon", "noida",
 ]
 
 def is_biotech_hub(loc: str) -> bool:
@@ -129,6 +135,8 @@ if os.path.exists(CSV_PATH):
     df = df.dropna(subset=["Score", "Link"])
     df["Score"] = df["Score"].astype(int)
     df["PostedDate"] = pd.to_datetime(df["Posted"], errors="coerce")
+    if "Region" not in df.columns:
+        df["Region"] = "US"  # backfill legacy rows
 
     # --- Summary metrics ---
     week_ago  = datetime.now() - timedelta(days=7)
@@ -147,7 +155,7 @@ if os.path.exists(CSV_PATH):
     st.write("")
 
     # --- Filters ---
-    fc1, fc2, fc3, fc4 = st.columns([1, 1, 1, 2])
+    fc1, fc2, fc3, fc4, fc5 = st.columns([1, 1, 1, 1, 2])
     with fc1:
         min_score = st.slider("Min score", 0, 100, 50, step=5)
     with fc2:
@@ -155,11 +163,16 @@ if os.path.exists(CSV_PATH):
         recency_sel  = st.selectbox("Posted within", list(recency_opts.keys()))
         recency_days = recency_opts[recency_sel]
     with fc3:
-        hub_filter = st.selectbox("Location filter", ["All locations", "Major biotech hubs", "LA / Torrance area"])
+        region_filter = st.selectbox("Region", ["All regions", "US", "Europe", "India"])
     with fc4:
+        hub_filter = st.selectbox("Location filter", ["All locations", "Major biotech hubs", "LA / Torrance area"])
+    with fc5:
         search_text = st.text_input("Search title / company", placeholder="e.g. cardiovascular, genentech, senior scientist")
 
     filtered = df[df["Score"] >= min_score].copy()
+
+    if region_filter != "All regions":
+        filtered = filtered[filtered["Region"] == region_filter]
 
     if recency_days > 0:
         cutoff   = datetime.now() - timedelta(days=recency_days)
@@ -189,7 +202,7 @@ if os.path.exists(CSV_PATH):
     display = filtered.copy()
     display.insert(1, "Band", display["Score"].apply(score_band))
 
-    show_cols = ["Score", "Band", "Title", "Company", "Location", "Type", "Posted", "ScoredBy", "Link"]
+    show_cols = ["Score", "Band", "Title", "Company", "Location", "Region", "Type", "Posted", "ScoredBy", "Link"]
     if "Source" in display.columns:
         show_cols.insert(-1, "Source")
 
@@ -199,6 +212,7 @@ if os.path.exists(CSV_PATH):
         column_config={
             "Score":    st.column_config.ProgressColumn("Match %", format="%d%%", min_value=0, max_value=100),
             "Band":     st.column_config.TextColumn("Band", width="small"),
+            "Region":   st.column_config.TextColumn("Region", width="small"),
             "Link":     st.column_config.LinkColumn("Apply", display_text="Apply"),
             "Posted":   st.column_config.TextColumn("Posted"),
             "ScoredBy": st.column_config.TextColumn("Scored By", width="small"),
@@ -234,7 +248,9 @@ else:
         icon="🔔",
     )
     st.markdown("""
-    **Search coverage (10 passes across all major US biotech/pharma hubs):**
+    **Search coverage (18 passes — US, Europe & India):**
+
+    🇺🇸 **United States (10 passes)**
     - Cardiovascular / Cardiac Research Scientist — US nationwide
     - Preclinical / In Vivo Scientist — US nationwide
     - Translational / Biomarker Scientist — US nationwide
@@ -242,7 +258,19 @@ else:
     - LA / Torrance area (current location)
     - Boston / Cambridge MA (world's #1 biotech cluster)
     - San Diego CA (Pfizer, Illumina, Vertex, Neurocrine)
-    - San Francisco Bay Area (Genentech, BioMarin, 23andMe)
+    - San Francisco Bay Area (Genentech, BioMarin)
     - Philadelphia / NJ (J&J, GSK, Merck, AstraZeneca)
     - Research Triangle Park NC (GSK, Biogen, Novo Nordisk)
+
+    🇪🇺 **Europe (5 passes)**
+    - Cambridge UK — AstraZeneca global HQ, Wellcome Sanger, GSK
+    - London UK — GSK HQ, UCB Pharma, Immunocore
+    - Basel Switzerland — Novartis global HQ, Roche global HQ, Lonza
+    - Munich Germany — BioNTech, Bayer AG, Helmholtz Munich
+    - Paris France — Sanofi global HQ, Institut Pasteur
+
+    🇮🇳 **India (3 passes)**
+    - Bangalore — Biocon, AstraZeneca India R&D, Syngene, Novo Nordisk
+    - Hyderabad — Dr. Reddy's, Aurobindo, Cipla R&D
+    - Pune — Serum Institute, Lupin R&D, Piramal
     """)

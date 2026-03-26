@@ -36,7 +36,7 @@ GROQ_MODEL     = "llama-3.3-70b-versatile"
 GROQ_ENDPOINT  = "https://api.groq.com/openai/v1/chat/completions"
 MIN_SAVE_SCORE = 35
 MAX_ALERTS     = 10
-SCORE_TOP_N    = 120
+SCORE_TOP_N    = 160
 
 # ---------------------------------------------------------------------------
 # Title whitelist — research science roles in biotech/pharma/CRO space
@@ -283,11 +283,6 @@ def keyword_score(title: str, desc: str, location: str = "") -> int:
     # --- Hard disqualifiers ---
     if any(k in d for k in ["secret clearance", "top secret", "ts/sci", "clearance required"]):
         score -= 30
-    if any(k in d for k in ["no visa sponsorship", "cannot sponsor", "not able to sponsor",
-                             "sponsorship not available"]) and \
-       not any(loc in location.lower() for loc in ["united states", "us", ", ca", ", ma",
-                                                    ", ny", ", pa", ", nc", ", wa", ", tx"]):
-        score -= 20  # only penalize if it's a non-US role (US J1 is fine)
 
     return max(0, min(score, 100))
 
@@ -310,15 +305,15 @@ Candidate profile — Pooja Choubey, Ph.D.:
 - Assay expertise: FACS, Western blot, IHC/ICC, ELISA, qRT-PCR, TUNEL, Beta-gal, XTT/MTT, Hydroxyproline
 - Omics: Bulk RNA-seq, scRNA-seq, Xenium & Visium spatial transcriptomics, IPA, STRING network analysis
 - Grant support: CIRM, Cohen Fellowship, PCVRD clinical trial applications
-- Visa: J1 (current US work authorization); open to relocate anywhere in US or internationally (needs visa outside US/India)
-- NOT seeking remote — open to on-site positions at any US city or international location
+- Open to relocate globally — any US city, UK/Europe (Cambridge, London, Basel, Munich, Paris), or India (Bangalore, Hyderabad, Pune); no location restrictions
+- NOT seeking remote — open to on-site positions anywhere in the world
 - Target: Industry transition — R&D Scientist, Preclinical Research Scientist, Translational Scientist, Biomarker Scientist at biotech/pharma/CRO
 
 Job description:
 {desc[:2800]}
 
 Scoring guide:
-- 90–100: Perfect fit — cardiovascular/preclinical R&D scientist role at biotech/pharma/CRO, PhD required, in vivo/mouse expertise needed, relocation/visa sponsorship offered
+- 90–100: Perfect fit — cardiovascular/preclinical R&D scientist role at biotech/pharma/CRO, PhD required, in vivo/mouse expertise needed, strong skill alignment
 - 70–89: Strong fit — relevant preclinical/translational role, good skill overlap, industry setting
 - 50–69: Decent fit — some overlap (related therapeutic area or relevant techniques), may lack key requirement
 - 30–49: Partial — adjacent field, mostly bioinformatics/computational, or missing core preclinical skills
@@ -362,104 +357,179 @@ def score_job(title: str, desc: str, location: str = "") -> tuple[int, str]:
 
 
 # ---------------------------------------------------------------------------
-# Search configuration — 8 passes covering US biotech hubs + no remote filter
-# Pooja is open to relocation anywhere; we search all major pharma/biotech markets
+# Search configuration — 18 passes: US hubs + Europe + India
+# Pooja is open to relocation anywhere globally; we search all major pharma/biotech markets
 # ---------------------------------------------------------------------------
 def build_search_configs() -> list[dict]:
+    # Reusable broad science term for hub-level passes
+    _HUB_TERM = (
+        '"Research Scientist" OR "Senior Scientist" OR "Staff Scientist" '
+        'OR "Principal Scientist" OR "Translational Scientist" '
+        'OR "Preclinical Scientist" OR "Cardiovascular Scientist" '
+        'OR "In Vivo Scientist" OR "Biomarker Scientist" '
+        'OR "Drug Discovery Scientist" OR "Pharmacologist"'
+    )
     return [
-        # --- Nationwide: core cardiovascular research scientist ---
+        # ── US: Nationwide thematic passes ──────────────────────────────────
         {
-            "label": "Cardiovascular Research Scientist (US)",
-            "term":  ('"Cardiovascular Research Scientist" OR "Cardiovascular Scientist" '
-                      'OR "Cardiac Research Scientist" OR "Cardiomyopathy" OR '
-                      '"Heart Failure Research Scientist"'),
+            "label":    "Cardiovascular Research Scientist (US nationwide)",
+            "term":     ('"Cardiovascular Research Scientist" OR "Cardiovascular Scientist" '
+                         'OR "Cardiac Research Scientist" OR "Cardiomyopathy" OR '
+                         '"Heart Failure Research Scientist"'),
             "location": "United States",
-            "results": 100,
+            "results":  100,
+            "region":   "US",
         },
-        # --- Nationwide: preclinical / in vivo scientist ---
         {
-            "label": "Preclinical / In Vivo Scientist (US)",
-            "term":  ('"Preclinical Research Scientist" OR "Preclinical Scientist" '
-                      'OR "In Vivo Scientist" OR "In Vivo Research Scientist" '
-                      'OR "Disease Model Scientist" OR "Animal Model Scientist"'),
+            "label":    "Preclinical / In Vivo Scientist (US nationwide)",
+            "term":     ('"Preclinical Research Scientist" OR "Preclinical Scientist" '
+                         'OR "In Vivo Scientist" OR "In Vivo Research Scientist" '
+                         'OR "Disease Model Scientist" OR "Animal Model Scientist"'),
             "location": "United States",
-            "results": 125,
+            "results":  125,
+            "region":   "US",
         },
-        # --- Nationwide: translational science / biomarker ---
         {
-            "label": "Translational / Biomarker Scientist (US)",
-            "term":  ('"Translational Research Scientist" OR "Translational Scientist" '
-                      'OR "Biomarker Scientist" OR "Biomarker Discovery" '
-                      'OR "Drug Discovery Scientist" OR "Pharmacologist"'),
+            "label":    "Translational / Biomarker Scientist (US nationwide)",
+            "term":     ('"Translational Research Scientist" OR "Translational Scientist" '
+                         'OR "Biomarker Scientist" OR "Biomarker Discovery" '
+                         'OR "Drug Discovery Scientist" OR "Pharmacologist"'),
             "location": "United States",
-            "results": 100,
+            "results":  100,
+            "region":   "US",
         },
-        # --- Nationwide: senior/staff/principal level ---
         {
-            "label": "Senior / Staff / Principal Scientist (US)",
-            "term":  ('"Senior Research Scientist" OR "Staff Scientist" '
-                      'OR "Principal Scientist" OR "Scientist II" OR "Scientist III" '
-                      'OR "Associate Scientist" cardiovascular OR preclinical'),
+            "label":    "Senior / Staff / Principal Scientist (US nationwide)",
+            "term":     ('"Senior Research Scientist" OR "Staff Scientist" '
+                         'OR "Principal Scientist" OR "Scientist II" OR "Scientist III" '
+                         'OR "Associate Scientist" cardiovascular OR preclinical'),
             "location": "United States",
-            "results": 125,
+            "results":  125,
+            "region":   "US",
         },
-        # --- LA / Torrance area (current location, Harbor-UCLA hub) ---
+        # ── US: Geographic hub passes ────────────────────────────────────────
         {
-            "label": "Research Scientist — LA / Torrance area",
-            "term":  ('"Research Scientist" OR "Senior Scientist" OR "Translational Scientist" '
-                      'OR "Preclinical Scientist" OR "Cardiovascular" OR "In Vivo"'),
+            "label":    "Research Scientist — LA / Torrance area",
+            "term":     ('"Research Scientist" OR "Senior Scientist" OR "Translational Scientist" '
+                         'OR "Preclinical Scientist" OR "Cardiovascular" OR "In Vivo"'),
             "location": "Torrance, CA",
-            "results": 75,
+            "results":  75,
             "distance": 40,
+            "region":   "US",
         },
-        # --- Boston / Cambridge MA (world's biggest biotech cluster) ---
         {
-            "label": "Research Scientist — Boston / Cambridge MA",
-            "term":  ('"Research Scientist" OR "Senior Scientist" OR "Cardiovascular Scientist" '
-                      'OR "Preclinical Scientist" OR "Translational Scientist" '
-                      'OR "In Vivo Scientist" OR "Biomarker Scientist"'),
+            "label":    "Research Scientist — Boston / Cambridge MA",
+            "term":     _HUB_TERM,
             "location": "Cambridge, MA",
-            "results": 100,
+            "results":  100,
             "distance": 30,
+            "region":   "US",
         },
-        # --- San Diego CA (major biotech hub — Pfizer, Illumina, Vertex, etc.) ---
         {
-            "label": "Research Scientist — San Diego CA",
-            "term":  ('"Research Scientist" OR "Senior Scientist" OR "Preclinical Scientist" '
-                      'OR "Cardiovascular Scientist" OR "In Vivo Scientist" '
-                      'OR "Translational Scientist"'),
+            "label":    "Research Scientist — San Diego CA",
+            "term":     _HUB_TERM,
             "location": "San Diego, CA",
-            "results": 75,
+            "results":  75,
             "distance": 30,
+            "region":   "US",
         },
-        # --- San Francisco Bay Area (Genentech, BioMarin, etc.) ---
         {
-            "label": "Research Scientist — San Francisco Bay Area",
-            "term":  ('"Research Scientist" OR "Senior Research Scientist" '
-                      'OR "Cardiovascular Scientist" OR "Preclinical Scientist" '
-                      'OR "In Vivo Scientist" OR "Biomarker Scientist"'),
+            "label":    "Research Scientist — San Francisco Bay Area",
+            "term":     _HUB_TERM,
             "location": "South San Francisco, CA",
-            "results": 75,
+            "results":  75,
             "distance": 40,
+            "region":   "US",
         },
-        # --- Philadelphia / NJ (J&J, GSK, Merck, AstraZeneca US HQ) ---
         {
-            "label": "Research Scientist — Philadelphia / NJ pharma corridor",
-            "term":  ('"Research Scientist" OR "Senior Scientist" OR "Preclinical Scientist" '
-                      'OR "Cardiovascular Scientist" OR "Translational Scientist" '
-                      'OR "In Vivo Scientist"'),
+            "label":    "Research Scientist — Philadelphia / NJ pharma corridor",
+            "term":     _HUB_TERM,
             "location": "Philadelphia, PA",
-            "results": 75,
+            "results":  75,
             "distance": 50,
+            "region":   "US",
         },
-        # --- Research Triangle Park NC (GSK, Biogen, Novo Nordisk, etc.) ---
         {
-            "label": "Research Scientist — Research Triangle Park NC",
-            "term":  ('"Research Scientist" OR "Senior Scientist" OR "Preclinical Scientist" '
-                      'OR "Cardiovascular Scientist" OR "Translational Scientist"'),
+            "label":    "Research Scientist — Research Triangle Park NC",
+            "term":     _HUB_TERM,
             "location": "Durham, NC",
-            "results": 60,
+            "results":  60,
             "distance": 30,
+            "region":   "US",
+        },
+        # ── EUROPE ───────────────────────────────────────────────────────────
+        # Cambridge UK — AstraZeneca global HQ, Wellcome Sanger, GSK research park
+        {
+            "label":    "Research Scientist — Cambridge UK (AstraZeneca / GSK / Wellcome Sanger)",
+            "term":     _HUB_TERM,
+            "location": "Cambridge, United Kingdom",
+            "results":  75,
+            "distance": 25,
+            "region":   "Europe",
+        },
+        # London UK — GSK HQ, UCB Pharma, MedImmune, Immunocore
+        {
+            "label":    "Research Scientist — London UK (GSK / UCB / Immunocore)",
+            "term":     _HUB_TERM,
+            "location": "London, United Kingdom",
+            "results":  75,
+            "distance": 25,
+            "region":   "Europe",
+        },
+        # Basel Switzerland — Novartis global HQ, Roche global HQ, Lonza
+        {
+            "label":    "Research Scientist — Basel Switzerland (Novartis / Roche / Lonza)",
+            "term":     _HUB_TERM,
+            "location": "Basel, Switzerland",
+            "results":  60,
+            "distance": 30,
+            "region":   "Europe",
+        },
+        # Munich Germany — BioNTech R&D hub, Bayer AG, Helmholtz Munich, Roche Diagnostics
+        {
+            "label":    "Research Scientist — Munich Germany (BioNTech / Bayer / Helmholtz)",
+            "term":     _HUB_TERM,
+            "location": "Munich, Germany",
+            "results":  60,
+            "distance": 25,
+            "region":   "Europe",
+        },
+        # Paris France — Sanofi global HQ, Institut Pasteur, Servier
+        {
+            "label":    "Research Scientist — Paris France (Sanofi / Institut Pasteur)",
+            "term":     _HUB_TERM,
+            "location": "Paris, France",
+            "results":  50,
+            "distance": 25,
+            "region":   "Europe",
+        },
+        # ── INDIA ────────────────────────────────────────────────────────────
+        # Bangalore — Biocon, AstraZeneca India R&D, Novo Nordisk India, Syngene, Strand
+        {
+            "label":    "Research Scientist — Bangalore India (Biocon / AstraZeneca / Syngene)",
+            "term":     _HUB_TERM,
+            "location": "Bangalore, India",
+            "results":  75,
+            "distance": 30,
+            "region":   "India",
+        },
+        # Hyderabad — Dr. Reddy's, Aurobindo, MSN Labs, Cipla R&D centre
+        {
+            "label":    "Research Scientist — Hyderabad India (Dr Reddy's / Aurobindo / Cipla)",
+            "term":     _HUB_TERM,
+            "location": "Hyderabad, India",
+            "results":  60,
+            "distance": 30,
+            "region":   "India",
+        },
+        # Pune — Serum Institute, Lupin R&D, Piramal, Indoco
+        {
+            "label":    "Research Scientist — Pune India (Serum Institute / Lupin / Piramal)",
+            "term":     _HUB_TERM,
+            "location": "Pune, India",
+            "results":  50,
+            "distance": 25,
+            "region":   "India",
         },
     ]
 
@@ -490,6 +560,7 @@ def pooja_hunt():
             df = scrape_jobs(**kwargs)
             if not df.empty:
                 df["_search_pass"] = cfg["label"]
+                df["_region"]      = cfg.get("region", "US")
                 all_frames.append(df)
                 sprint(f"  → {len(df)} raw results")
             else:
@@ -548,6 +619,7 @@ def pooja_hunt():
         location = str(row.get("location", ""))
         url      = str(row.get("job_url", ""))
         src      = str(row.get("_search_pass", ""))
+        region   = str(row.get("_region", "US"))
 
         try:
             score, method = score_job(title, desc, location)
@@ -579,6 +651,7 @@ def pooja_hunt():
                     "Posted":    str(row.get("date_posted", "")),
                     "ScoredBy":  method,
                     "Source":    src,
+                    "Region":    region,
                     "ScannedAt": datetime.now().strftime("%Y-%m-%d %H:%M"),
                 })
 

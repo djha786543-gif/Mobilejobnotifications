@@ -4,12 +4,14 @@ Ph.D. Research Scientist | Cardiovascular Biology | Preclinical | Translational 
 STRICTLY ISOLATED from DJ's audit scanner.
 """
 
+import json
 import os
 import re
 import sys
 import time
 import requests
 import pandas as pd
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from jobspy import scrape_jobs
 
@@ -24,19 +26,22 @@ def sprint(*args, **kwargs):
     text = " ".join(str(a) for a in args)
     safe = text.encode(sys.stdout.encoding or "utf-8", errors="replace").decode(
            sys.stdout.encoding or "utf-8", errors="replace")
-    print(safe, **kwargs)
+    print(safe, flush=True, **kwargs)
 
 # --- CONFIG (completely separate from DJ) ---
 GROQ_API_KEY   = os.getenv("GROQ_API_KEY")
 NTFY_TOPIC     = os.getenv("POOJA_NTFY_TOPIC", "pooja-industry-oppor")
 GITHUB_TOKEN   = os.getenv("GITHUB_TOKEN")
 GITHUB_REPO    = os.getenv("GITHUB_REPO", "djha786543-gif/Mobilejobnotifications")
-CSV_PATH       = "Scored_Bio_Leads.csv"
+CSV_PATH       = "Scored_Pooja_Leads.csv"
 GROQ_MODEL     = "llama-3.3-70b-versatile"
 GROQ_ENDPOINT  = "https://api.groq.com/openai/v1/chat/completions"
 MIN_SAVE_SCORE = 35
 MAX_ALERTS     = 10
-SCORE_TOP_N    = 160
+SCORE_LLM_TOP  = 40    # top N by title relevance → LLM; rest → keyword scorer
+BATCH_SIZE     = 15    # jobs per Groq call
+SCRAPE_WORKERS = 4     # parallel scrape threads (stays under LinkedIn radar)
+
 
 # ---------------------------------------------------------------------------
 # Title whitelist — research science roles in biotech/pharma/CRO space
@@ -93,12 +98,33 @@ def matches_title(title: str) -> bool:
     t = title.lower()
     if not any(re.search(p, t) for p in TITLE_WHITELIST):
         return False
-    # Explicit scientist/research overrides blacklist
     if re.search(r"\bscientist\b|\bresearcher\b|\bresearch\b", t):
         return True
     if any(re.search(p, t) for p in TITLE_BLACKLIST):
         return False
     return True
+
+
+# ---------------------------------------------------------------------------
+# Title relevance pre-ranker — fast keyword signal, no API call
+# Higher score → send to LLM; lower score → keyword scorer only
+# ---------------------------------------------------------------------------
+_TITLE_HIGH = [
+    "cardiovascular", "preclinical", "in vivo", "translational",
+    "biomarker", "drug discovery", "pharmacolog", "cardiac",
+    "cardiomyopathy", "heart failure",
+]
+_TITLE_MED = [
+    "research scientist", "senior scientist", "staff scientist",
+    "principal scientist", "scientist ii", "scientist iii", "scientist 2",
+    "scientist 3",
+]
+
+def title_relevance(title: str) -> int:
+    t = title.lower()
+    score = sum(3 for k in _TITLE_HIGH if k in t)
+    score += sum(1 for k in _TITLE_MED if k in t)
+    return score
 
 
 # ---------------------------------------------------------------------------
@@ -233,7 +259,7 @@ def keyword_score(title: str, desc: str, location: str = "") -> int:
 
         # Molecular/genetics skills
         "molecular genetics":   7, "molecular biology":  6, "gene expression":   5,
-        "protein expression":   5, "pathway analysis":   5, "ptrh2":            10,  # her key protein
+        "protein expression":   5, "pathway analysis":   5, "ptrh2":            10,
 
         # Grant/publication signals (industry values this)
         "nature communications": 8, "peer review":       5, "publication":       4,
@@ -260,13 +286,13 @@ def keyword_score(title: str, desc: str, location: str = "") -> int:
 
     # --- Seniority fit ---
     if re.search(r"\bsenior\b|\bstaff\b|\bprincipal\b|\bsr\.\b", t):
-        score += 4   # senior levels are fine — she has 10+ years
+        score += 4
     if re.search(r"\bscientist\s+(ii|iii|2|3)\b", t):
         score += 3
     if re.search(r"\bjunior\b|\bentry\s+level\b|\bscientist\s+i\b|\bscientist\s+1\b", t):
-        score -= 8   # too junior for 10+ years PhD experience
+        score -= 8
     if re.search(r"\bpostdoc\b|\bpost-doc\b|\bpostdoctoral\b", d):
-        score -= 15  # she is actively transitioning OUT of postdoc
+        score -= 15
 
     # Hard seniority penalties
     if re.search(r"\bvp\b|\bvice\s+president\b", t):           score -= 30
@@ -280,7 +306,7 @@ def keyword_score(title: str, desc: str, location: str = "") -> int:
                              "academic appointment", "university professor"]):
         score -= 20
 
-    # --- Hard disqualifiers ---
+    # Hard disqualifiers
     if any(k in d for k in ["secret clearance", "top secret", "ts/sci", "clearance required"]):
         score -= 30
 
@@ -288,78 +314,10 @@ def keyword_score(title: str, desc: str, location: str = "") -> int:
 
 
 # ---------------------------------------------------------------------------
-# LLM scorer via Groq — tuned for Pooja's profile
+# Batch LLM scorer — 15 jobs per Groq call, strict JSON output
 # ---------------------------------------------------------------------------
-def llm_score(desc: str, location: str = "") -> int | None:
-    if not GROQ_API_KEY:
-        return None
-
-    prompt = f"""Rate 0–100 fit for this candidate:
-
-Candidate profile — Pooja Choubey, Ph.D.:
-- Ph.D. Molecular Genetics, University of Delhi (UGC-NET JRF AIR 64; ICMR JRF Rank 15)
-- 10+ years preclinical research experience in cardiovascular biology, rare genetic disorders, cancer biology
-- Co-first author, Nature Communications 2026: PTRH2 as therapeutic target in peripartum cardiomyopathy (5,093 accesses, Altmetric 78)
-- Current role: Post-Doctoral Research Scientist, The Lundquist Institute / Harbor-UCLA, Torrance, CA
-- In vivo expertise: Mouse colony (200+ mice, 3 transgenic lines); cardiac phenotyping pipeline (Langendorff isolation, VEVO F2 echocardiography, EKG, contractility assays); genotyping; tissue/organ harvest
-- Assay expertise: FACS, Western blot, IHC/ICC, ELISA, qRT-PCR, TUNEL, Beta-gal, XTT/MTT, Hydroxyproline
-- Omics: Bulk RNA-seq, scRNA-seq, Xenium & Visium spatial transcriptomics, IPA, STRING network analysis
-- Grant support: CIRM, Cohen Fellowship, PCVRD clinical trial applications
-- Open to relocate globally — any US city, UK/Europe (Cambridge, London, Basel, Munich, Paris), or India (Bangalore, Hyderabad, Pune); no location restrictions
-- NOT seeking remote — open to on-site positions anywhere in the world
-- Target: Industry transition — R&D Scientist, Preclinical Research Scientist, Translational Scientist, Biomarker Scientist at biotech/pharma/CRO
-
-Job description:
-{desc[:2800]}
-
-Scoring guide:
-- 90–100: Perfect fit — cardiovascular/preclinical R&D scientist role at biotech/pharma/CRO, PhD required, in vivo/mouse expertise needed, strong skill alignment
-- 70–89: Strong fit — relevant preclinical/translational role, good skill overlap, industry setting
-- 50–69: Decent fit — some overlap (related therapeutic area or relevant techniques), may lack key requirement
-- 30–49: Partial — adjacent field, mostly bioinformatics/computational, or missing core preclinical skills
-- 0–29: Poor fit — wrong field (clinical trials admin, sales, software, QA/QC, academic faculty, postdoc)
-
-Return ONLY a single integer 0–100. No explanation."""
-
-    for attempt in range(3):
-        try:
-            r = requests.post(
-                GROQ_ENDPOINT,
-                headers={"Authorization": f"Bearer {GROQ_API_KEY}",
-                         "Content-Type": "application/json"},
-                json={"model": GROQ_MODEL,
-                      "messages": [{"role": "user", "content": prompt}],
-                      "max_tokens": 10,
-                      "temperature": 0},
-                timeout=20,
-            )
-            if r.status_code == 429:
-                wait = 10 if attempt == 0 else 25
-                sprint(f"  [Rate limit] Waiting {wait}s...")
-                time.sleep(wait)
-                continue
-            r.raise_for_status()
-            text = r.json()["choices"][0]["message"]["content"].strip()
-            m = re.search(r"\b(\d{1,3})\b", text)
-            return min(int(m.group(1)), 100) if m else None
-        except Exception as e:
-            sprint(f"  [LLM error attempt {attempt+1}]: {e}")
-            if attempt < 2:
-                time.sleep(3)
-    return None
-
-
-def score_job(title: str, desc: str, location: str = "") -> tuple[int, str]:
-    llm = llm_score(desc, location)
-    if llm is not None:
-        return llm, "llm"
-    return keyword_score(title, desc, location), "keyword"
-
-
 def llm_score_batch(batch: list[dict]) -> list[int | None]:
-    """Score up to 10 jobs in a single Groq call.
-    Each dict must have keys: title, desc, company, location.
-    Returns a list of ints (or None on failure) in the same order."""
+    """Score up to 15 jobs in one Groq call. Returns JSON list of ints."""
     if not GROQ_API_KEY or not batch:
         return [None] * len(batch)
 
@@ -368,31 +326,35 @@ def llm_score_batch(batch: list[dict]) -> list[int | None]:
     for i, j in enumerate(batch, 1):
         blocks.append(
             f"[{i}] {j['title']} @ {j['company']} | {j['location']}\n"
-            f"{j['desc'][:400]}"
+            f"{j['desc'][:350]}"
         )
 
     prompt = (
-        f"Rate each of the {n} jobs below 0-100 for fit with this candidate.\n"
-        f"Return ONLY {n} integers separated by commas, in order. No other text.\n\n"
-        "Candidate — Pooja Choubey, Ph.D.:\n"
+        f"You are a scientific recruiter. Score each of the {n} jobs 0-100 for fit "
+        f"with this candidate.\n\n"
+        "CANDIDATE — Pooja Choubey, Ph.D.:\n"
         "- Ph.D. Molecular Genetics; 10+ years preclinical cardiovascular research\n"
         "- Co-first author Nature Communications 2026 (PTRH2 / peripartum cardiomyopathy)\n"
-        "- In vivo: Langendorff, echocardiography, mouse colony (200+ mice, 3 transgenic lines)\n"
-        "- Assays: FACS, Western blot, IHC/ICC, ELISA, qRT-PCR, TUNEL, Beta-gal\n"
-        "- Omics: RNA-seq, scRNA-seq, Xenium/Visium spatial transcriptomics, IPA, STRING\n"
-        "- Visa: J1 (US work authorized); open to on-site US or international relocation\n"
-        "- Target: R&D / Preclinical / Translational Scientist at biotech/pharma/CRO\n\n"
-        "Scoring guide:\n"
-        "90-100: Perfect — cardiovascular/preclinical R&D, PhD required, in vivo/mouse, biotech/pharma/CRO\n"
-        "70-89:  Strong — relevant preclinical/translational, good skill overlap, industry setting\n"
-        "50-69:  Decent — adjacent area or relevant techniques, partial match\n"
-        "30-49:  Partial — bioinformatics-heavy, missing core preclinical skills\n"
-        "0-29:   Poor — wrong field (clinical admin, sales, software, QA, postdoc, academic)\n\n"
-        "Jobs:\n" +
+        "- In vivo: Langendorff isolation, echocardiography (VEVO F2), mouse colony 200+ mice, 3 transgenic lines\n"
+        "- Assays: FACS, Western blot, IHC/ICC, ELISA, qRT-PCR, TUNEL, Beta-gal, Hydroxyproline\n"
+        "- Omics: RNA-seq, scRNA-seq, Xenium & Visium spatial transcriptomics, IPA, STRING\n"
+        "- Target: R&D / Preclinical / Translational Scientist at biotech/pharma/CRO\n"
+        "- Open to relocation: US, Europe, India. NOT seeking remote.\n\n"
+        "STRICT SCORING RUBRIC:\n"
+        "90-100: ONLY if the JD EXPLICITLY requires a Ph.D. or 'Scientist' title AND is hands-on "
+        "preclinical/cardiovascular/translational R&D at a biotech, pharma, or CRO.\n"
+        "70-89:  Strong preclinical/translational R&D role, PhD preferred, good skill overlap, industry setting.\n"
+        "50-69:  Decent — adjacent therapeutic area or relevant wet-lab techniques, partial match.\n"
+        "30-49:  Partial — mostly bioinformatics/computational, missing core in vivo/wet-lab requirement.\n"
+        "< 30:   Poor — general lab tech, sales, software engineer, QA/QC, regulatory affairs, "
+        "clinical coordinator, or any role NOT requiring hands-on preclinical research.\n\n"
+        "JOBS:\n" +
         "\n\n".join(blocks) +
-        f"\n\nReturn {n} comma-separated integers only:"
+        f"\n\nReturn ONLY a raw JSON array of {n} integers, e.g. [82,45,91]. "
+        "No text, no explanation, no markdown."
     )
 
+    text = ""
     for attempt in range(3):
         try:
             r = requests.post(
@@ -401,7 +363,7 @@ def llm_score_batch(batch: list[dict]) -> list[int | None]:
                          "Content-Type": "application/json"},
                 json={"model": GROQ_MODEL,
                       "messages": [{"role": "user", "content": prompt}],
-                      "max_tokens": 60,
+                      "max_tokens": 100,
                       "temperature": 0},
                 timeout=30,
             )
@@ -412,24 +374,58 @@ def llm_score_batch(batch: list[dict]) -> list[int | None]:
                 continue
             r.raise_for_status()
             text = r.json()["choices"][0]["message"]["content"].strip()
+
+            # Strict JSON parse
+            try:
+                parsed = json.loads(text)
+                if isinstance(parsed, list) and len(parsed) >= n:
+                    return [min(int(x), 100) for x in parsed[:n]]
+            except (json.JSONDecodeError, ValueError):
+                pass
+
+            # Regex fallback
             nums = re.findall(r"\b(\d{1,3})\b", text)
             if len(nums) >= n:
                 return [min(int(x), 100) for x in nums[:n]]
-            sprint(f"  [Batch] Expected {n} scores, got {len(nums)} — falling back to keyword")
+
+            sprint(f"  [Batch] Unexpected response ({len(nums)} ints for {n} jobs): {text[:80]}")
             return [None] * n
+
         except Exception as e:
             sprint(f"  [Batch LLM error attempt {attempt+1}]: {e}")
             if attempt < 2:
                 time.sleep(3)
+
     return [None] * n
 
 
 # ---------------------------------------------------------------------------
-# Search configuration — 18 passes: US hubs + Europe + India
-# Pooja is open to relocation anywhere globally; we search all major pharma/biotech markets
+# Parallel scrape helper — one thread per search config
+# ---------------------------------------------------------------------------
+def _scrape_one(cfg: dict) -> pd.DataFrame:
+    """Run a single search pass. Returns a DataFrame (may be empty)."""
+    kwargs = dict(
+        site_name=cfg.get("sites", ["linkedin", "indeed"]),
+        search_term=cfg["term"],
+        location=cfg["location"],
+        results_wanted=cfg["results"],
+    )
+    if cfg.get("region", "US") == "US":
+        kwargs["is_remote"] = False
+    if "distance" in cfg:
+        kwargs["distance"] = cfg["distance"]
+
+    df = scrape_jobs(**kwargs)
+    if not df.empty:
+        df["_search_pass"] = cfg["label"]
+        df["_region"]      = cfg.get("region", "US")
+    return df
+
+
+# ---------------------------------------------------------------------------
+# Search configuration — 18 passes: US hubs + Europe + India (LinkedIn only)
 # ---------------------------------------------------------------------------
 def build_search_configs() -> list[dict]:
-    # Reusable broad science term for hub-level passes
     _HUB_TERM = (
         '"Research Scientist" OR "Senior Scientist" OR "Staff Scientist" '
         'OR "Principal Scientist" OR "Translational Scientist" '
@@ -437,13 +433,8 @@ def build_search_configs() -> list[dict]:
         'OR "In Vivo Scientist" OR "Biomarker Scientist" '
         'OR "Drug Discovery Scientist" OR "Pharmacologist"'
     )
-    # Interleaved order: international passes are spread across the scan
-    # so they run while LinkedIn is still fresh (LinkedIn rate-limits ~10 pages/session).
-    # US nationwide passes also hit Indeed, reducing LinkedIn load for those slots.
-    # Europe/India: LinkedIn only (global), no distance (unreliable outside US).
-    # India: LinkedIn + Naukri (India's #1 job board, native JobSpy support).
     return [
-        # 1 — US nationwide (LinkedIn + Indeed)
+        # 1 — US nationwide
         {
             "label":    "Cardiovascular Research Scientist (US nationwide)",
             "term":     ('"Cardiovascular Research Scientist" OR "Cardiovascular Scientist" '
@@ -453,7 +444,7 @@ def build_search_configs() -> list[dict]:
             "results":  25,
             "region":   "US",
         },
-        # 2 — US nationwide (LinkedIn + Indeed)
+        # 2 — US nationwide
         {
             "label":    "Preclinical / In Vivo Scientist (US nationwide)",
             "term":     ('"Preclinical Research Scientist" OR "Preclinical Scientist" '
@@ -481,7 +472,7 @@ def build_search_configs() -> list[dict]:
             "region":   "Europe",
             "sites":    ["linkedin"],
         },
-        # 5 — US nationwide (LinkedIn + Indeed)
+        # 5 — US nationwide
         {
             "label":    "Translational / Biomarker Scientist (US nationwide)",
             "term":     ('"Translational Research Scientist" OR "Translational Scientist" '
@@ -491,7 +482,7 @@ def build_search_configs() -> list[dict]:
             "results":  25,
             "region":   "US",
         },
-        # 6 — US nationwide (LinkedIn + Indeed)
+        # 6 — US nationwide
         {
             "label":    "Senior / Staff / Principal Scientist (US nationwide)",
             "term":     ('"Senior Research Scientist" OR "Staff Scientist" '
@@ -501,7 +492,7 @@ def build_search_configs() -> list[dict]:
             "results":  25,
             "region":   "US",
         },
-        # 7 — US hub: LA / Torrance (current location)
+        # 7 — US hub: LA / Torrance
         {
             "label":    "Research Scientist — LA / Torrance area",
             "term":     ('"Research Scientist" OR "Senior Scientist" OR "Translational Scientist" '
@@ -574,23 +565,23 @@ def build_search_configs() -> list[dict]:
             "distance": 50,
             "region":   "US",
         },
-        # 15 — INDIA: Bengaluru — Biocon, AstraZeneca India, Syngene (LinkedIn + Naukri)
+        # 15 — INDIA: Bengaluru — Biocon, AstraZeneca India, Syngene (LinkedIn only)
         {
             "label":    "Research Scientist — Bangalore India (Biocon / AstraZeneca / Syngene)",
             "term":     _HUB_TERM,
             "location": "Bengaluru",
             "results":  25,
             "region":   "India",
-            "sites":    ["linkedin", "naukri"],
+            "sites":    ["linkedin"],
         },
-        # 16 — INDIA: Hyderabad — Dr. Reddy's, Aurobindo, Cipla R&D (LinkedIn + Naukri)
+        # 16 — INDIA: Hyderabad — Dr. Reddy's, Aurobindo, Cipla R&D (LinkedIn only)
         {
             "label":    "Research Scientist — Hyderabad India (Dr Reddy's / Aurobindo / Cipla)",
             "term":     _HUB_TERM,
             "location": "Hyderabad",
             "results":  25,
             "region":   "India",
-            "sites":    ["linkedin", "naukri"],
+            "sites":    ["linkedin"],
         },
         # 17 — US hub: Research Triangle Park NC
         {
@@ -601,14 +592,14 @@ def build_search_configs() -> list[dict]:
             "distance": 30,
             "region":   "US",
         },
-        # 18 — INDIA: Pune — Serum Institute, Lupin, Piramal (LinkedIn + Naukri)
+        # 18 — INDIA: Pune — Serum Institute, Lupin, Piramal (LinkedIn only)
         {
             "label":    "Research Scientist — Pune India (Serum Institute / Lupin / Piramal)",
             "term":     _HUB_TERM,
             "location": "Pune",
             "results":  25,
             "region":   "India",
-            "sites":    ["linkedin", "naukri"],
+            "sites":    ["linkedin"],
         },
     ]
 
@@ -621,42 +612,37 @@ def pooja_hunt():
     sprint(f"[Pooja Scanner] Biotech/Pharma Job Hunt — {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     sprint(f"{'='*60}")
     alerts_sent = 0
-    all_frames  = []
+    configs     = build_search_configs()
 
-    for cfg in build_search_configs():
-        sprint(f"\n[Search] {cfg['label']} ({cfg['results']} results)...")
-        kwargs = dict(
-            site_name=cfg.get("sites", ["linkedin", "indeed"]),
-            search_term=cfg["term"],
-            location=cfg["location"],
-            results_wanted=cfg["results"],
-        )
-        # is_remote=False only works reliably for US/Indeed; skip for international passes
-        if cfg.get("region", "US") == "US":
-            kwargs["is_remote"] = False
-        if "distance" in cfg:
-            kwargs["distance"] = cfg["distance"]
+    # -----------------------------------------------------------------------
+    # Step 1 — Parallel scrape (4 workers)
+    # -----------------------------------------------------------------------
+    sprint(f"\n[Scrape] Launching {len(configs)} passes with {SCRAPE_WORKERS} parallel workers...")
+    all_frames = []
 
-        try:
-            df = scrape_jobs(**kwargs)
-            if not df.empty:
-                df["_search_pass"] = cfg["label"]
-                df["_region"]      = cfg.get("region", "US")
-                all_frames.append(df)
-                sprint(f"  → {len(df)} raw results")
-            else:
-                sprint(f"  → 0 results")
-            time.sleep(6)
-        except Exception as e:
-            sprint(f"  [Error] {e}")
-            time.sleep(8)
+    with ThreadPoolExecutor(max_workers=SCRAPE_WORKERS) as ex:
+        futures = {ex.submit(_scrape_one, cfg): cfg for cfg in configs}
+        for fut in as_completed(futures):
+            cfg = futures[fut]
+            sprint(f"[Search] {cfg['label']}...")
+            try:
+                df = fut.result()
+                if not df.empty:
+                    all_frames.append(df)
+                    sprint(f"  → {len(df)} raw results")
+                else:
+                    sprint(f"  → 0 results")
+            except Exception as e:
+                sprint(f"  [Error] {cfg['label']}: {e}")
 
     if not all_frames:
         sprint("[Pooja Scanner] No results from any search pass.")
         push_notification("Pooja Bio Hunt", "Scan ran — 0 results from all passes.", "low")
         return
 
-    # --- Combine + deduplicate ---
+    # -----------------------------------------------------------------------
+    # Step 2 — Combine + deduplicate
+    # -----------------------------------------------------------------------
     raw = pd.concat(all_frames, ignore_index=True)
     sprint(f"\n[Dedup] {len(raw)} total raw → ", end="")
 
@@ -674,7 +660,9 @@ def pooja_hunt():
     raw = raw.drop_duplicates(subset=["_title_co"], keep="first")
     sprint(f"{len(raw)} after dedup")
 
-    # --- Title filter ---
+    # -----------------------------------------------------------------------
+    # Step 3 — Title filter
+    # -----------------------------------------------------------------------
     raw["title_lower"] = raw["title"].str.lower().fillna("")
     mask     = raw["title_lower"].apply(matches_title)
     filtered = raw[mask].copy()
@@ -685,20 +673,32 @@ def pooja_hunt():
         push_notification("Pooja Bio Hunt", "Scan complete — 0 relevant titles found.", "low")
         return
 
+    # -----------------------------------------------------------------------
+    # Step 4 — Pre-rank by title relevance; split into LLM pool vs keyword pool
+    # -----------------------------------------------------------------------
+    filtered["_title_rel"] = filtered["title"].apply(title_relevance)
+
+    # Sort: highest title relevance first, then most recent
     if "date_posted" in filtered.columns:
-        filtered = filtered.sort_values("date_posted", ascending=False)
+        filtered = filtered.sort_values(
+            ["_title_rel", "date_posted"], ascending=[False, False]
+        )
+    else:
+        filtered = filtered.sort_values("_title_rel", ascending=False)
 
-    to_score = filtered.head(SCORE_TOP_N)
-    sprint(f"[Score]  Scoring top {len(to_score)} jobs...\n")
+    llm_pool     = filtered.head(SCORE_LLM_TOP).copy()
+    keyword_pool = filtered.iloc[SCORE_LLM_TOP:].copy()
 
-    # --- Score jobs in batches of 10 (one Groq call per batch) ---
-    BATCH_SIZE  = 10
-    scored_list = []
-    rows        = list(to_score.iterrows())
+    sprint(f"[Score]  {len(llm_pool)} → LLM batch  |  {len(keyword_pool)} → keyword scorer\n")
 
-    for b_start in range(0, len(rows), BATCH_SIZE):
-        batch = rows[b_start:b_start + BATCH_SIZE]
+    # -----------------------------------------------------------------------
+    # Step 5a — LLM batch scoring (15 jobs per Groq call)
+    # -----------------------------------------------------------------------
+    score_map: dict[str, tuple[int, str]] = {}
 
+    llm_rows = list(llm_pool.iterrows())
+    for b_start in range(0, len(llm_rows), BATCH_SIZE):
+        batch = llm_rows[b_start:b_start + BATCH_SIZE]
         payload = [
             {
                 "title":    str(r.get("title", "")),
@@ -708,77 +708,103 @@ def pooja_hunt():
             }
             for _, r in batch
         ]
-        batch_scores = llm_score_batch(payload)
+        scores = llm_score_batch(payload)
 
-        for (_, row), llm in zip(batch, batch_scores):
-            title    = str(row.get("title", "Unknown"))
-            desc     = str(row.get("description", ""))
-            company  = str(row.get("company", "Unknown"))
-            location = str(row.get("location", ""))
-            url      = str(row.get("job_url", ""))
-            src      = str(row.get("_search_pass", ""))
-            region   = str(row.get("_region", "US"))
-
-            try:
-                if llm is not None:
-                    score, method = llm, "llm-batch"
-                else:
-                    score, method = keyword_score(title, desc, location), "keyword"
-
-                if score >= 80:   tag = "STRONG"
-                elif score >= 70: tag = "HIGH  "
-                elif score >= 50: tag = "fair  "
-                else:             tag = "low   "
-
-                sprint(f"  [{score:3d}][{tag}][{method}] {title[:48]:<48} @ {company[:25]}")
-
-                if score >= 60 and alerts_sent < MAX_ALERTS:
-                    priority = "urgent" if score >= 82 else "high"
-                    push_notification(
-                        title=f"{score}% — {title[:48]}",
-                        message=f"{company}\n{location}\n{url}",
-                        priority=priority,
-                    )
-                    alerts_sent += 1
-
-                if score >= MIN_SAVE_SCORE:
-                    scored_list.append({
-                        "Score":     score,
-                        "Title":     title,
-                        "Company":   company,
-                        "Location":  location,
-                        "Type":      row.get("job_type", ""),
-                        "Link":      url,
-                        "Posted":    str(row.get("date_posted", "")),
-                        "ScoredBy":  method,
-                        "Source":    src,
-                        "Region":    region,
-                        "ScannedAt": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                    })
-
-            except Exception as e:
-                sprint(f"  [Error] {title[:40]}: {e}")
+        for (_, row), llm in zip(batch, scores):
+            url = str(row.get("job_url", ""))
+            if llm is not None:
+                score_map[url] = (llm, "llm-batch")
+            else:
+                score_map[url] = (
+                    keyword_score(
+                        str(row.get("title", "")),
+                        str(row.get("description", "")),
+                        str(row.get("location", "")),
+                    ),
+                    "keyword",
+                )
 
         time.sleep(2)   # polite delay between batch API calls
+
+    # -----------------------------------------------------------------------
+    # Step 5b — Keyword scoring for the remainder
+    # -----------------------------------------------------------------------
+    for _, row in keyword_pool.iterrows():
+        url = str(row.get("job_url", ""))
+        score_map[url] = (
+            keyword_score(
+                str(row.get("title", "")),
+                str(row.get("description", "")),
+                str(row.get("location", "")),
+            ),
+            "keyword",
+        )
+
+    # -----------------------------------------------------------------------
+    # Step 6 — Collect results, send alerts, build CSV
+    # -----------------------------------------------------------------------
+    scored_list = []
+    for _, row in filtered.iterrows():
+        title    = str(row.get("title", "Unknown"))
+        company  = str(row.get("company", "Unknown"))
+        location = str(row.get("location", ""))
+        url      = str(row.get("job_url", ""))
+        src      = str(row.get("_search_pass", ""))
+        region   = str(row.get("_region", "US"))
+
+        score, method = score_map.get(url, (0, "keyword"))
+
+        if score >= 80:   tag = "STRONG"
+        elif score >= 70: tag = "HIGH  "
+        elif score >= 50: tag = "fair  "
+        else:             tag = "low   "
+
+        sprint(f"  [{score:3d}][{tag}][{method}] {title[:48]:<48} @ {company[:25]}")
+
+        if score >= 60 and alerts_sent < MAX_ALERTS:
+            priority = "urgent" if score >= 82 else "high"
+            push_notification(
+                title=f"{score}% — {title[:48]}",
+                message=f"{company}\n{location}\n{url}",
+                priority=priority,
+            )
+            alerts_sent += 1
+
+        if score >= MIN_SAVE_SCORE:
+            scored_list.append({
+                "Score":     score,
+                "Title":     title,
+                "Company":   company,
+                "Location":  location,
+                "Type":      row.get("job_type", ""),
+                "Link":      url,
+                "Posted":    str(row.get("date_posted", "")),
+                "ScoredBy":  method,
+                "Source":    src,
+                "Region":    region,
+                "ScannedAt": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            })
 
     if not scored_list:
         sprint("\n[Pooja Scanner] No jobs met the minimum score threshold.")
         push_notification("Pooja Bio Hunt", "Scan done — no jobs cleared score threshold.", "low")
         return
 
+    # -----------------------------------------------------------------------
+    # Step 7 — Merge with existing CSV (utf-8-sig for international chars)
+    # -----------------------------------------------------------------------
     new_df = pd.DataFrame(scored_list)
 
     if os.path.exists(CSV_PATH):
-        existing = pd.read_csv(CSV_PATH)
+        existing = pd.read_csv(CSV_PATH, encoding="utf-8-sig")
         combined = pd.concat([existing, new_df], ignore_index=True)
         combined = combined.drop_duplicates(subset=["Link"], keep="last")
     else:
         combined = new_df
 
     combined = combined.sort_values("Score", ascending=False)
-    combined.to_csv(CSV_PATH, index=False)
+    combined.to_csv(CSV_PATH, index=False, encoding="utf-8-sig")
 
-    # Persist to GitHub so data survives Streamlit Cloud redeployments
     save_csv_to_github(CSV_PATH)
 
     strong = len(new_df[new_df["Score"] >= 80])

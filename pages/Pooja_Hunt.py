@@ -17,7 +17,7 @@ try:
 except ImportError:
     pass
 
-CSV_PATH   = "Scored_Bio_Leads.csv"
+CSV_PATH   = "Scored_Pooja_Leads.csv"
 LOG_PATH   = "pooja_scan_log.txt"
 NTFY_TOPIC = os.getenv("POOJA_NTFY_TOPIC", "pooja-industry-oppor")
 
@@ -67,43 +67,36 @@ col_a, col_b = st.columns([1, 3])
 
 with col_a:
     if st.button("Run Scan Now", width="stretch", type="primary"):
-        TOTAL_PASSES = 18
-        status_box   = st.empty()
-        prog_bar     = st.progress(0, text="Starting scan…")
-        log_box      = st.empty()
-        lines        = []
-        pass_done    = 0
+        with st.status("Searching Global Hubs...", expanded=True) as scan_status:
+            log_box = st.empty()
+            lines   = []
 
-        proc = subprocess.Popen(
-            [sys.executable, "-u", "pooja_hunter.py"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
-        )
-        for line in proc.stdout:
-            line = line.rstrip()
-            lines.append(line)
-            if "[Search]" in line:
-                pass_done += 1
-                pct   = min(pass_done / TOTAL_PASSES, 0.95)
-                label = line.replace("[Search]", "").strip()
-                prog_bar.progress(pct, text=f"Pass {pass_done}/{TOTAL_PASSES}: {label}")
-                status_box.info(f"Scanning: **{label}**", icon="🔍")
-            elif "[Score]" in line:
-                status_box.info(line.strip(), icon="⚡")
-            elif "[Done]" in line:
-                status_box.success(line.strip(), icon="✅")
-            log_box.code("\n".join(lines[-20:]), language=None)
+            proc = subprocess.Popen(
+                [sys.executable, "-u", "pooja_hunter.py"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+            )
+            for line in proc.stdout:
+                line = line.rstrip()
+                lines.append(line)
+                if "[Search]" in line:
+                    st.write(line.replace("[Search]", "").strip())
+                elif "[Score]" in line:
+                    st.write(line.strip())
+                elif "[Done]" in line:
+                    st.write(f"**{line.strip()}**")
+                log_box.code("\n".join(lines[-15:]), language=None)
 
-        proc.wait()
-        prog_bar.progress(1.0, text="Scan complete!")
+            proc.wait()
 
-        if proc.returncode != 0:
-            st.error(f"Scan failed:\n{''.join(lines[-10:])}")
-        else:
-            st.success("Scan complete — refreshing results.")
-            st.rerun()
+            if proc.returncode == 0:
+                scan_status.update(label="Scan Complete!", state="complete", expanded=False)
+                st.rerun()
+            else:
+                scan_status.update(label="Scan Failed", state="error", expanded=True)
+                st.error("\n".join(lines[-10:]))
 
 with col_b:
     last_scan = "—"

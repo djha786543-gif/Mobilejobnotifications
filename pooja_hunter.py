@@ -542,6 +542,59 @@ def build_search_configs() -> list[dict]:
             "region":   "India",
             "sites":    ["linkedin", "naukri"],
         },
+        # --- Europe: UK (AstraZeneca, GSK, Pfizer Sandwich, MedImmune) ---
+        {
+            "label": "Research Scientist — UK (London / Cambridge / Oxford)",
+            "term":  ('"Research Scientist" OR "Senior Scientist" OR "Preclinical Scientist" '
+                      'OR "Cardiovascular Scientist" OR "Translational Scientist" '
+                      'OR "In Vivo Scientist" OR "Biomarker Scientist"'),
+            "location": "London, United Kingdom",
+            "results": 75,
+            "distance": 60,
+            "sites": ["linkedin"],
+        },
+        # --- Europe: Switzerland / Germany (Roche, Novartis, Bayer, Boehringer) ---
+        {
+            "label": "Research Scientist — Basel / Zurich / Munich",
+            "term":  ('"Research Scientist" OR "Senior Scientist" OR "Preclinical Scientist" '
+                      'OR "Cardiovascular Scientist" OR "Translational Scientist" '
+                      'OR "In Vivo Scientist"'),
+            "location": "Basel, Switzerland",
+            "results": 60,
+            "distance": 80,
+            "sites": ["linkedin"],
+        },
+        # --- Europe: Netherlands / Belgium (Janssen, UCB, Galapagos) ---
+        {
+            "label": "Research Scientist — Amsterdam / Brussels",
+            "term":  ('"Research Scientist" OR "Senior Scientist" OR "Preclinical Scientist" '
+                      'OR "Cardiovascular Scientist" OR "Translational Scientist"'),
+            "location": "Amsterdam, Netherlands",
+            "results": 50,
+            "distance": 60,
+            "sites": ["linkedin"],
+        },
+        # --- India: Bengaluru (AstraZeneca, Syngene, GE Healthcare Life Sciences) ---
+        {
+            "label": "Research Scientist — Bengaluru India",
+            "term":  ('"Research Scientist" OR "Senior Scientist" OR "Preclinical Scientist" '
+                      'OR "Translational Scientist" OR "Biomarker Scientist" '
+                      'OR "Drug Discovery Scientist"'),
+            "location": "Bengaluru, India",
+            "results": 60,
+            "distance": 30,
+            "sites": ["linkedin"],
+        },
+        # --- India: Hyderabad / Mumbai (Dr. Reddy's, Sun Pharma, Cipla, Novartis India) ---
+        {
+            "label": "Research Scientist — Hyderabad / Mumbai India",
+            "term":  ('"Research Scientist" OR "Senior Scientist" OR "Preclinical Scientist" '
+                      'OR "Translational Scientist" OR "Drug Discovery Scientist"'),
+            "location": "Hyderabad, India",
+            "results": 60,
+            "distance": 40,
+            "sites": ["linkedin"],
+        },
     ]
 
 

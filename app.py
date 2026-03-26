@@ -110,7 +110,7 @@ if os.path.exists(CSV_PATH):
     # ---------------------------------------------------------------------------
     # Summary metrics
     # ---------------------------------------------------------------------------
-    m1, m2, m3, m4, m5 = st.columns(5)
+    m1, m2, m3, m4, m5, m6 = st.columns(6)
     m1.metric("Total Leads", len(df))
     m2.metric("Strong (80+)", len(df[df["Score"] >= 80]))
     m3.metric("High (70–79)", len(df[(df["Score"] >= 70) & (df["Score"] < 80)]))
@@ -121,12 +121,27 @@ if os.path.exists(CSV_PATH):
     new_count = df[df["PostedDate"] >= week_ago]["Score"].count() if df["PostedDate"].notna().any() else 0
     m5.metric("Posted This Week", int(new_count))
 
+    # LA-area count
+    la_cities = ["los angeles", "irvine", "long beach", "burbank", "glendale",
+                 "pasadena", "santa monica", "anaheim", "orange county",
+                 "el segundo", "torrance", "culver city", "beverly hills",
+                 "west hollywood", "riverside", "ontario", "corona",
+                 "rancho cucamonga", "woodland hills", "encino", "sherman oaks",
+                 "van nuys", "thousand oaks", "ventura", "oxnard",
+                 "santa clarita", "hawthorne", "inglewood", "manhattan beach",
+                 "hermosa beach", "redondo beach", "costa mesa", "newport beach",
+                 "socal", "southern california", "greater los angeles"]
+    la_mask = df["Location"].str.lower().apply(
+        lambda loc: any(city in str(loc) for city in la_cities)
+    )
+    m6.metric("LA-Area Leads", int(la_mask.sum()))
+
     st.write("")
 
     # ---------------------------------------------------------------------------
     # Filters
     # ---------------------------------------------------------------------------
-    fc1, fc2, fc3 = st.columns([1, 1, 2])
+    fc1, fc2, fc3, fc4 = st.columns([1, 1, 1, 2])
     with fc1:
         min_score = st.slider("Min score", 0, 100, 50, step=5)
     with fc2:
@@ -134,7 +149,9 @@ if os.path.exists(CSV_PATH):
         recency_sel = st.selectbox("Posted within", list(recency_opts.keys()))
         recency_days = recency_opts[recency_sel]
     with fc3:
-        search_text = st.text_input("Search title / company", placeholder="e.g. sox, deloitte, manager")
+        loc_filter = st.selectbox("Location type", ["All", "Remote", "LA Area"])
+    with fc4:
+        search_text = st.text_input("Search title / company", placeholder="e.g. sox, deloitte, grc")
 
     # Apply filters
     filtered = df[df["Score"] >= min_score].copy()
@@ -143,6 +160,18 @@ if os.path.exists(CSV_PATH):
         cutoff = datetime.now() - timedelta(days=recency_days)
         has_date = filtered["PostedDate"].notna()
         filtered = filtered[~has_date | (filtered["PostedDate"] >= cutoff)]
+
+    if loc_filter == "Remote":
+        filtered = filtered[
+            filtered["Location"].str.lower().str.contains("remote", na=False) |
+            filtered["Location"].str.lower().str.contains("united states", na=False)
+        ]
+    elif loc_filter == "LA Area":
+        filtered = filtered[
+            filtered["Location"].str.lower().apply(
+                lambda loc: any(city in str(loc) for city in la_cities)
+            )
+        ]
 
     if search_text:
         q = search_text.lower()
@@ -165,8 +194,13 @@ if os.path.exists(CSV_PATH):
     display = filtered.copy()
     display.insert(1, "Band", display["Score"].apply(score_band))
 
+    # Determine which columns exist (Source added in latest version)
+    show_cols = ["Score", "Band", "Title", "Company", "Location", "Type", "Posted", "ScoredBy", "Link"]
+    if "Source" in display.columns:
+        show_cols.insert(-1, "Source")
+
     st.dataframe(
-        display[["Score", "Band", "Title", "Company", "Location", "Type", "Posted", "ScoredBy", "Link"]],
+        display[[c for c in show_cols if c in display.columns]],
         use_container_width=True,
         column_config={
             "Score":    st.column_config.ProgressColumn("Match %", format="%d%%", min_value=0, max_value=100),
@@ -174,9 +208,10 @@ if os.path.exists(CSV_PATH):
             "Link":     st.column_config.LinkColumn("Apply", display_text="Apply"),
             "Posted":   st.column_config.TextColumn("Posted"),
             "ScoredBy": st.column_config.TextColumn("Scored By", width="small"),
+            "Source":   st.column_config.TextColumn("Search Pass", width="medium"),
         },
         hide_index=True,
-        height=520,
+        height=540,
     )
     st.caption(f"Showing {len(filtered)} of {len(df)} total leads  ·  Min score: {min_score}")
 

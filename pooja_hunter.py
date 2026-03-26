@@ -29,6 +29,8 @@ def sprint(*args, **kwargs):
 # --- CONFIG (completely separate from DJ) ---
 GROQ_API_KEY   = os.getenv("GROQ_API_KEY")
 NTFY_TOPIC     = os.getenv("POOJA_NTFY_TOPIC", "pooja-industry-oppor")
+GITHUB_TOKEN   = os.getenv("GITHUB_TOKEN")
+GITHUB_REPO    = os.getenv("GITHUB_REPO", "djha786543-gif/Mobilejobnotifications")
 CSV_PATH       = "Scored_Bio_Leads.csv"
 GROQ_MODEL     = "llama-3.3-70b-versatile"
 GROQ_ENDPOINT  = "https://api.groq.com/openai/v1/chat/completions"
@@ -97,6 +99,42 @@ def matches_title(title: str) -> bool:
     if any(re.search(p, t) for p in TITLE_BLACKLIST):
         return False
     return True
+
+
+# ---------------------------------------------------------------------------
+# GitHub API — persist CSV across Streamlit Cloud redeployments
+# ---------------------------------------------------------------------------
+def save_csv_to_github(csv_path: str) -> bool:
+    if not GITHUB_TOKEN or not os.path.exists(csv_path):
+        return False
+    try:
+        import base64
+        with open(csv_path, "rb") as f:
+            content_b64 = base64.b64encode(f.read()).decode()
+
+        api_url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{csv_path}"
+        headers = {"Authorization": f"token {GITHUB_TOKEN}",
+                   "Accept": "application/vnd.github+json"}
+
+        r = requests.get(api_url, headers=headers, timeout=10)
+        sha = r.json().get("sha", "") if r.status_code == 200 else ""
+
+        payload = {
+            "message": f"chore: auto-save Pooja scan results {datetime.now().strftime('%Y-%m-%d %H:%M UTC')}",
+            "content": content_b64,
+            "branch":  "main",
+        }
+        if sha:
+            payload["sha"] = sha
+
+        r2 = requests.put(api_url, json=payload, headers=headers, timeout=15)
+        if r2.status_code in (200, 201):
+            sprint(f"[GitHub] CSV saved to repo ({csv_path})")
+            return True
+        sprint(f"[GitHub] Save failed: {r2.status_code} {r2.text[:120]}")
+    except Exception as e:
+        sprint(f"[GitHub] Error: {e}")
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -565,6 +603,9 @@ def pooja_hunt():
 
     combined = combined.sort_values("Score", ascending=False)
     combined.to_csv(CSV_PATH, index=False)
+
+    # Persist to GitHub so data survives Streamlit Cloud redeployments
+    save_csv_to_github(CSV_PATH)
 
     strong = len(new_df[new_df["Score"] >= 80])
     high   = len(new_df[new_df["Score"] >= 70])

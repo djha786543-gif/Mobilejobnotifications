@@ -6,6 +6,7 @@ STRICTLY ISOLATED from DJ's audit job portal.
 
 import os
 import sys
+import time
 import subprocess
 import pandas as pd
 import streamlit as st
@@ -27,20 +28,30 @@ SCAN_HOURS = 12
 # Scheduler (completely separate from DJ's)
 # ---------------------------------------------------------------------------
 def run_scan():
-    with open(LOG_PATH, "a") as log:
-        log.write(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Scheduled scan started\n")
-    subprocess.run([sys.executable, "pooja_hunter.py"], capture_output=False)
-    with open(LOG_PATH, "a") as log:
-        log.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Scan finished\n")
+    try:
+        with open(LOG_PATH, "a") as log:
+            log.write(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Scheduled scan started\n")
+        subprocess.run([sys.executable, "pooja_hunter.py"], capture_output=False)
+        with open(LOG_PATH, "a") as log:
+            log.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Scan finished\n")
+    except Exception as e:
+        try:
+            with open(LOG_PATH, "a") as log:
+                log.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Scan error: {e}\n")
+        except Exception:
+            pass
 
 @st.cache_resource
 def get_pooja_scheduler():
+    # Brief boot delay — lets Streamlit's /healthz respond before background
+    # threads start. Only runs once per process (cached by @st.cache_resource).
+    time.sleep(10)
     scheduler = BackgroundScheduler()
     scheduler.add_job(
         run_scan, "interval",
         hours=SCAN_HOURS,
         id="pooja_auto_scan",
-        next_run_time=None,
+        next_run_time=None,   # paused on boot; user enables via button
     )
     scheduler.start()
     return scheduler

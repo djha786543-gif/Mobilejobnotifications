@@ -1,0 +1,30 @@
+{
+  "name": "Pooja Choubey",
+  "first_name": "Pooja",
+  "last_name": "Choubey",
+  "email": "Pooja.Choubey@lundquist.org",
+  "email_alt": "Poojachoubeydu@gmail.com",
+  "phone": "+1-504-342-9336",
+  "phone_india": "+91-9999285782",
+  "city": "Torrance",
+  "state": "CA",
+  "zip": "90501",
+  "country": "United States",
+  "linkedin_url": "PLACEHOLDER — paste Pooja's LinkedIn profile URL here",
+  "orcid": "0000-0001-8683-3051",
+  "resume_path": "assets/pooja_resume.pdf",
+  "headline": "Ph.D. Research Scientist | Cardiovascular Biology | Preclinical Research | Translational Medicine",
+  "years_experience": 10,
+  "education": "Ph.D. Molecular Genetics, University of Delhi (UGC-NET JRF AIR 64; ICMR JRF Rank 15)",
+  "work_authorization": "J1 visa (current US work authorization)",
+  "require_sponsorship": true,
+  "willing_to_relocate": true,
+  "notice_period": "2 weeks",
+  "salary_expectation": "PLACEHOLDER — e.g. 90000",
+  "target_roles": [
+    "Research Scientist", "Senior Research Scientist", "Preclinical Research Scientist",
+    "Translational Scientist", "Biomarker Scientist", "Drug Discovery Scientist",
+    "Staff Scientist", "Principal Scientist"
+  ],
+  "custom_question_context": "Ph.D. Molecular Genetics from University of Delhi (UGC-NET JRF AIR 64; ICMR JRF Rank 15) with 10+ years of preclinical research. Co-first author of a Nature Communications 2026 paper (5,093 accesses, Altmetric 78) validating PTRH2 as a therapeutic target in peripartum cardiomyopathy — directly translatable to therapeutic strategy. Currently Post-Doctoral Research Scientist at The Lundquist Institute / Harbor-UCLA Medical Center, Torrance, CA. In vivo expertise: established PTRH2-KO pregnant mouse model; complete cardiac phenotyping pipeline (Langendorff isolation, contractility assays, VEVO F2 echocardiography, EKG); managed 200+ mouse colony across 3 transgenic lines. Assay expertise: Beta-gal, TUNEL, FACS, Western blot, IHC/ICC, ELISA, qRT-PCR, XTT/MTT, Hydroxyproline. Multi-omics: bulk RNA-seq, scRNA-seq, Xenium & Visium spatial transcriptomics; IPA pathway analysis; STRING network analysis. Grant support: contributed to CIRM grant, Cohen Fellowship, PCVRD clinical trial workplan. Mentored 4-6 graduate and undergraduate scientists. Active peer reviewer (12 reviews in 2025). Seeking industry transition to R&D scientist, preclinical research, or biomarker discovery role at biotech/pharma/CRO. Open to on-site roles anywhere in the US or internationally."
+}

@@ -6,6 +6,8 @@ STRICTLY ISOLATED from DJ's audit job portal.
 
 import os
 import sys
+import json
+import tempfile
 import subprocess
 import pandas as pd
 import streamlit as st
@@ -259,6 +261,72 @@ if os.path.exists(CSV_PATH):
         with st.expander("Scan log"):
             with open(LOG_PATH) as f:
                 st.code(f.read()[-4000:], language=None)
+
+    # ── SITTING AGENT ──────────────────────────────────────────────────────
+    # Fills job application forms in your local browser, stops before Submit.
+    # Only available when IS_LOCAL_RUN=true in your .env (requires a display).
+    # Profile used: profiles/pooja_profile.json — NEVER loads Deobrat's profile.
+    # ──────────────────────────────────────────────────────────────────────
+    _IS_LOCAL = os.getenv("IS_LOCAL_RUN", "false").lower() == "true"
+
+    st.write("")
+    st.divider()
+    _agent_mode = st.toggle("🤖 Agent Mode — auto-fill applications", value=False, key="pooja_agent_toggle")
+
+    if _agent_mode:
+        if not _IS_LOCAL:
+            st.warning(
+                "**Sitting Agent is only available when running locally.**  \n"
+                "Add `IS_LOCAL_RUN=true` to your `.env` file and run "
+                "`streamlit run app.py` on your own machine.",
+                icon="🖥️",
+            )
+        else:
+            st.info(
+                "The agent fills all fields then **stops — it will never click Submit.**  \n"
+                "Pooja reviews and submits herself. "
+                "Live status updates appear in the terminal where Streamlit was started.",
+                icon="✋",
+            )
+
+            def _launch_pooja_agent(job: dict):
+                tmp = tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".json", delete=False, prefix="agent_job_"
+                )
+                json.dump(job, tmp)
+                tmp.close()
+                subprocess.Popen(
+                    [sys.executable, "sitting_agent/browser_agent.py",
+                     "--job-file",     tmp.name,
+                     "--profile-file", "profiles/pooja_profile.json"],
+                )
+                st.success(
+                    f"🚀 Agent launched for **{job.get('Title', '')}** "
+                    f"@ **{job.get('Company', '')}**"
+                )
+                st.info(
+                    "Browser is opening now.  \n"
+                    "The agent will fill all fields and **stop with the Submit button highlighted red**.  \n"
+                    "Pooja reviews, then clicks Submit herself.  \n"
+                    "Check your **terminal** for live step-by-step updates.",
+                    icon="🤖",
+                )
+
+            st.caption(
+                f"Showing top {min(len(filtered), 50)} leads · "
+                "Click 🚀 to launch agent · Agent stops before Submit"
+            )
+            for _i, (_, _row) in enumerate(filtered.head(50).iterrows()):
+                _c1, _c2, _c3, _c4, _c5, _c6 = st.columns([1, 4, 3, 2, 1, 1])
+                _c1.markdown(f"**{_row['Score']}%**")
+                _c2.write(f"**{_row['Title']}**")
+                _c3.write(_row.get("Company", ""))
+                _c4.write(_row.get("Location", ""))
+                _c5.write(_row.get("Region", ""))
+                with _c6:
+                    if st.button("🚀", key=f"pooja_agent_{_i}",
+                                 help=f"Launch agent: {_row.get('Title', '')}"):
+                        _launch_pooja_agent(_row.to_dict())
 
 else:
     st.warning("No leads yet — click **Run Scan Now** above to start the first scan.")

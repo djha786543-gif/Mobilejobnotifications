@@ -1,0 +1,27 @@
+{
+  "name": "Deobrat Jha",
+  "first_name": "Deobrat",
+  "last_name": "Jha",
+  "email": "djha786543@gmail.com",
+  "phone": "(504) 435-2750",
+  "address": "1341 W Carson St, Unit 23, Torrance, CA 90501",
+  "city": "Torrance",
+  "state": "CA",
+  "zip": "90501",
+  "country": "United States",
+  "linkedin_url": "PLACEHOLDER — paste your LinkedIn profile URL here",
+  "resume_path": "assets/deobrat_resume.pdf",
+  "headline": "IT Audit Manager | Cloud & Risk Management | CISA | AWS Cloud Practitioner",
+  "years_experience": 10,
+  "work_authorization": "US Employment Authorization Document (EAD)",
+  "require_sponsorship": false,
+  "willing_to_relocate": false,
+  "notice_period": "2 weeks",
+  "salary_expectation": "PLACEHOLDER — e.g. 130000",
+  "certifications": ["CISA", "AWS Cloud Practitioner", "Six Sigma Yellow Belt"],
+  "target_roles": [
+    "IT Audit Manager", "IT Audit Director", "Senior IT Auditor",
+    "Technology Risk Manager", "Cloud Security Auditor", "IT Risk Manager"
+  ],
+  "custom_question_context": "IT Audit Manager with 10+ years of experience at EY (Global Delivery Services) and Fortune 500 companies including Public Storage Corporation and Investar Bank. CISA certified (Jan 2026), AWS Cloud Practitioner (Feb 2026). Deep expertise in SOX 404, ITGC/ITAC testing, SOC 1/SOC 2 Type II audits, cloud security audits (AWS, Azure), and internal controls. Hands-on with SAP S/4HANA, Oracle, Workday, NetSuite, Salesforce, ServiceNow, Jira, Power BI. Built and led offshore audit teams across India and US. Created Excel VBA automation that dramatically reduced manual testing time. Drafted hundreds of workpapers with consistent pass on EY quality reviews. Known for translating complex technical findings into clear C-suite recommendations. Currently authorized to work in the US (EAD). Based in Torrance, CA. Open to hybrid or on-site roles in LA area; also open to remote."
+}

@@ -17,6 +17,7 @@ Supported platforms (auto-detected):
 import os
 import re
 import sys
+import time
 from urllib.parse import urlparse
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -31,10 +32,13 @@ _resume_uploaded = False
 # Public entry point
 # ===========================================================================
 
-def fill_application(page, profile: dict, job: dict):
+def fill_application(page, profile: dict, job: dict, start_time: float = None):
     """Navigate to the job page, detect the platform, and fill the application."""
     global _resume_uploaded
     _resume_uploaded = False  # Reset per application
+
+    if start_time is None:
+        start_time = time.time()
 
     url = str(job.get("Link", ""))
 
@@ -44,7 +48,7 @@ def fill_application(page, profile: dict, job: dict):
             return
 
     if "linkedin.com" in url:
-        _fill_linkedin(page, profile, job)
+        _fill_linkedin(page, profile, job, start_time=start_time)
     elif "indeed.com" in url:
         _fill_indeed(page, profile, job)
     elif "greenhouse.io" in url or "boards.greenhouse.io" in url:
@@ -61,8 +65,10 @@ def fill_application(page, profile: dict, job: dict):
 # LinkedIn
 # ===========================================================================
 
-def _fill_linkedin(page, profile: dict, job: dict):
+def _fill_linkedin(page, profile: dict, job: dict, start_time: float = None):
     """Handle LinkedIn job page — Easy Apply modal or external Apply link."""
+    if start_time is None:
+        start_time = time.time()
     print("[Agent] LinkedIn — looking for Easy Apply button...")
     page.wait_for_timeout(2000)
 
@@ -81,7 +87,7 @@ def _fill_linkedin(page, profile: dict, job: dict):
                 btn.click()
                 page.wait_for_timeout(3000)
                 print("[Agent] Easy Apply modal opened")
-                _walk_linkedin_wizard(page, profile, job)
+                _walk_linkedin_wizard(page, profile, job, start_time=start_time)
                 return
         except Exception:
             continue
@@ -121,11 +127,25 @@ def _navigate_external_apply(page, profile: dict, job: dict):
     stop_on_review(page)
 
 
-def _walk_linkedin_wizard(page, profile: dict, job: dict):
+def _walk_linkedin_wizard(page, profile: dict, job: dict, start_time: float = None):
     """Walk through all LinkedIn Easy Apply wizard steps."""
+    if start_time is None:
+        start_time = time.time()
     for step_num in range(25):
         page.wait_for_timeout(2000)
         print(f"\n[Agent] LinkedIn Easy Apply — Step {step_num + 1}")
+
+        # 5-minute global timeout
+        if time.time() - start_time > 300:
+            print("[Agent] ⚠️  5-minute timeout reached — stopping to prevent hanging.")
+            stop_on_review(page, reason="5-minute timeout reached")
+            return
+
+        # URL drift — LinkedIn silently redirected to an external ATS
+        current_url = page.url
+        if "linkedin.com" not in current_url:
+            _handle_external_redirect(page, profile, current_url)
+            return
 
         if _is_login_page(page):
             print("[Agent] Redirected to login — stopping.")
@@ -156,6 +176,70 @@ def _walk_linkedin_wizard(page, profile: dict, job: dict):
 
     print("[Agent] Maximum steps reached — stopping.")
     stop_on_review(page)
+
+
+# ===========================================================================
+# External ATS redirect handler (LinkedIn wizard escape hatch)
+# ===========================================================================
+
+_ATS_MAP = {
+    "dayforcehcm.com":          "Dayforce HCM",
+    "myworkdayjobs.com":        "Workday",
+    "workday.com":              "Workday",
+    "icims.com":                "iCIMS",
+    "taleo.net":                "Taleo (Oracle)",
+    "greenhouse.io":            "Greenhouse",
+    "lever.co":                 "Lever",
+    "smartrecruiters.com":      "SmartRecruiters",
+    "jobvite.com":              "Jobvite",
+    "bamboohr.com":             "BambooHR",
+    "successfactors.com":       "SAP SuccessFactors",
+    "adp.com":                  "ADP",
+    "oraclecloud.com":          "Oracle HCM",
+    "jazz.co":                  "JazzHR",
+    "applytojob.com":           "ApplyToJob",
+    "recruitingbypaycor.com":   "Paycor",
+    "ultipro.com":              "UKG / UltiPro",
+    "hire.trakstar.com":        "Trakstar",
+    "breezy.hr":                "Breezy HR",
+}
+
+
+def _handle_external_redirect(page, profile: dict, current_url: str):
+    """
+    Called when the LinkedIn wizard detects a URL that is no longer linkedin.com.
+    Prints a clear warning, attempts a single best-effort field fill, then hands
+    off to the human via stop_on_review().
+    """
+    url_lower = current_url.lower()
+    ats_name = "Unknown ATS"
+    for domain, name in _ATS_MAP.items():
+        if domain in url_lower:
+            ats_name = name
+            break
+
+    print("\n" + "=" * 65)
+    print("  ⚠️   EXTERNAL REDIRECT DETECTED")
+    print(f"  LinkedIn redirected to: {ats_name}")
+    print(f"  URL: {current_url[:80]}")
+    print("=" * 65)
+    print("  The agent cannot reliably automate this ATS platform.")
+    print("  What the agent WILL do: attempt a single-pass field fill")
+    print("  on whatever fields are visible right now, then hand off.")
+    print("=" * 65 + "\n")
+
+    # Single best-effort pass — no looping, no pagination
+    page.wait_for_timeout(3000)
+    _fill_contact_fields(page, profile)
+    _try_resume_upload(page, profile)
+
+    stop_on_review(
+        page,
+        reason=(
+            f"Redirected to {ats_name} — manual login may be required. "
+            f"URL: {current_url[:80]}"
+        ),
+    )
 
 
 # ===========================================================================
@@ -1741,7 +1825,7 @@ def _click_next_safe(page) -> bool:
 # Human-in-the-loop STOP gate — the ONLY termination path
 # ===========================================================================
 
-def stop_on_review(page):
+def stop_on_review(page, reason: str = ""):
     """
     Halt the agent. Highlight the Submit button red. Wait for human to review and submit.
     The agent NEVER clicks Submit — that is always left to you.
@@ -1749,6 +1833,8 @@ def stop_on_review(page):
     print("\n" + "=" * 65)
     print("  AGENT STOPPED — YOUR REVIEW IS REQUIRED")
     print("=" * 65)
+    if reason:
+        print(f"  Reason: {reason}")
     print("  All detectable fields have been filled.")
     print("  The SUBMIT button is highlighted RED in your browser.")
     print()

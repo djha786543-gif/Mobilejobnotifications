@@ -720,8 +720,41 @@ def _fill_contact_fields(page, profile: dict):
              "input[aria-label*='website' i]", "input[aria-label*='portfolio' i]"],
             profile.get("website_url", ""), "website/portfolio",
         ),
+        (
+            ["select[name*='state']", "select[id*='state']",
+             "input[id*='state']", "input[name*='state']",
+             "input[placeholder*='State']", "input[aria-label*='State']"],
+            profile.get("state", ""), "state",
+        ),
+        (
+            ["input[id*='zip']", "input[name*='zip']", "input[id*='postal']",
+             "input[name*='postal']", "input[placeholder*='ZIP']",
+             "input[placeholder*='Postal']", "input[aria-label*='ZIP']"],
+            profile.get("zip_code", ""), "ZIP code",
+        ),
     ]
     _apply_field_list(page, fields)
+
+    # State <select> handling — _apply_field_list uses .fill() which silently
+    # fails on <select> elements; handle them explicitly here.
+    state = profile.get("state", "")
+    if state:
+        for sel in ["select[name*='state']", "select[id*='state']"]:
+            try:
+                el = page.locator(sel).first
+                if not el.is_visible(timeout=300):
+                    continue
+                current = el.input_value()
+                if current and current.strip():
+                    break
+                try:
+                    el.select_option(label=state)
+                except Exception:
+                    el.select_option(value=state)
+                print(f"[Agent] Filled state (select)")
+                break
+            except Exception:
+                continue
 
     # For phone fields that reject formatted numbers, try digits-only
     if phone_digits and phone_raw:

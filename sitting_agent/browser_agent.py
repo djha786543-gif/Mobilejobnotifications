@@ -15,6 +15,8 @@ Usage:
 """
 
 import argparse
+import csv
+import datetime
 import json
 import os
 import sys
@@ -147,6 +149,8 @@ def main():
                     print(f"[Agent] ⚠️  Session ran {elapsed:.0f}s (> 5 min) — "
                           "review the browser for any missed fields.")
 
+                _log_run(profile, job, page.url)
+
             except KeyboardInterrupt:
                 print("\n[Agent] Stopped by Ctrl+C.")
                 _try_stop(page)
@@ -174,6 +178,69 @@ def main():
         print("[Agent] Make sure Google Chrome is installed.")
 
     print("\n[Agent] Session complete.")
+
+
+_ATS_MAP_BROWSER = {
+    "linkedin.com":             "LinkedIn",
+    "indeed.com":               "Indeed",
+    "greenhouse.io":            "Greenhouse",
+    "lever.co":                 "Lever",
+    "myworkdayjobs.com":        "Workday",
+    "workday.com":              "Workday",
+    "dayforcehcm.com":          "Dayforce HCM",
+    "icims.com":                "iCIMS",
+    "taleo.net":                "Taleo (Oracle)",
+    "smartrecruiters.com":      "SmartRecruiters",
+    "jobvite.com":              "Jobvite",
+    "bamboohr.com":             "BambooHR",
+    "successfactors.com":       "SAP SuccessFactors",
+    "adp.com":                  "ADP",
+    "oraclecloud.com":          "Oracle HCM",
+    "jazz.co":                  "JazzHR",
+    "applytojob.com":           "ApplyToJob",
+    "recruitingbypaycor.com":   "Paycor",
+    "ultipro.com":              "UKG / UltiPro",
+    "breezy.hr":                "Breezy HR",
+}
+
+_LOG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                         "agent_run_log.csv")
+_LOG_HEADER = ["timestamp", "candidate", "job_title", "company", "url",
+               "platform", "outcome", "fields_filled", "notes"]
+
+
+def _log_run(profile: dict, job: dict, final_url: str,
+             outcome: str = "filled+handed_off",
+             fields_filled: int = 0,
+             notes: str = ""):
+    """Append one row to agent_run_log.csv (create with header if missing)."""
+    try:
+        url_lower = final_url.lower()
+        platform = "Unknown"
+        for domain, name in _ATS_MAP_BROWSER.items():
+            if domain in url_lower:
+                platform = name
+                break
+
+        write_header = not os.path.exists(_LOG_PATH)
+        with open(_LOG_PATH, "a", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=_LOG_HEADER)
+            if write_header:
+                writer.writeheader()
+            writer.writerow({
+                "timestamp":    datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "candidate":    profile.get("name", ""),
+                "job_title":    job.get("Title", ""),
+                "company":      job.get("Company", ""),
+                "url":          job.get("Link", "")[:120],
+                "platform":     platform,
+                "outcome":      outcome,
+                "fields_filled": fields_filled,
+                "notes":        notes,
+            })
+        print("[Agent] Run logged → agent_run_log.csv")
+    except Exception as e:
+        print(f"[Agent] Log write failed (non-critical): {e}")
 
 
 def _try_stop(page):

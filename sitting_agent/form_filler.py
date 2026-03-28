@@ -986,9 +986,10 @@ def _handle_checkboxes(page, profile: dict):
     AUTO_CHECK = [
         "i agree", "i understand", "i confirm", "i certify",
         "i acknowledge", "i authorize", "i consent",
-        "agree", "accept", "terms of service", "terms and conditions",
-        "privacy policy", "e-sign", "electronic signature",
-        "i have read", "i certify", "confirm", "acknowledge",
+        "agree", "accept", "terms", "conditions",
+        "privacy", "e-sign", "electronic signature",
+        "i have read", "confirm", "acknowledge",
+        "authorization", "accurate", "true and correct",
     ]
     SKIP_DEMOGRAPHIC = [
         "eeo", "equal opportunity", "disability", "veteran",
@@ -1000,17 +1001,19 @@ def _handle_checkboxes(page, profile: dict):
             try:
                 if not cb.is_visible(timeout=300):
                     continue
+                if not cb.is_enabled():
+                    continue
                 if cb.is_checked():
                     continue
                 label = _get_element_label(page, cb).lower()
                 if not label:
                     continue
                 if any(k in label for k in SKIP_DEMOGRAPHIC):
-                    print(f"[Agent] — Skipped checkbox (demographic): {label[:60]}")
+                    print(f"[Agent] — Skipped demographic checkbox: {label[:55]}")
                     continue
                 if any(k in label for k in AUTO_CHECK):
                     cb.check()
-                    print(f"[Agent] ✓ Checked: {label[:60]}")
+                    print(f"[Agent] ✓ Checked: {label[:55]}")
                     continue
                 # Unknown checkbox — ask Groq
                 try:
@@ -1021,7 +1024,7 @@ def _handle_checkboxes(page, profile: dict):
                     ).strip().lower()
                     if groq_answer.startswith("yes"):
                         cb.check()
-                        print(f"[Agent] ✓ Checked (Groq): {label[:60]}")
+                        print(f"[Agent] ✓ Checked (Groq): {label[:55]}")
                 except Exception:
                     pass
             except Exception:
@@ -1606,6 +1609,10 @@ def _handle_text_questions(page, profile: dict, job: dict):
         if any(k in label_lo for k in ["notice period", "start date", "available",
                                         "when can you start", "earliest start"]):
             return str(profile.get("notice_period", "2 weeks"))
+        if any(k in label_lo for k in ["overtime", "hours per week"]):
+            return "40"
+        if "travel" in label_lo and any(k in label_lo for k in ["percent", "%"]):
+            return "10"
         return None
 
     try:
@@ -1980,16 +1987,21 @@ def _handle_radio_buttons(page, profile: dict):
                         pass
 
                 answer = _decide(question, option_texts)
-                if answer is None:
-                    # Groq fallback
+                if answer is None and len(option_texts) == 2:
+                    # Groq fallback — only for binary (2-option) groups
                     try:
-                        opts_str = ", ".join(option_texts) or "Yes, No"
-                        groq_q = (f"Application question: \"{question}\"\n"
-                                  f"Options: {opts_str}\n"
-                                  "Pick the single best option text exactly as written.")
+                        opts_str = ", ".join(option_texts)
+                        groq_q = (
+                            f'Job application question (radio): "{question}"\n'
+                            f"Options: {opts_str}\n"
+                            f"Candidate: {profile.get('custom_question_context', '')}\n"
+                            "Answer with ONLY one of the option texts exactly."
+                        )
                         answer = ask_groq(groq_q, profile).strip()
                     except Exception:
                         continue
+                if answer is None:
+                    continue
                 _select_radio(radios, answer, question, page)
             except Exception:
                 continue
@@ -2029,16 +2041,22 @@ def _handle_radio_buttons(page, profile: dict):
                         pass
 
                 answer = _decide(question, option_texts)
-                if answer is None:
+                if answer is None and len(option_texts) == 2:
                     try:
-                        opts_str = ", ".join(option_texts) or "Yes, No"
-                        groq_q = (f"Application question: \"{question}\"\n"
-                                  f"Options: {opts_str}\n"
-                                  "Pick the single best option text exactly as written.")
+                        opts_str = ", ".join(option_texts)
+                        groq_q = (
+                            f'Job application question (radio): "{question}"\n'
+                            f"Options: {opts_str}\n"
+                            f"Candidate: {profile.get('custom_question_context', '')}\n"
+                            "Answer with ONLY one of the option texts exactly."
+                        )
                         answer = ask_groq(groq_q, profile).strip()
                     except Exception:
                         handled_names.add(name)
                         continue
+                if answer is None:
+                    handled_names.add(name)
+                    continue
                 _select_radio(group_radios, answer, question, page)
                 handled_names.add(name)
             except Exception:
@@ -2157,7 +2175,7 @@ def _fill_indeed_apply(page, profile: dict, job: dict):
 def _fill_greenhouse(page, profile: dict, job: dict):
     """Fill a Greenhouse-hosted application form (single-page)."""
     print("[Agent] Greenhouse — filling application form...")
-    page.wait_for_timeout(2000)
+    page.wait_for_timeout(3000)
 
     # Greenhouse-specific contact selectors (supplement generic ones)
     greenhouse_fields = [
@@ -2171,10 +2189,14 @@ def _fill_greenhouse(page, profile: dict, job: dict):
             f"{profile.get('city', '')}, {profile.get('state', '')}",
             "location",
         ),
+        (
+            ["input[name='job_application[linkedin_url]']"],
+            profile.get("linkedin_url", ""), "LinkedIn URL",
+        ),
     ]
     _apply_field_list(page, greenhouse_fields)
 
-    # Generic field-fill pass
+    # Generic field-fill pass (canonical order)
     _fill_contact_fields(page, profile)
     _fill_address_fields(page, profile)
     _handle_radio_buttons(page, profile)
@@ -2184,6 +2206,28 @@ def _fill_greenhouse(page, profile: dict, job: dict):
     _try_resume_upload(page, profile)
     _handle_numeric_inputs(page, profile)
     _handle_text_questions(page, profile, job)
+
+    # Cover letter textarea
+    try:
+        for ta in page.locator("textarea").all():
+            try:
+                if not ta.is_visible(timeout=300):
+                    continue
+                if ta.input_value() and len(ta.input_value()) > 20:
+                    continue
+                lbl = _get_element_label(page, ta).lower()
+                if any(k in lbl for k in ["cover letter", "why", "tell us"]):
+                    answer = ask_groq(lbl or "Why are you interested in this role?",
+                                      profile, job)
+                    ta.click()
+                    ta.fill(answer)
+                    ta.dispatch_event("input")
+                    print("[Agent] Greenhouse cover letter filled")
+                    break
+            except Exception:
+                continue
+    except Exception:
+        pass
 
     stop_on_review(page)
 
@@ -2201,9 +2245,14 @@ def _fill_lever(page, profile: dict, job: dict):
         (["input[name='name']"],   profile.get("name", ""),          "name"),
         (["input[name='email']"],  profile.get("email", ""),         "email"),
         (["input[name='phone']"],  profile.get("phone", ""),         "phone"),
-        (["input[name='org']"],    profile.get("current_employer", profile.get("current_company", "")), "company"),
+        (["input[name='org']"],    profile.get("current_company",
+                                               profile.get("current_employer", "")), "company"),
         (["input[name='urls[LinkedIn]']", "input[placeholder*='LinkedIn' i]"],
          profile.get("linkedin_url", ""), "LinkedIn URL"),
+        (["input[name='urls[GitHub]']"],
+         profile.get("github_url", ""), "GitHub URL"),
+        (["input[name='urls[Portfolio]']"],
+         profile.get("portfolio_url", ""), "Portfolio URL"),
     ]
     _apply_field_list(page, lever_fields)
 

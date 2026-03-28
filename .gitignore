@@ -1,3 +1,9 @@
+# Agent Chrome profile -- contains session cookies, never commit
+agent_chrome_data/
+
+# Application run log — local only, not committed
+agent_run_log.csv
+
 # Secrets — never commit these
 .env
 .streamlit/secrets.toml

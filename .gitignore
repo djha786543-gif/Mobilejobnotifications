@@ -4,6 +4,10 @@ agent_chrome_data/
 # Application run log — local only, not committed
 agent_run_log.csv
 
+# Local Windows desktop launchers — machine-specific, not committed
+launch_portal.bat
+launch_pooja.bat
+
 # Secrets — never commit these
 .env
 .streamlit/secrets.toml

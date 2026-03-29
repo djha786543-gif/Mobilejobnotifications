@@ -148,6 +148,38 @@ def score_band(s: int) -> str:
     return "Weak"
 
 # ---------------------------------------------------------------------------
+# Agent feasibility lookup
+# ---------------------------------------------------------------------------
+NO_AGENT_DOMAINS = [
+    "workday.com", "myworkdayjobs.com",
+    "dayforcehcm.com", "dayforce.com",
+    "icims.com", "taleo.net", "taleo.com",
+    "paradox.ai", "avature.net",
+    "successfactors.com", "sap.com/careers",
+    "oraclecloud.com", "oracle.com/careers",
+    "adp.com", "ultipro.com", "ukg.com",
+    "jobvite.com", "smartrecruiters.com",
+    "careers.lennar.com", "careers.walmart.com",
+    "jobs.boeing.com", "amazon.jobs",
+]
+
+YES_AGENT_DOMAINS = [
+    "linkedin.com",
+    "greenhouse.io", "boards.greenhouse.io",
+    "lever.co", "jobs.lever.co",
+]
+
+def agent_feasibility(url: str) -> str:
+    if not url or not isinstance(url, str):
+        return "?"
+    url_lower = url.lower()
+    if any(d in url_lower for d in NO_AGENT_DOMAINS):
+        return "No"
+    if any(d in url_lower for d in YES_AGENT_DOMAINS):
+        return "Yes"
+    return "?"
+
+# ---------------------------------------------------------------------------
 # Leads table
 # ---------------------------------------------------------------------------
 if os.path.exists(CSV_PATH):
@@ -223,8 +255,9 @@ if os.path.exists(CSV_PATH):
     # --- Display ---
     display = filtered.copy()
     display.insert(1, "Band", display["Score"].apply(score_band))
+    display["Agent?"] = display["Link"].apply(agent_feasibility)
 
-    show_cols = ["Score", "Band", "Title", "Company", "Location", "Region", "Type", "Posted", "ScoredBy", "Link"]
+    show_cols = ["Score", "Agent?", "Band", "Title", "Company", "Location", "Region", "Type", "Posted", "ScoredBy", "Link"]
     if "Source" in display.columns:
         show_cols.insert(-1, "Source")
 
@@ -233,6 +266,11 @@ if os.path.exists(CSV_PATH):
         width="stretch",
         column_config={
             "Score":    st.column_config.ProgressColumn("Match %", format="%d%%", min_value=0, max_value=100),
+            "Agent?":   st.column_config.TextColumn(
+                "Agent?",
+                help="Yes = agent can fill this. No = manual only. ? = unknown ATS.",
+                width="small",
+            ),
             "Band":     st.column_config.TextColumn("Band", width="small"),
             "Region":   st.column_config.TextColumn("Region", width="small"),
             "Link":     st.column_config.LinkColumn("Apply", display_text="Apply"),

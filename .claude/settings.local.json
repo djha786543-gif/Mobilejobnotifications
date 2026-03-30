@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat /c/Users/DJ/DJmobile/.github/workflows/*.yml)",
+      "Bash(git check-ignore:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(pip install:*)",
+      "Bash(GEMINI_API_KEY=\"AIzaSyB1aC5lLmTaVkX5-OuX2Edg5prLX_QNtXk\" NTFY_TOPIC=\"dj-audit-hunt\" python master_hunter.py 2>&1)",
+      "Bash(GEMINI_API_KEY=\"AIzaSyCOMiqVVIdM3YTTQHOIYasuNPj6hidhLiw\" NTFY_TOPIC=\"dj-audit-786543\" python master_hunter.py 2>&1)",
+      "Bash(GEMINI_API_KEY=\"AIzaSyDzVEmGjdjBgwlkBuVrB-h5qEYDrQu4hi0\" NTFY_TOPIC=\"dj-audit-786543\" python master_hunter.py 2>&1)",
+      "Bash(GEMINI_API_KEY=\"AIzaSyDzVEmGjdjBgwlkBuVrB-h5qEYDrQu4hi0\" python -c \"\nfrom google import genai\nclient = genai.Client\\(api_key='AIzaSyDzVEmGjdjBgwlkBuVrB-h5qEYDrQu4hi0'\\)\nfor m in client.models.list\\(\\):\n    print\\(m.name\\)\n\" 2>&1)",
+      "Bash(OPENROUTER_API_KEY=\"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\" NTFY_TOPIC=\"dj-audit-786543\" python master_hunter.py 2>&1)",
+      "Bash(python:*)",
+      "Bash(OPENROUTER_API_KEY=\"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\" NTFY_TOPIC=\"dj-audit-786543\" python master_hunter.py 2>&1)",
+      "Bash(OPENROUTER_API_KEY=\"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\" NTFY_TOPIC=\"dj-audit-786543\" python -c \"\nimport requests\nr = requests.post\\(\n    'https://openrouter.ai/api/v1/chat/completions',\n    headers={'Authorization': 'Bearer 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', 'Content-Type': 'application/json'},\n    json={'model': 'google/gemma-3-12b-it:free', 'messages': [{'role': 'user', 'content': 'Say 42 only.'}], 'max_tokens': 10},\n    timeout=30,\n\\)\nprint\\('Status:', r.status_code\\)\nprint\\('Body:', r.text[:300]\\)\n\")",
+      "Skill(schedule)",
+      "Bash(git pull:*)",
+      "Bash(pip show:*)",
+      "Bash(python -c \":*)",
+      "Read(//c/Program Files/Google/Chrome/Application/**)",
+      "Read(//c/Program Files \\(x86\\)/Google/Chrome/Application/**)",
+      "Bash(tasklist)",
+      "Bash(python -W error -c \":*)",
+      "Bash(git -C C:/Users/DJ/DJmobile branch -a)",
+      "Bash(git:*)",
+      "Bash(find /c/Users/DJ/DJmobile/audit-hunt -maxdepth 2 -type f -name *.py)"
+    ]
+  }
+}

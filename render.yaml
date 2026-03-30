@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: dj-pooja-job-hunt
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run app.py --server.port $PORT --server.address 0.0.0.0
+    envVars:
+      # ── Passwords (set these in Render dashboard → Environment) ──────────
+      - key: DJ_PASSWORD
+        sync: false        # set manually in Render dashboard
+      - key: POOJA_PASSWORD
+        sync: false        # set manually in Render dashboard
+      # ── API keys ─────────────────────────────────────────────────────────
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GITHUB_REPO
+        sync: false        # e.g. yourusername/DJmobile
+      # ── ntfy push topics ─────────────────────────────────────────────────
+      - key: NTFY_TOPIC
+        value: dj-audit-786543
+      - key: POOJA_NTFY_TOPIC
+        value: pooja-industry-oppor
+      # ── Disable local-only features (sitting agent) ───────────────────────
+      - key: IS_LOCAL_RUN
+        value: "false"

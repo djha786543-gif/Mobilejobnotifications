@@ -405,7 +405,7 @@ def llm_score_batch(batch: list[dict]) -> list[int | None]:
 def _scrape_one(cfg: dict) -> pd.DataFrame:
     """Run a single search pass. Returns a DataFrame (may be empty)."""
     kwargs = dict(
-        site_name=cfg.get("sites", ["linkedin", "indeed"]),
+        site_name=cfg.get("sites", ["linkedin", "indeed", "glassdoor", "zip_recruiter"]),
         search_term=cfg["term"],
         location=cfg["location"],
         results_wanted=cfg["results"],

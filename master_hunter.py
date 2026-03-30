@@ -487,7 +487,7 @@ def master_hunt():
     for cfg in build_search_configs():
         sprint(f"\n[Search] {cfg['label']} ({cfg['results']} results)...")
         kwargs = dict(
-            site_name=["linkedin", "indeed"],
+            site_name=["linkedin", "indeed", "glassdoor", "zip_recruiter"],
             search_term=cfg["term"],
             location=cfg["location"],
             results_wanted=cfg["results"],

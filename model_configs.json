@@ -1,0 +1,12 @@
+﻿[
+  {
+    "model_type": "ollama_chat",
+    "config_name": "qwen_local_config",
+    "model_name": "qwen2.5:7b",
+    "ollama_url": "http://localhost:11434",
+    "generate_args": {
+      "temperature": 0.1,
+      "max_tokens": 2000
+    }
+  }
+]

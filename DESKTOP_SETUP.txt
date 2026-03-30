@@ -1,0 +1,18 @@
+HOW TO CREATE A DESKTOP SHORTCUT
+─────────────────────────────────
+1. Open File Explorer and navigate to this project folder
+2. Right-click launch_portal.bat → Send to → Desktop (create shortcut)
+3. Right-click the new desktop shortcut → Properties
+4. In "Target" field it already points to the .bat
+5. Click "Change Icon" → browse to:
+     C:\Program Files\Google\Chrome\Application\chrome.exe
+   (gives it a recognisable icon, or leave default)
+6. Click OK — double-click the shortcut to launch
+
+TO PIN TO TASKBAR:
+Right-click the desktop shortcut → Pin to taskbar
+
+WHAT IT DOES:
+- Opens a terminal window running Streamlit
+- Automatically opens http://localhost:8501 in your browser
+- Close the terminal window to stop the server

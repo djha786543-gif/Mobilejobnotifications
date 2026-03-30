@@ -7,7 +7,6 @@ import pandas as pd
 import streamlit as st
 from datetime import datetime, timedelta
 
-# Load .env for local dev (no-op if not present or python-dotenv not installed)
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -28,48 +27,43 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-st.title("IT Audit Contract Leads")
-st.caption(
-    f"Remote · EAD (J2) authorized · All levels · "
-    f"ntfy topic: `{NTFY_TOPIC}` · Auto-scan: every 12h via cloud scheduler"
-)
 
 # ---------------------------------------------------------------------------
-# Action bar
+# Header
 # ---------------------------------------------------------------------------
-col_a, col_b = st.columns([1, 3])
+st.title("💼 DJ's Audit Hunt")
+st.caption("Remote · EAD (J2) · IT Audit / GRC / SOX · Auto-scan every 12h")
 
-with col_a:
-    if st.button("Run Scan Now", width="stretch", type="primary"):
-        with st.spinner("Scanning & scoring — this takes a few minutes..."):
-            result = subprocess.run(
-                [sys.executable, "master_hunter.py"],
-                capture_output=True, text=True
-            )
-        if result.returncode != 0:
-            st.error(f"Scan failed:\n{result.stderr[:500]}")
-        else:
-            st.success("Scan complete — refreshing results.")
-            st.rerun()
+# ---------------------------------------------------------------------------
+# Action bar — full width for mobile tap
+# ---------------------------------------------------------------------------
+if st.button("🔍  Run Scan Now", use_container_width=True, type="primary"):
+    with st.spinner("Scanning LinkedIn, Indeed, Glassdoor, ZipRecruiter — takes a few minutes..."):
+        result = subprocess.run(
+            [sys.executable, "master_hunter.py"],
+            capture_output=True, text=True
+        )
+    if result.returncode != 0:
+        st.error(f"Scan failed:\n{result.stderr[:500]}")
+    else:
+        st.success("Scan complete!")
+        st.rerun()
 
-with col_b:
-    # Last scan time from log
-    last_scan = "—"
-    if os.path.exists(LOG_PATH):
-        try:
-            with open(LOG_PATH) as f:
-                for line in reversed(f.readlines()):
-                    if "Scan finished" in line or "Scan started" in line:
-                        last_scan = line.strip().lstrip("[").split("]")[0]
-                        break
-        except Exception:
-            pass
-    st.info(f"Auto-scan: every 12 h via cloud scheduler  ·  Last scan: {last_scan}", icon="🕐")
-
+last_scan = "—"
+if os.path.exists(LOG_PATH):
+    try:
+        with open(LOG_PATH) as f:
+            for line in reversed(f.readlines()):
+                if "Scan finished" in line or "Scan started" in line:
+                    last_scan = line.strip().lstrip("[").split("]")[0]
+                    break
+    except Exception:
+        pass
+st.caption(f"🕐 Last scan: {last_scan}")
 st.divider()
 
 # ---------------------------------------------------------------------------
-# LA city list (shared between metrics and filter)
+# Helpers
 # ---------------------------------------------------------------------------
 LA_CITIES = [
     "los angeles", "irvine", "long beach", "burbank", "glendale",
@@ -87,52 +81,156 @@ def is_la(loc: str) -> bool:
     loc = str(loc).lower()
     return any(city in loc for city in LA_CITIES)
 
+NO_AGENT_DOMAINS = [
+    "workday.com", "myworkdayjobs.com", "dayforcehcm.com", "dayforce.com",
+    "icims.com", "taleo.net", "taleo.com", "paradox.ai", "avature.net",
+    "successfactors.com", "sap.com/careers", "oraclecloud.com", "oracle.com/careers",
+    "adp.com", "ultipro.com", "ukg.com", "jobvite.com", "smartrecruiters.com",
+    "careers.lennar.com", "careers.walmart.com", "jobs.boeing.com", "amazon.jobs",
+]
+YES_AGENT_DOMAINS = [
+    "linkedin.com", "greenhouse.io", "boards.greenhouse.io",
+    "lever.co", "jobs.lever.co",
+]
+
+def agent_feasibility(url: str) -> str:
+    if not url or not isinstance(url, str):
+        return "?"
+    url_lower = url.lower()
+    if any(d in url_lower for d in NO_AGENT_DOMAINS):
+        return "No"
+    if any(d in url_lower for d in YES_AGENT_DOMAINS):
+        return "Yes"
+    return "?"
+
+def score_band(s):
+    if s >= 80: return "Strong"
+    if s >= 70: return "High"
+    if s >= 50: return "Fair"
+    return "Weak"
+
+def _classify_type(t: str) -> str:
+    t = str(t).lower().strip()
+    if any(k in t for k in ["contract", "temp", "freelance", "contractor"]):
+        return "Contract"
+    if any(k in t for k in ["part", "parttime", "part-time"]):
+        return "Part-time"
+    if any(k in t for k in ["full", "fulltime", "full-time", "permanent"]):
+        return "Full-time"
+    return "Other"
+
+def _score_color(s: int) -> str:
+    if s >= 80: return "#00c853"
+    if s >= 70: return "#ff9800"
+    if s >= 50: return "#2196f3"
+    return "#9e9e9e"
+
 # ---------------------------------------------------------------------------
-# Leads table
+# Card renderer — mobile-first tap-friendly view
+# ---------------------------------------------------------------------------
+def render_cards(jobs: pd.DataFrame, key_prefix: str):
+    if jobs.empty:
+        st.info("No leads match the current filters.")
+        return
+    for i, (_, row) in enumerate(jobs.head(60).iterrows()):
+        score  = int(row.get("Score", 0))
+        band   = row.get("Band", score_band(score))
+        title  = row.get("Title", "")
+        company= row.get("Company", "")
+        loc    = row.get("Location", "")
+        jtype  = row.get("Type", "")
+        posted = row.get("Posted", "")
+        link   = row.get("Link", "")
+        color  = _score_color(score)
+
+        with st.container(border=True):
+            left, right = st.columns([1, 5])
+            with left:
+                st.markdown(
+                    f"<div style='text-align:center;padding-top:4px'>"
+                    f"<span style='font-size:1.4rem;font-weight:700;color:{color}'>{score}%</span><br>"
+                    f"<span style='font-size:0.65rem;color:{color}'>{band}</span>"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
+            with right:
+                st.markdown(f"**{title}**")
+                st.markdown(f"{company}  ·  {loc}")
+                st.caption(f"{jtype}  ·  {posted}" if jtype else posted)
+            if link:
+                st.link_button("Apply →", link, use_container_width=True, type="primary")
+
+# ---------------------------------------------------------------------------
+# Table renderer
+# ---------------------------------------------------------------------------
+_COL_CFG = {
+    "Score":    st.column_config.ProgressColumn("Match %", format="%d%%", min_value=0, max_value=100),
+    "Agent?":   st.column_config.TextColumn("Agent?", width="small"),
+    "Band":     st.column_config.TextColumn("Band", width="small"),
+    "Link":     st.column_config.LinkColumn("Apply", display_text="Apply"),
+    "Posted":   st.column_config.TextColumn("Posted"),
+    "ScoredBy": st.column_config.TextColumn("Scored By", width="small"),
+    "Source":   st.column_config.TextColumn("Search Pass", width="medium"),
+}
+SHOW_COLS = ["Score", "Agent?", "Band", "Title", "Company", "Location", "Type", "Posted", "ScoredBy", "Link"]
+
+def render_table(jobs: pd.DataFrame):
+    if jobs.empty:
+        st.info("No leads match the current filters.")
+        return
+    cols = [c for c in SHOW_COLS if c in jobs.columns]
+    if "Source" in jobs.columns:
+        cols.insert(-1, "Source")
+    st.dataframe(jobs[cols], column_config=_COL_CFG, hide_index=True,
+                 height=480, width="stretch")
+
+# ---------------------------------------------------------------------------
+# Main — leads
 # ---------------------------------------------------------------------------
 if os.path.exists(CSV_PATH):
     df = pd.read_csv(CSV_PATH)
-
     df["Score"] = pd.to_numeric(df["Score"], errors="coerce")
     df = df.dropna(subset=["Score", "Link"])
     df["Score"] = df["Score"].astype(int)
     df["PostedDate"] = pd.to_datetime(df["Posted"], errors="coerce")
 
-    # --- Summary metrics ---
+    # --- Metrics — 3 per row (fits mobile) ---
     week_ago  = datetime.now() - timedelta(days=7)
     new_count = int(df[df["PostedDate"] >= week_ago]["Score"].count()) if df["PostedDate"].notna().any() else 0
     la_count  = int(df["Location"].apply(is_la).sum())
 
-    m1, m2, m3, m4, m5, m6 = st.columns(6)
-    m1.metric("Total Leads",      len(df))
-    m2.metric("Strong (80+)",     len(df[df["Score"] >= 80]))
-    m3.metric("High (70–79)",     len(df[(df["Score"] >= 70) & (df["Score"] < 80)]))
-    m4.metric("Fair (50–69)",     len(df[(df["Score"] >= 50) & (df["Score"] < 70)]))
-    m5.metric("Posted This Week", new_count)
-    m6.metric("LA-Area Leads",    la_count)
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Total",        len(df))
+    m2.metric("Strong 80+",   len(df[df["Score"] >= 80]))
+    m3.metric("High 70–79",   len(df[(df["Score"] >= 70) & (df["Score"] < 80)]))
+    m4, m5, m6 = st.columns(3)
+    m4.metric("Fair 50–69",   len(df[(df["Score"] >= 50) & (df["Score"] < 70)]))
+    m5.metric("This Week",    new_count)
+    m6.metric("LA Area",      la_count)
 
     st.write("")
 
-    # --- Filters ---
-    fc1, fc2, fc3, fc4 = st.columns([1, 1, 1, 2])
-    with fc1:
-        min_score = st.slider("Min score", 0, 100, 50, step=5)
-    with fc2:
-        recency_opts = {"All time": 0, "Last 7 days": 7, "Last 14 days": 14, "Last 30 days": 30}
-        recency_sel  = st.selectbox("Posted within", list(recency_opts.keys()))
-        recency_days = recency_opts[recency_sel]
-    with fc3:
-        loc_filter = st.selectbox("Location type", ["All", "Remote", "LA Area"])
-    with fc4:
-        search_text = st.text_input("Search title / company", placeholder="e.g. sox, deloitte, grc")
+    # --- Filters inside expander — 2-col grid fits any screen ---
+    with st.expander("Filters", expanded=False):
+        f1, f2 = st.columns(2)
+        with f1:
+            min_score = st.slider("Min score", 0, 100, 50, step=5)
+        with f2:
+            recency_opts = {"All time": 0, "Last 7d": 7, "Last 14d": 14, "Last 30d": 30}
+            recency_sel  = st.selectbox("Posted within", list(recency_opts.keys()))
+            recency_days = recency_opts[recency_sel]
+        f3, f4 = st.columns(2)
+        with f3:
+            loc_filter = st.selectbox("Location", ["All", "Remote", "LA Area"])
+        with f4:
+            search_text = st.text_input("Search", placeholder="sox, deloitte, grc…")
 
+    # --- Apply filters ---
     filtered = df[df["Score"] >= min_score].copy()
-
     if recency_days > 0:
         cutoff   = datetime.now() - timedelta(days=recency_days)
         has_date = filtered["PostedDate"].notna()
         filtered = filtered[~has_date | (filtered["PostedDate"] >= cutoff)]
-
     if loc_filter == "Remote":
         filtered = filtered[
             filtered["Location"].str.lower().str.contains("remote", na=False) |
@@ -140,82 +238,115 @@ if os.path.exists(CSV_PATH):
         ]
     elif loc_filter == "LA Area":
         filtered = filtered[filtered["Location"].apply(is_la)]
-
     if search_text:
         q = search_text.lower()
         filtered = filtered[
             filtered["Title"].str.lower().str.contains(q, na=False) |
             filtered["Company"].str.lower().str.contains(q, na=False)
         ]
-
     filtered = filtered.sort_values("Score", ascending=False)
-
-    # --- Score band column ---
-    def score_band(s):
-        if s >= 80: return "Strong"
-        if s >= 70: return "High"
-        if s >= 50: return "Fair"
-        return "Weak"
 
     display = filtered.copy()
     display.insert(1, "Band", display["Score"].apply(score_band))
+    display["Agent?"] = display["Link"].apply(agent_feasibility)
 
-    show_cols = ["Score", "Band", "Title", "Company", "Location", "Type", "Posted", "ScoredBy", "Link"]
-    if "Source" in display.columns:
-        show_cols.insert(-1, "Source")
+    # --- View toggle ---
+    vcol, ncol = st.columns([3, 1])
+    with vcol:
+        view = st.radio("View as", ["Cards", "Table"], horizontal=True,
+                        key="dj_view", label_visibility="collapsed")
+    with ncol:
+        st.caption(f"{len(filtered)} leads")
 
-    st.dataframe(
-        display[[c for c in show_cols if c in display.columns]],
-        width="stretch",
-        column_config={
-            "Score":    st.column_config.ProgressColumn("Match %", format="%d%%", min_value=0, max_value=100),
-            "Band":     st.column_config.TextColumn("Band", width="small"),
-            "Link":     st.column_config.LinkColumn("Apply", display_text="Apply"),
-            "Posted":   st.column_config.TextColumn("Posted"),
-            "ScoredBy": st.column_config.TextColumn("Scored By", width="small"),
-            "Source":   st.column_config.TextColumn("Search Pass", width="medium"),
-        },
-        hide_index=True,
-        height=540,
-    )
-    st.caption(f"Showing {len(filtered)} of {len(df)} total leads  ·  Min score: {min_score}")
+    if view == "Cards":
+        render_cards(display, "all")
+    else:
+        render_table(display)
 
     st.download_button(
-        "Export to CSV",
+        "Export CSV",
         filtered.drop(columns=["PostedDate", "Band"], errors="ignore").to_csv(index=False),
         file_name=f"audit_leads_{datetime.now().strftime('%Y%m%d')}.csv",
         mime="text/csv",
-        width="content",
+        use_container_width=True,
     )
 
+    # ── Job Type Breakdown ────────────────────────────────────────────────
+    st.write("")
+    st.divider()
+    st.subheader("📋 Job Type Breakdown")
+    st.caption("Contract + Remote is your priority. Filters above apply here too.")
+
+    typed = display.copy()
+    typed["_cat"] = typed["Type"].apply(_classify_type) if "Type" in typed.columns else "Other"
+
+    contract_df = typed[typed["_cat"] == "Contract"].copy()
+    parttime_df = typed[typed["_cat"] == "Part-time"].copy()
+    fulltime_df = typed[typed["_cat"] == "Full-time"].copy()
+    unknown_df  = typed[typed["_cat"] == "Other"].copy()
+
+    _is_remote  = contract_df["Location"].str.lower().str.contains("remote|united states", na=False)
+    contract_df = pd.concat([contract_df[_is_remote], contract_df[~_is_remote]])
+    n_remote    = int(_is_remote.sum())
+
+    t1, t2, t3, t4 = st.tabs([
+        f"🎯 Contract ({len(contract_df)})",
+        f"⏱️ Part-time ({len(parttime_df)})",
+        f"🏢 Full-time ({len(fulltime_df)})",
+        f"❓ Other ({len(unknown_df)})",
+    ])
+
+    with t1:
+        if contract_df.empty:
+            st.info("No contract leads match current filters.")
+        else:
+            st.caption(f"Remote-first · {n_remote} remote / {len(contract_df) - n_remote} on-site or hybrid")
+            if view == "Cards":
+                render_cards(contract_df, "contract")
+            else:
+                render_table(contract_df)
+    with t2:
+        if view == "Cards":
+            render_cards(parttime_df, "pt")
+        else:
+            render_table(parttime_df)
+    with t3:
+        if view == "Cards":
+            render_cards(fulltime_df, "ft")
+        else:
+            render_table(fulltime_df)
+    with t4:
+        if not unknown_df.empty:
+            st.caption("Type not specified in posting.")
+        if view == "Cards":
+            render_cards(unknown_df, "unk")
+        else:
+            render_table(unknown_df)
+
+    # ── Scan log ──────────────────────────────────────────────────────────
     if os.path.exists(LOG_PATH):
         with st.expander("Scan log"):
             with open(LOG_PATH) as f:
                 st.code(f.read()[-4000:], language=None)
 
-    # ── SITTING AGENT ──────────────────────────────────────────────────────
-    # Fills job application forms in your local browser, stops before Submit.
-    # Only available when IS_LOCAL_RUN=true in your .env (requires a display).
-    # ──────────────────────────────────────────────────────────────────────
+    # ── Sitting Agent (desktop only) ─────────────────────────────────────
     _IS_LOCAL = os.getenv("IS_LOCAL_RUN", "false").lower() == "true"
-
     st.write("")
     st.divider()
-    _agent_mode = st.toggle("🤖 Agent Mode — auto-fill applications", value=False, key="dj_agent_toggle")
+    _agent_mode = st.toggle("🤖 Agent Mode — auto-fill applications (desktop only)",
+                            value=False, key="dj_agent_toggle")
 
     if _agent_mode:
         if not _IS_LOCAL:
             st.warning(
-                "**Sitting Agent is only available when running locally.**  \n"
-                "Add `IS_LOCAL_RUN=true` to your `.env` file and run "
-                "`streamlit run app.py` on your own machine.",
+                "**Sitting Agent requires your Windows PC.**  \n"
+                "Add `IS_LOCAL_RUN=true` to your `.env` and run `streamlit run app.py` locally.",
                 icon="🖥️",
             )
         else:
             st.info(
-                "The agent fills all fields then **stops — it will never click Submit.**  \n"
-                "You review and submit yourself. "
-                "Live status updates appear in the terminal where you started Streamlit.",
+                "Agent fills all fields then **stops — never clicks Submit.**  \n"
+                "You review and submit yourself.",
                 icon="✋",
             )
 
@@ -223,45 +354,35 @@ if os.path.exists(CSV_PATH):
                 tmp = tempfile.NamedTemporaryFile(
                     mode="w", suffix=".json", delete=False, prefix="agent_job_"
                 )
-                json.dump(job, tmp)
+                json.dump(job, tmp, default=lambda o: o.item() if hasattr(o, "item") else str(o))
                 tmp.close()
-                subprocess.Popen(
-                    [sys.executable, "sitting_agent/browser_agent.py",
-                     "--job-file",     tmp.name,
-                     "--profile-file", "profiles/deobrat_profile.json"],
+                import platform
+                popen_kwargs = dict(
+                    args=[sys.executable, "sitting_agent/browser_agent.py",
+                          "--job-file",     tmp.name,
+                          "--profile-file", "profiles/deobrat_profile.json"],
                 )
-                st.success(
-                    f"🚀 Agent launched for **{job.get('Title', '')}** "
-                    f"@ **{job.get('Company', '')}**"
-                )
-                st.info(
-                    "Browser is opening now.  \n"
-                    "The agent will fill all fields and **stop with the Submit button highlighted red**.  \n"
-                    "Review, then click Submit yourself.  \n"
-                    "Check your **terminal** for live step-by-step updates.",
-                    icon="🤖",
-                )
+                if platform.system() == "Windows":
+                    popen_kwargs["creationflags"] = subprocess.CREATE_NEW_CONSOLE
+                subprocess.Popen(**popen_kwargs)
+                st.success(f"🚀 Agent launched for **{job.get('Title', '')}** @ **{job.get('Company', '')}**")
 
-            st.caption(
-                f"Showing top {min(len(filtered), 50)} leads · "
-                "Click 🚀 to launch agent · Agent stops before Submit"
-            )
+            st.caption(f"Top {min(len(filtered), 50)} leads · tap 🚀 to launch")
             for _i, (_, _row) in enumerate(filtered.head(50).iterrows()):
-                _c1, _c2, _c3, _c4, _c5 = st.columns([1, 4, 3, 2, 1])
-                _c1.markdown(f"**{_row['Score']}%**")
-                _c2.write(f"**{_row['Title']}**")
-                _c3.write(_row.get("Company", ""))
-                _c4.write(_row.get("Location", ""))
-                with _c5:
-                    if st.button("🚀", key=f"dj_agent_{_i}",
-                                 help=f"Launch agent: {_row.get('Title', '')}"):
-                        _launch_dj_agent(_row.to_dict())
+                with st.container(border=True):
+                    _ca, _cb = st.columns([5, 1])
+                    with _ca:
+                        st.markdown(f"**{_row['Score']}%** · {_row['Title']}")
+                        st.caption(f"{_row.get('Company', '')}  ·  {_row.get('Location', '')}")
+                    with _cb:
+                        if st.button("🚀", key=f"dj_agent_{_i}",
+                                     help=f"Launch: {_row.get('Title', '')}"):
+                            _launch_dj_agent(_row.to_dict())
 
 else:
-    st.warning("No leads yet — click **Run Scan Now** above to start.")
+    st.warning("No leads yet — tap **Run Scan Now** above to start.")
     st.info(
-        "**Mobile push notifications:** Install the free **ntfy** app "
-        f"(iOS / Android) and subscribe to topic `{NTFY_TOPIC}` "
-        "to receive instant alerts when a high-match job is found.",
+        "**Push notifications:** Install the free **ntfy** app (Android/iOS) "
+        f"and subscribe to topic `{NTFY_TOPIC}` for instant alerts.",
         icon="🔔",
     )

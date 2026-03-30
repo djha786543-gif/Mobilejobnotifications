@@ -156,7 +156,8 @@ def render_cards(jobs: pd.DataFrame, key_prefix: str):
             with right:
                 st.markdown(f"**{title}**")
                 st.markdown(f"{company}  ·  {loc}")
-                st.caption(f"{jtype}  ·  {posted}" if jtype else posted)
+                meta = "  ·  ".join(str(x) for x in [jtype, posted] if x and str(x) not in ("nan", "None", ""))
+                st.caption(meta)
             if link:
                 st.link_button("Apply →", link, use_container_width=True, type="primary")
 

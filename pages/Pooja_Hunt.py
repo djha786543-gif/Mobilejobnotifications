@@ -259,15 +259,67 @@ if os.path.exists(CSV_PATH):
     st.write("")
 
     # --- New Opportunities section (latest scan only) ---
-    new_jobs = df[df["IsNew"]].sort_values("Score", ascending=False).copy()
-    if not new_jobs.empty:
-        new_jobs.insert(1, "Band", new_jobs["Score"].apply(score_band))
-        new_jobs["Agent?"] = new_jobs["Link"].apply(agent_feasibility)
+    _new_base = df[df["IsNew"]].copy()
+    if not _new_base.empty:
         scan_label = (
             latest_scan_dt.strftime("%d %b %Y, %H:%M").lstrip("0") if latest_scan_dt and pd.notna(latest_scan_dt) else "latest"
         )
-        with st.expander(f"New Opportunities — {len(new_jobs)} new from scan on {scan_label}", expanded=True):
-            render_cards(new_jobs, "new")
+        with st.expander(f"New Opportunities — {len(_new_base)} new from scan on {scan_label}", expanded=True):
+            # Filters
+            nf1, nf2 = st.columns(2)
+            with nf1:
+                n_min_score = st.slider("Min score", 0, 100, 50, step=5, key="new_min_score")
+            with nf2:
+                n_recency_opts = {"All time": 0, "Last 7d": 7, "Last 14d": 14, "Last 30d": 30}
+                n_recency_sel  = st.selectbox("Posted within", list(n_recency_opts.keys()), key="new_recency")
+                n_recency_days = n_recency_opts[n_recency_sel]
+            nf3, nf4 = st.columns(2)
+            with nf3:
+                n_region_filter = st.selectbox("Region", ["All regions", "US", "Europe", "India"], key="new_region")
+            with nf4:
+                n_hub_filter = st.selectbox("Location", ["All locations", "Major biotech hubs", "LA / Torrance area"], key="new_hub")
+            n_search = st.text_input("Search", placeholder="cardiovascular, genentech, senior scientist…", key="new_search")
+
+            # Apply filters
+            new_filtered = _new_base[_new_base["Score"] >= n_min_score].copy()
+            if n_region_filter != "All regions":
+                new_filtered = new_filtered[new_filtered["Region"] == n_region_filter]
+            if n_recency_days > 0:
+                n_cutoff   = datetime.now() - timedelta(days=n_recency_days)
+                n_has_date = new_filtered["PostedDate"].notna()
+                new_filtered = new_filtered[~n_has_date | (new_filtered["PostedDate"] >= n_cutoff)]
+            if n_hub_filter == "Major biotech hubs":
+                new_filtered = new_filtered[new_filtered["Location"].apply(is_biotech_hub)]
+            elif n_hub_filter == "LA / Torrance area":
+                _la = ["los angeles", "torrance", "irvine", "long beach", "el segundo",
+                       "santa monica", "culver city", "burbank", "glendale", "pasadena",
+                       "orange county", "anaheim", "costa mesa", "newport beach"]
+                new_filtered = new_filtered[
+                    new_filtered["Location"].str.lower().apply(lambda l: any(c in str(l) for c in _la))
+                ]
+            if n_search:
+                _q = n_search.lower()
+                new_filtered = new_filtered[
+                    new_filtered["Title"].str.lower().str.contains(_q, na=False) |
+                    new_filtered["Company"].str.lower().str.contains(_q, na=False)
+                ]
+            new_filtered = new_filtered.sort_values("Score", ascending=False)
+            new_display  = new_filtered.copy()
+            new_display.insert(1, "Band", new_display["Score"].apply(score_band))
+            new_display["Agent?"] = new_display["Link"].apply(agent_feasibility)
+
+            # View toggle
+            nvc, nnc = st.columns([3, 1])
+            with nvc:
+                n_view = st.radio("View as", ["Cards", "Table"], horizontal=True,
+                                  key="new_view", label_visibility="collapsed")
+            with nnc:
+                st.caption(f"{len(new_filtered)} leads")
+
+            if n_view == "Cards":
+                render_cards(new_display, "new")
+            else:
+                render_table(new_display)
         st.divider()
 
     # --- Filters inside expander — 2-col grid ---

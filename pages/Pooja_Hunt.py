@@ -234,22 +234,41 @@ if os.path.exists(CSV_PATH):
     if "Region" not in df.columns:
         df["Region"] = "US"
 
+    # Identify latest scan batch (jobs scanned within 2h of the most recent ScannedAt)
+    if "ScannedAt" in df.columns:
+        df["ScannedAt"] = pd.to_datetime(df["ScannedAt"], errors="coerce")
+        latest_scan_dt  = df["ScannedAt"].max()
+        df["IsNew"]     = df["ScannedAt"] >= (latest_scan_dt - pd.Timedelta(hours=2))
+    else:
+        df["IsNew"]     = False
+        latest_scan_dt  = None
+    new_scan_count = int(df["IsNew"].sum())
+
     # --- Metrics — 3 per row ---
-    week_ago  = datetime.now() - timedelta(days=7)
-    new_count = int(df[df["PostedDate"] >= week_ago]["Score"].count()) if df["PostedDate"].notna().any() else 0
     hub_count = int(df["Location"].apply(is_biotech_hub).sum())
-    llm_count = int((df["ScoredBy"] == "llm").sum()) if "ScoredBy" in df.columns else 0
 
     m1, m2, m3 = st.columns(3)
-    m1.metric("Total",          len(df))
-    m2.metric("Elite 85+",      len(df[df["Score"] >= 85]))
-    m3.metric("Strong 75–84",   len(df[(df["Score"] >= 75) & (df["Score"] < 85)]))
+    m1.metric("Total",           len(df))
+    m2.metric("Elite 85+",       len(df[df["Score"] >= 85]))
+    m3.metric("Strong 75–84",    len(df[(df["Score"] >= 75) & (df["Score"] < 85)]))
     m4, m5, m6 = st.columns(3)
-    m4.metric("High 65–74",     len(df[(df["Score"] >= 65) & (df["Score"] < 75)]))
-    m5.metric("This Week",      new_count)
-    m6.metric("Hub Roles",      hub_count)
+    m4.metric("High 65–74",      len(df[(df["Score"] >= 65) & (df["Score"] < 75)]))
+    m5.metric("New This Scan",   new_scan_count)
+    m6.metric("Hub Roles",       hub_count)
 
     st.write("")
+
+    # --- New Opportunities section (latest scan only) ---
+    new_jobs = df[df["IsNew"]].sort_values("Score", ascending=False).copy()
+    if not new_jobs.empty:
+        new_jobs.insert(1, "Band", new_jobs["Score"].apply(score_band))
+        new_jobs["Agent?"] = new_jobs["Link"].apply(agent_feasibility)
+        scan_label = (
+            latest_scan_dt.strftime("%d %b %Y, %H:%M").lstrip("0") if latest_scan_dt and pd.notna(latest_scan_dt) else "latest"
+        )
+        with st.expander(f"New Opportunities — {len(new_jobs)} new from scan on {scan_label}", expanded=True):
+            render_cards(new_jobs, "new")
+        st.divider()
 
     # --- Filters inside expander — 2-col grid ---
     with st.expander("Filters", expanded=False):

@@ -1,25 +1,15 @@
 ============================================================
-IT Audit Hunt — 2026-04-10 23:24 UTC
+[Scanner] IT Audit Hunt — 2026-04-11 11:26
 ============================================================
-Status: COMPLETED — 0 results (all job board connections blocked by proxy)
-
-Search passes attempted: 8
-  [FAIL] Core IT Audit (US)                — ProxyError 403 (LinkedIn) / DNS fail (Glassdoor)
-  [FAIL] SOX / GRC (US)                   — ProxyError 403 (LinkedIn) / DNS fail (Glassdoor)
-  [FAIL] Tech Risk / Compliance (US)       — ProxyError 403 (LinkedIn) / DNS fail (Glassdoor)
-  [FAIL] Controls / Internal Audit (US)    — ProxyError 403 (LinkedIn) / DNS fail (Glassdoor)
-  [FAIL] CISA required/preferred (US)      — ProxyError 403 (LinkedIn) / DNS fail (Glassdoor)
-  [FAIL] IT Audit — Los Angeles area       — ProxyError 403 (LinkedIn) / DNS fail (Glassdoor)
-  [FAIL] GRC / Compliance — LA area        — ProxyError 403 (LinkedIn) / DNS fail (Glassdoor)
-  [FAIL] IT Audit / GRC — Orange County    — ProxyError 403 (LinkedIn) / DNS fail (Glassdoor)
-
-Root cause: Outbound HTTPS to LinkedIn, Indeed, Glassdoor, ZipRecruiter
-            blocked by environment proxy (403 Forbidden).
-            No job data could be retrieved this scan cycle.
-
-New leads saved   : 0
-Strong matches 80+: 0
-High matches 70+  : 0
-LA-area leads     : 0
-Alerts sent       : 0
-Scanned at        : 2026-04-10 23:29 UTC
+[Search] Core IT Audit (US) → Error: Proxy blocked (LinkedIn 403, ZipRecruiter DNS failure)
+[Search] SOX / GRC (US) → Error: Proxy blocked (LinkedIn 403, Glassdoor DNS failure)
+[Search] Tech Risk / Compliance Analyst (US) → Error: Proxy blocked
+[Search] Controls / Internal Audit (US) → Error: Proxy blocked
+[Search] CISA required/preferred (US) → Error: Proxy blocked
+[Search] IT Audit — Los Angeles area → Error: Proxy blocked
+[Search] GRC / Compliance / Controls — LA area → Error: Proxy blocked
+[Search] IT Audit / GRC — Orange County → Error: Proxy blocked
+[Scanner] No results from any search pass.
+[Note] All external job board connections blocked by proxy (403 Forbidden / DNS failure).
+       This is a network-level restriction in the execution environment, not a code error.
+       Run this script on a machine with unrestricted internet access for full results.

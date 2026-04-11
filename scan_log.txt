@@ -1,4 +1,21 @@
 ============================================================
+[Scanner] IT Audit Hunt — 2026-04-11 23:17
+============================================================
+[Search] Core IT Audit (US) → Error: Proxy blocked (LinkedIn 403, ZipRecruiter DNS failure)
+[Search] SOX / GRC (US) → Error: Proxy blocked (LinkedIn 403, Glassdoor DNS failure)
+[Search] Tech Risk / Compliance Analyst (US) → Error: Proxy blocked
+[Search] Controls / Internal Audit (US) → Error: Proxy blocked
+[Search] CISA required/preferred (US) → Error: Proxy blocked
+[Search] IT Audit — Los Angeles area → Error: Proxy blocked
+[Search] GRC / Compliance / Controls — LA area → Error: Proxy blocked
+[Search] IT Audit / GRC — Orange County → Error: Proxy blocked
+[Scanner] No results from any search pass.
+[Note] All external job board connections blocked by proxy (403 Forbidden / DNS failure).
+       LinkedIn: ProxyError – Tunnel connection failed: 403 Forbidden
+       ZipRecruiter/Glassdoor: DNS lookup failures ([::1]:53 unreachable)
+       This is a network-level restriction in the execution environment, not a code error.
+       Run this script on a machine with unrestricted internet access for full results.
+============================================================
 [Scanner] IT Audit Hunt — 2026-04-11 11:26
 ============================================================
 [Search] Core IT Audit (US) → Error: Proxy blocked (LinkedIn 403, ZipRecruiter DNS failure)

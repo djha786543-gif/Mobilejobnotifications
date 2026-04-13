@@ -1,39 +1,19 @@
-
 ============================================================
-[Scanner] IT Audit Hunt — 2026-04-12 23:08
+Scan Run: 2026-04-13 11:11 UTC
 ============================================================
+Search passes attempted: 8
+Passes: Core IT Audit (US), SOX/GRC (US), Tech Risk/Compliance (US),
+        Controls/Internal Audit (US), CISA required/preferred (US),
+        IT Audit LA area, GRC/Compliance/Controls LA, IT Audit OC
 
-[Search] Core IT Audit (US) (150 results)...
-2026-04-12 23:09:23,573 - ERROR - JobSpy:LinkedIn - LinkedIn: HTTPSConnectionPool(host='www.linkedin.com', port=443): Max retries exceeded with url: /jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=%22IT+Audit%22+OR+%22IT+Auditor%22+OR+%22ITGC%22+OR+%22SOX+ITGC%22+OR+%22IT+Controls%22+OR+%22IT+Governance%22+OR+%22IT+Assurance%22&location=United+States&distance=50&pageNum=0&start=0 (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
-2026-04-12 23:09:23,574 - INFO - JobSpy:Linkedin - finished scraping
-  [Error] failed to do request: Post "https://api.ziprecruiter.com/jobs-app/event": dial tcp: lookup api.ziprecruiter.com on [::1]:53: read udp [::1]:19796->[::1]:53: read: connection refused
+Result: 0 jobs scraped — external job boards unreachable from this
+        environment (LinkedIn/Glassdoor/ZipRecruiter proxy-blocked).
+        DNS resolution failed for all external hosts.
 
-[Search] SOX / GRC (US) (150 results)...
-2026-04-12 23:09:58,609 - ERROR - JobSpy:LinkedIn - LinkedIn: HTTPSConnectionPool(host='www.linkedin.com', port=443): Max retries exceeded with url: /jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=%22SOX+Analyst%22+OR+%22SOX+Auditor%22+OR+%22SOX+Compliance%22+OR+%22GRC+Analyst%22+OR+%22GRC+Consultant%22+OR+%22GRC+Specialist%22+OR+%22GRC+Manager%22&location=United+States&distance=50&pageNum=0&start=0 (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
-  [Error] failed to do request: Get "https://www.glassdoor.com//Job/computer-science-jobs.htm": dial tcp: lookup www.glassdoor.com on [::1]:53: read udp [::1]:25531->[::1]:53: read: connection refused
+GROQ_API_KEY: configured and ready
+NTFY push: skipped (ntfy.sh also unreachable from this network)
+GitHub CSV save: skipped (no new leads to save)
 
-[Search] Tech Risk / Compliance Analyst (US) (125 results)...
-2026-04-12 23:10:33,654 - ERROR - JobSpy:LinkedIn - LinkedIn: HTTPSConnectionPool(host='www.linkedin.com', port=443): Max retries exceeded with url: /jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=%22Technology+Audit%22+OR+%22Technology+Risk%22+OR+%22IT+Risk%22+OR+%22IT+Compliance%22+OR+%22IS+Auditor%22+OR+%22Cyber+Audit%22+OR+%22Cloud+Audit%22+OR+%22Compliance+Analyst%22&location=United+States&distance=50&pageNum=0&start=0 (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
-  [Error] failed to do request: Get "https://www.glassdoor.com//Job/computer-science-jobs.htm": dial tcp: lookup www.glassdoor.com on [::1]:53: read udp [::1]:18893->[::1]:53: read: connection refused
-
-[Search] Controls / Internal Audit (US) (125 results)...
-2026-04-12 23:11:08,692 - ERROR - JobSpy:LinkedIn - LinkedIn: HTTPSConnectionPool(host='www.linkedin.com', port=443): Max retries exceeded with url: /jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=%22Controls+Analyst%22+OR+%22Audit+Analyst%22+OR+%22Audit+Manager%22+OR+%22Internal+Audit%22+OR+%22Audit+Consultant%22+OR+%22Application+Controls%22+OR+%22ERP+Audit%22&location=United+States&distance=50&pageNum=0&start=0 (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
-  [Error] failed to do request: Get "https://www.glassdoor.com//Job/computer-science-jobs.htm": dial tcp: lookup www.glassdoor.com on [::1]:53: read udp [::1]:53771->[::1]:53: read: connection refused
-
-[Search] CISA required/preferred (US) (100 results)...
-2026-04-12 23:11:43,732 - ERROR - JobSpy:LinkedIn - LinkedIn: HTTPSConnectionPool(host='www.linkedin.com', port=443): Max retries exceeded with url: /jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=%22CISA+required%22+OR+%22CISA+preferred%22+OR+%22CISA+certified%22+OR+%22CISA+certification%22+OR+%22CISA+or+equivalent%22+OR+%22CISA%2C+CISM%22+OR+%22CISA%2FCISM%22&location=United+States&distance=50&pageNum=0&start=0 (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
-  [Error] failed to do request: Get "https://www.glassdoor.com//Job/computer-science-jobs.htm": dial tcp: lookup www.glassdoor.com on [::1]:53: read udp [::1]:28037->[::1]:53: read: connection refused
-
-[Search] IT Audit — Los Angeles area (100 results)...
-2026-04-12 23:12:18,768 - ERROR - JobSpy:LinkedIn - LinkedIn: HTTPSConnectionPool(host='www.linkedin.com', port=443): Max retries exceeded with url: /jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=%22IT+Audit%22+OR+%22ITGC%22+OR+%22SOX%22+OR+%22GRC%22+OR+%22IT+Compliance%22+OR+%22IT+Risk%22+OR+%22IT+Controls%22+OR+%22IT+Governance%22+OR+%22CISA%22&location=Los+Angeles%2C+CA&distance=50&pageNum=0&start=0 (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
-  [Error] failed to do request: Get "https://www.glassdoor.com//Job/computer-science-jobs.htm": dial tcp: lookup www.glassdoor.com on [::1]:53: read udp [::1]:54906->[::1]:53: read: connection refused
-
-[Search] GRC / Compliance / Controls — LA area (75 results)...
-2026-04-12 23:12:53,806 - ERROR - JobSpy:LinkedIn - LinkedIn: HTTPSConnectionPool(host='www.linkedin.com', port=443): Max retries exceeded with url: /jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=%22GRC+Analyst%22+OR+%22GRC+Consultant%22+OR+%22Compliance+Analyst%22+OR+%22Controls+Analyst%22+OR+%22Audit+Analyst%22+OR+%22SOX+Analyst%22+OR+%22Audit+Manager%22+OR+%22IS+Auditor%22&location=Los+Angeles%2C+CA&distance=50&pageNum=0&start=0 (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
-  [Error] failed to do request: Get "https://www.glassdoor.com//Job/computer-science-jobs.htm": dial tcp: lookup www.glassdoor.com on [::1]:53: read udp [::1]:61661->[::1]:53: read: connection refused
-
-[Search] IT Audit / GRC — Orange County (75 results)...
-2026-04-12 23:13:28,845 - ERROR - JobSpy:LinkedIn - LinkedIn: HTTPSConnectionPool(host='www.linkedin.com', port=443): Max retries exceeded with url: /jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=%22IT+Audit%22+OR+%22SOX%22+OR+%22GRC%22+OR+%22ITGC%22+OR+%22IT+Compliance%22+OR+%22IT+Risk%22+OR+%22CISA%22+OR+%22Compliance+Analyst%22+OR+%22Audit+Analyst%22&location=Irvine%2C+CA&distance=40&pageNum=0&start=0 (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
-  [Error] failed to do request: Get "https://www.glassdoor.com//Job/computer-science-jobs.htm": dial tcp: lookup www.glassdoor.com on [::1]:53: read udp [::1]:17642->[::1]:53: read: connection refused
-[Scanner] No results from any search pass.
-[Push Error] HTTPSConnectionPool(host='ntfy.sh', port=443): Max retries exceeded with url: /dj-audit-786543 (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+Recommendation: run master_hunter.py from a network with
+                unrestricted outbound HTTPS access.
+============================================================

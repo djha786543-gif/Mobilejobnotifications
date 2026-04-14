@@ -1,19 +1,30 @@
 ============================================================
-Scan Run: 2026-04-13 23:43 UTC
+Scan Run: 2026-04-14 11:06 UTC
 ============================================================
+Status: COMPLETED — 0 results (all job board connections blocked by proxy)
+
 Search passes attempted: 8
-Passes: Core IT Audit (US), SOX/GRC (US), Tech Risk/Compliance (US),
-        Controls/Internal Audit (US), CISA required/preferred (US),
-        IT Audit LA area, GRC/Compliance/Controls LA, IT Audit OC
+  [FAIL] Core IT Audit (US)                — ProxyError 403
+  [FAIL] SOX / GRC (US)                   — ProxyError 403
+  [FAIL] Tech Risk / Compliance (US)       — ProxyError 403
+  [FAIL] Controls / Internal Audit (US)    — ProxyError 403
+  [FAIL] CISA required/preferred (US)      — ProxyError 403
+  [FAIL] IT Audit — Los Angeles area       — ProxyError 403
+  [FAIL] GRC / Compliance — LA area        — ProxyError 403
+  [FAIL] IT Audit / GRC — Orange County    — ProxyError 403
 
-Result: 0 jobs scraped — external job boards unreachable from this
-        environment (LinkedIn/Glassdoor/ZipRecruiter proxy-blocked).
-        DNS resolution failed for all external hosts.
+Root cause: Outbound HTTPS to LinkedIn, Indeed, Glassdoor, ZipRecruiter
+            blocked by environment proxy (403 Forbidden).
+            No job data could be retrieved this scan cycle.
 
-GROQ_API_KEY: configured and ready
-NTFY push: skipped (ntfy.sh also unreachable from this network)
-GitHub CSV save: skipped (no new leads to save)
+GROQ_API_KEY : configured and ready
+NTFY push    : skipped (ntfy.sh also unreachable from this network)
+GitHub save  : skipped (no new leads)
 
-Recommendation: run master_hunter.py from a network with
-                unrestricted outbound HTTPS access.
+New leads saved   : 0
+Strong matches 80+: 0
+High matches 70+  : 0
+LA-area leads     : 0
+Alerts sent       : 0
+Scanned at        : 2026-04-14 11:06 UTC
 ============================================================

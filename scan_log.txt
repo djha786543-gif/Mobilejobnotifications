@@ -1,42 +1,30 @@
 ============================================================
-[Scanner] IT Audit Hunt — 2026-04-15 23:07
+IT Audit Hunt — 2026-04-16 11:18 UTC
 ============================================================
+Status: COMPLETED — 0 results (all job board connections blocked by proxy)
 
-[Search] Core IT Audit (US) (150 results)...
-  [Error] LinkedIn 403 (Host not in allowlist); ZipRecruiter 403; Glassdoor connection failed
+Search passes attempted: 8
+  [FAIL] Core IT Audit (US)                — 403 Host not in allowlist (LinkedIn, ZipRecruiter, Glassdoor)
+  [FAIL] SOX / GRC (US)                   — 403 Host not in allowlist (LinkedIn, ZipRecruiter, Glassdoor)
+  [FAIL] Tech Risk / Compliance (US)       — 403 Host not in allowlist (LinkedIn, ZipRecruiter, Glassdoor)
+  [FAIL] Controls / Internal Audit (US)    — 403 Host not in allowlist (LinkedIn, ZipRecruiter, Glassdoor)
+  [FAIL] CISA required/preferred (US)      — 403 Host not in allowlist (LinkedIn, ZipRecruiter, Glassdoor)
+  [FAIL] IT Audit — Los Angeles area       — 403 Host not in allowlist (LinkedIn, ZipRecruiter, Glassdoor)
+  [FAIL] GRC / Compliance — LA area        — 403 Host not in allowlist (LinkedIn, ZipRecruiter, Glassdoor)
+  [FAIL] IT Audit / GRC — Orange County    — 403 Host not in allowlist (LinkedIn, ZipRecruiter, Glassdoor)
 
-[Search] SOX / GRC (US) (150 results)...
-  [Error] LinkedIn 403 (Host not in allowlist); ZipRecruiter 403; Glassdoor connection failed
+Root cause: Outbound HTTPS to LinkedIn, Indeed, Glassdoor, ZipRecruiter
+            blocked by environment proxy/allowlist (403 Forbidden).
+            No job data could be retrieved this scan cycle.
+            Same block observed in previous runs (2026-04-09, 2026-04-15).
 
-[Search] Tech Risk / Compliance Analyst (US) (125 results)...
-  [Error] LinkedIn 403 (Host not in allowlist); ZipRecruiter 403; Glassdoor connection failed
-
-[Search] Controls / Internal Audit (US) (125 results)...
-  [Error] LinkedIn 403 (Host not in allowlist); ZipRecruiter 403; Glassdoor connection failed
-
-[Search] CISA required/preferred (US) (100 results)...
-  [Error] LinkedIn 403 (Host not in allowlist); ZipRecruiter 403; Glassdoor connection failed
-
-[Search] IT Audit — Los Angeles area (100 results)...
-  [Error] LinkedIn 403 (Host not in allowlist); ZipRecruiter 403; Glassdoor connection failed
-
-[Search] GRC / Compliance / Controls — LA area (75 results)...
-  [Error] LinkedIn 403 (Host not in allowlist); ZipRecruiter 403; Glassdoor connection failed
-
-[Search] IT Audit / GRC — Orange County (75 results)...
-  [Error] LinkedIn 403 (Host not in allowlist); ZipRecruiter 403; Glassdoor connection failed
-
-[Scanner] No results from any search pass.
-
-============================================================
-Root cause: All job boards (LinkedIn, Indeed, Glassdoor, ZipRecruiter) returning
-            403 Forbidden — outbound scraping blocked from this server IP.
-            Scan completed normally with 0 results.
+Note: GROQ_API_KEY loaded and validated. Scoring engine is ready;
+      blocked at the job-fetch stage, not the scoring stage.
 
 New leads saved   : 0
 Strong matches 80+: 0
 High matches 70+  : 0
 LA-area leads     : 0
 Alerts sent       : 0
-Scanned at        : 2026-04-15 23:07 UTC
+Scanned at        : 2026-04-16 11:32 UTC
 ============================================================

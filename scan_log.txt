@@ -1,46 +1,46 @@
 
 ============================================================
-[Scanner] IT Audit Hunt — 2026-04-24 23:11
+[Scanner] IT Audit Hunt — 2026-04-25 11:17
 ============================================================
 
 [Search] Core IT Audit (US) (150 results)...
-2026-04-24 23:11:58,778 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
-2026-04-24 23:11:58,778 - INFO - JobSpy:Linkedin - finished scraping
-2026-04-24 23:11:58,998 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
+2026-04-25 11:17:29,796 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
+2026-04-25 11:17:29,797 - INFO - JobSpy:Linkedin - finished scraping
+2026-04-25 11:17:29,949 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
   [Error] failed to do request: Get "https://www.glassdoor.com//findPopularLocationAjax.htm?maxLocationsToReturn=10&term=United States": unexpected EOF
 
 [Search] SOX / GRC (US) (150 results)...
-2026-04-24 23:12:04,820 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
-2026-04-24 23:12:04,870 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
+2026-04-25 11:17:35,891 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
+2026-04-25 11:17:35,963 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
   [Error] failed to do request: Get "https://www.glassdoor.com//findPopularLocationAjax.htm?maxLocationsToReturn=10&term=United States": unexpected EOF
 
 [Search] Tech Risk / Compliance Analyst (US) (125 results)...
-2026-04-24 23:12:10,849 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
-2026-04-24 23:12:10,907 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
+2026-04-25 11:17:41,908 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
+2026-04-25 11:17:41,951 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
   [Error] failed to do request: Get "https://www.glassdoor.com//findPopularLocationAjax.htm?maxLocationsToReturn=10&term=United States": unexpected EOF
 
 [Search] Controls / Internal Audit (US) (125 results)...
-2026-04-24 23:12:16,883 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
-2026-04-24 23:12:16,904 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
+2026-04-25 11:17:47,937 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
+2026-04-25 11:17:47,996 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
   [Error] failed to do request: Get "https://www.glassdoor.com//findPopularLocationAjax.htm?maxLocationsToReturn=10&term=United States": unexpected EOF
 
 [Search] CISA required/preferred (US) (100 results)...
-2026-04-24 23:12:22,916 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
-2026-04-24 23:12:22,950 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
+2026-04-25 11:17:53,986 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
+2026-04-25 11:17:54,036 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
   [Error] failed to do request: Get "https://www.glassdoor.com//findPopularLocationAjax.htm?maxLocationsToReturn=10&term=United States": unexpected EOF
 
 [Search] IT Audit — Los Angeles area (100 results)...
-2026-04-24 23:12:28,992 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
-2026-04-24 23:12:29,090 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
+2026-04-25 11:18:00,014 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
+2026-04-25 11:18:00,049 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
   [Error] failed to do request: Get "https://www.glassdoor.com//findPopularLocationAjax.htm?maxLocationsToReturn=10&term=Los Angeles, CA": unexpected EOF
 
 [Search] GRC / Compliance / Controls — LA area (75 results)...
-2026-04-24 23:12:34,967 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
-2026-04-24 23:12:35,013 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
+2026-04-25 11:18:06,052 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
+2026-04-25 11:18:06,095 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
   [Error] failed to do request: Get "https://www.glassdoor.com//findPopularLocationAjax.htm?maxLocationsToReturn=10&term=Los Angeles, CA": unexpected EOF
 
 [Search] IT Audit / GRC — Orange County (75 results)...
-2026-04-24 23:12:40,999 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
-2026-04-24 23:12:41,031 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
+2026-04-25 11:18:12,159 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
+2026-04-25 11:18:12,455 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
   [Error] failed to do request: Get "https://www.glassdoor.com//findPopularLocationAjax.htm?maxLocationsToReturn=10&term=Irvine, CA": unexpected EOF
 [Scanner] No results from any search pass.

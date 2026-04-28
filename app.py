@@ -13,6 +13,8 @@ try:
 except ImportError:
     pass
 
+from pwa_inject import inject_pwa
+
 CSV_PATH   = "Scored_Audit_Leads.csv"
 LOG_PATH   = "scan_log.txt"
 NTFY_TOPIC = os.getenv("NTFY_TOPIC", "dj-audit-786543")
@@ -26,7 +28,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
-
+inject_pwa("DJ Audit Hunt")
 
 # ---------------------------------------------------------------------------
 # Header

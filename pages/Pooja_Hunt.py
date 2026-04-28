@@ -19,6 +19,8 @@ try:
 except ImportError:
     pass
 
+from pwa_inject import inject_pwa
+
 CSV_PATH   = "Scored_Pooja_Leads.csv"
 LOG_PATH   = "pooja_scan_log.txt"
 NTFY_TOPIC = os.getenv("POOJA_NTFY_TOPIC", "pooja-industry-oppor")
@@ -32,7 +34,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
-
+inject_pwa("Pooja Industry Hunt")
 
 # ---------------------------------------------------------------------------
 # Header

@@ -2,6 +2,7 @@
 headless = true
 enableCORS = false
 enableXsrfProtection = true
+staticFolder = "static"
 
 [browser]
 gatherUsageStats = false

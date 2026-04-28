@@ -3,7 +3,7 @@ services:
     name: dj-pooja-job-hunt
     env: python
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && python generate_icons.py
     startCommand: streamlit run app.py --server.port $PORT --server.address 0.0.0.0
     envVars:
       # ── Passwords (set these in Render dashboard → Environment) ──────────

@@ -13,6 +13,8 @@ try:
 except ImportError:
     pass
 
+from pwa_inject import inject_pwa
+
 CSV_PATH   = "Scored_Audit_Leads.csv"
 LOG_PATH   = "scan_log.txt"
 NTFY_TOPIC = os.getenv("NTFY_TOPIC", "dj-audit-786543")
@@ -26,7 +28,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
-
+inject_pwa("DJ Audit Hunt")
 
 # ---------------------------------------------------------------------------
 # Header
@@ -132,7 +134,7 @@ def render_cards(jobs: pd.DataFrame, key_prefix: str):
     if jobs.empty:
         st.info("No leads match the current filters.")
         return
-    for i, (_, row) in enumerate(jobs.head(60).iterrows()):
+    for i, (_, row) in enumerate(jobs.head(50).iterrows()):
         score  = int(row.get("Score", 0))
         band   = row.get("Band", score_band(score))
         title  = row.get("Title", "")

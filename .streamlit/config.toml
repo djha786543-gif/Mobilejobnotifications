@@ -2,9 +2,15 @@
 headless = true
 enableCORS = false
 enableXsrfProtection = true
+staticFolder = "static"
 
 [browser]
 gatherUsageStats = false
 
 [theme]
-base = "dark"
+base = "light"
+primaryColor = "#3B82F6"
+backgroundColor = "#F8FAFC"
+secondaryBackgroundColor = "#EEF2FF"
+textColor = "#1E293B"
+font = "sans serif"

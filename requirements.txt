@@ -3,3 +3,4 @@ pandas
 groq
 python-dotenv
 requests
+python-jobspy

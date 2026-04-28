@@ -166,7 +166,7 @@ def render_cards(jobs: pd.DataFrame, key_prefix: str):
     if jobs.empty:
         st.info("No leads match the current filters.")
         return
-    for i, (_, row) in enumerate(jobs.head(60).iterrows()):
+    for i, (_, row) in enumerate(jobs.head(50).iterrows()):
         score   = int(row.get("Score", 0))
         band    = row.get("Band", score_band(score))
         title   = row.get("Title", "")

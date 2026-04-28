@@ -236,11 +236,13 @@ def keyword_score(title: str, desc: str, location: str = "") -> int:
 
     # --- Description signals ---
     desc_kw = {
-        # CISA — very strong signal
+        # CISA / AAIA — very strong signal
         "cisa required": 14, "cisa is required": 14,
         "cisa preferred": 11, "cisa certified": 11,
         "cisa certification": 11, "cisa or equivalent": 11,
         "cisa, cism": 10, "cisa/cism": 10, "cisa": 7,
+        "aaia": 8, "ai audit": 8, "ai governance": 8, "ai risk": 7,
+        "nist ai rmf": 7, "ai/ml governance": 7,
         # Core audit signals
         "itgc": 9, "sox": 8, "it audit": 8, "internal controls": 7,
         "control testing": 7, "controls testing": 7, "audit program": 6,
@@ -260,8 +262,9 @@ def keyword_score(title: str, desc: str, location: str = "") -> int:
         "risk assessment": 5, "risk management": 4, "governance": 4,
         # Third-party / vendor risk
         "third party risk": 6, "tprm": 6, "vendor risk": 5,
-        # AI governance (emerging area DJ covers)
-        "ai governance": 7, "ai audit": 7, "ai risk": 6,
+        # AI governance (DJ holds AAIA certification)
+        "ai governance": 8, "ai audit": 8, "ai risk": 7,
+        "nist ai rmf": 8, "ai/ml governance": 7, "aaia": 9,
         # Contract / work type
         "c2c": 6, "corp-to-corp": 6, "corp to corp": 6,
         "1099": 5, "w2 contract": 6, "contract role": 5,
@@ -342,11 +345,15 @@ def llm_score(desc: str, location: str = "") -> int | None:
     prompt = f"""Rate 0–100 fit for this candidate:
 
 Candidate profile:
-- EAD-authorized (J2 visa), no sponsorship needed, authorized for W2 & contract work
-- 8 years IT Audit — Big 4 / EY background
-- CISA certified, AWS Cloud Practitioner
-- Skills: SOX ITGC, GRC, IT Audit, internal controls, SAP S/4HANA, cloud audit, AI governance, NIST, ISO 27001
-- Location preference: Remote (anywhere US) OR in/around Los Angeles CA area
+- EAD-authorized (US EAD), no sponsorship needed, authorized for W2 & contract work
+- 8+ years IT Audit — Big 4 / EY (Manager – Technology Risk, 2016–2024) + Fortune 500
+- Certifications: CISA (Jan 2026), AAIA – AI Audit Professional (Apr 2026), AWS Cloud Practitioner (Feb 2026), Six Sigma Yellow Belt
+- Core skills: SOX 404, ITGC & ITAC testing, SOC 1 / SOC 2 audits, internal controls, GRC, AI/ML governance, NIST AI RMF, NIST, ISO 27001, COBIT, COSO
+- ERP & platforms: SAP S/4HANA, Oracle, NetSuite, Workday, Salesforce, ServiceNow, Active Directory
+- Cloud: AWS (IAM, S3, EC2, CloudTrail), Azure, cloud audit
+- Tools: Excel VBA, Power BI, SQL, Python, ACL, Jira
+- Business cycles: P2P, O2C, R2R, IAM, change management, BCP/DR
+- Location preference: Remote (anywhere US) OR in/around Los Angeles CA area (Torrance-based)
 - {la_context}
 - Open to all levels (analyst → manager), prefers contract/W2
 

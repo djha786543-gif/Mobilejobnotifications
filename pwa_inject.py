@@ -1,69 +1,86 @@
 """
-Inject PWA meta tags and service-worker registration into the Streamlit page.
-Call once near the top of each page (after set_page_config).
+PWA injection for Streamlit apps.
 
-iOS  → apple-mobile-web-app-capable + apple-touch-icon  (no SW needed)
-Android → manifest.json + sw.js registered at scope '/'
+- Uses st.components.v1.html() so the <script> actually EXECUTES
+  (st.markdown unsafe_allow_html strips scripts via React's dangerouslySetInnerHTML).
+- Targets window.parent.document so it can write into the real page <head>
+  (components run in a sandboxed iframe).
+- Streamlit 1.55 serves staticFolder at /app/static/<filename>.
 """
-import streamlit as st
+import streamlit.components.v1 as components
 
 
 def inject_pwa(app_name: str, theme_color: str = "#3B82F6"):
-    st.markdown(
+    components.html(
         f"""
+<!DOCTYPE html>
+<html><body>
 <script>
 (function () {{
-  // ── Manifest link ──────────────────────────────────────────────
-  if (!document.querySelector('link[rel="manifest"]')) {{
-    var ml = document.createElement('link');
+  var doc = window.parent.document;
+  var head = doc.head;
+
+  // ── Manifest link (/app/static/manifest.json) ──────────────────
+  if (!doc.querySelector('link[rel="manifest"]')) {{
+    var ml = doc.createElement('link');
     ml.rel  = 'manifest';
-    ml.href = '/manifest.json';
-    document.head.appendChild(ml);
+    ml.href = '/app/static/manifest.json';
+    head.appendChild(ml);
   }}
 
   // ── Theme colour ───────────────────────────────────────────────
-  if (!document.querySelector('meta[name="theme-color"]')) {{
-    var tc = document.createElement('meta');
+  if (!doc.querySelector('meta[name="theme-color"]')) {{
+    var tc = doc.createElement('meta');
     tc.name    = 'theme-color';
     tc.content = '{theme_color}';
-    document.head.appendChild(tc);
+    head.appendChild(tc);
   }}
 
-  // ── iOS / Safari meta tags ─────────────────────────────────────
-  var iosMeta = [
+  // ── iOS / Safari standalone meta tags ─────────────────────────
+  var iosMetas = [
     ['apple-mobile-web-app-capable',          'yes'],
     ['apple-mobile-web-app-status-bar-style', 'default'],
     ['apple-mobile-web-app-title',            '{app_name}'],
     ['mobile-web-app-capable',                'yes'],
   ];
-  iosMeta.forEach(function(pair) {{
-    if (!document.querySelector('meta[name="' + pair[0] + '"]')) {{
-      var m = document.createElement('meta');
+  iosMetas.forEach(function(pair) {{
+    if (!doc.querySelector('meta[name="' + pair[0] + '"]')) {{
+      var m = doc.createElement('meta');
       m.name    = pair[0];
       m.content = pair[1];
-      document.head.appendChild(m);
+      head.appendChild(m);
     }}
   }});
 
   // ── Apple touch icon ───────────────────────────────────────────
-  if (!document.querySelector('link[rel="apple-touch-icon"]')) {{
-    var al = document.createElement('link');
+  if (!doc.querySelector('link[rel="apple-touch-icon"]')) {{
+    var al = doc.createElement('link');
     al.rel  = 'apple-touch-icon';
-    al.href = '/icon-192.png';
-    document.head.appendChild(al);
+    al.href = '/app/static/icon-192.png';
+    head.appendChild(al);
   }}
 
-  // ── Service worker (Android Chrome install prompt) ─────────────
-  if ('serviceWorker' in navigator) {{
-    window.addEventListener('load', function () {{
-      navigator.serviceWorker
-        .register('/sw.js', {{ scope: '/' }})
-        .then(function (r) {{ console.log('[PWA] SW registered, scope:', r.scope); }})
-        .catch(function (e) {{ console.warn('[PWA] SW registration failed:', e); }});
+  // ── Service worker ─────────────────────────────────────────────
+  // sw.js lives at /app/static/sw.js (Streamlit 1.55 staticFolder path).
+  // We set Service-Worker-Allowed header via the SW response header trick:
+  // the SW itself sets its own scope via the registration options.
+  // Without a root-level SW, Chrome won't auto-prompt install but
+  // "Add to Home Screen" from browser menu opens the app in standalone mode.
+  if ('serviceWorker' in window.parent.navigator) {{
+    window.parent.addEventListener('load', function () {{
+      window.parent.navigator.serviceWorker
+        .register('/app/static/sw.js')
+        .then(function (r) {{
+          console.log('[PWA] SW registered:', r.scope);
+        }})
+        .catch(function (e) {{
+          console.warn('[PWA] SW skipped (scope limit):', e.message);
+        }});
     }});
   }}
 }})();
 </script>
+</body></html>
 """,
-        unsafe_allow_html=True,
+        height=0,
     )

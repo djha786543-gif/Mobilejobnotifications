@@ -42,6 +42,14 @@ inject_pwa("Pooja Industry Hunt")
 st.title("🔬 Pooja's Industry Hunt")
 st.caption("Ph.D. Research Scientist · Cardiovascular Biology · Preclinical · Translational Medicine")
 
+with st.expander("📲 Install as App on your phone", expanded=False):
+    st.markdown("""
+**Android (Chrome):** Open this page → tap the ⋮ menu → **"Add to Home Screen"** or **"Install app"** → tap Add
+**iPhone / iPad (Safari):** Open this page in Safari → tap the **Share** button (⬆) → **"Add to Home Screen"** → Add
+
+The app will open full-screen, no browser bar — just like a native app.
+""")
+
 # Candidate profile — collapsed by default to save mobile space
 with st.expander("Candidate profile", expanded=False):
     col1, col2 = st.columns(2)

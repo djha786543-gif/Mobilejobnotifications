@@ -1,6 +1,6 @@
 """
 pooja_hunter.py — Pooja Choubey's Biotech/Pharma Job Scanner
-Ph.D. Research Scientist | Cardiovascular Biology | Preclinical | Translational Medicine
+Ph.D. Molecular Genetics | Cardiovascular Biology | Preclinical | Translational Medicine
 STRICTLY ISOLATED from DJ's audit scanner.
 """
 
@@ -15,7 +15,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from jobspy import scrape_jobs
 
-# Load .env for local dev
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -28,7 +27,7 @@ def sprint(*args, **kwargs):
            sys.stdout.encoding or "utf-8", errors="replace")
     print(safe, flush=True, **kwargs)
 
-# --- CONFIG (completely separate from DJ) ---
+# --- CONFIG ---
 GROQ_API_KEY   = os.getenv("GROQ_API_KEY")
 NTFY_TOPIC     = os.getenv("POOJA_NTFY_TOPIC", "pooja-industry-oppor")
 GITHUB_TOKEN   = os.getenv("GITHUB_TOKEN")
@@ -38,21 +37,31 @@ GROQ_MODEL     = "llama-3.3-70b-versatile"
 GROQ_ENDPOINT  = "https://api.groq.com/openai/v1/chat/completions"
 MIN_SAVE_SCORE = 35
 MAX_ALERTS     = 10
-SCORE_LLM_TOP  = 40    # top N by title relevance → LLM; rest → keyword scorer
+SCORE_LLM_TOP  = 80    # top N by title relevance → LLM batch
 BATCH_SIZE     = 15    # jobs per Groq call
-SCRAPE_WORKERS = 4     # parallel scrape threads (stays under LinkedIn radar)
+SCRAPE_WORKERS = 4     # parallel scrape threads
 
 
 # ---------------------------------------------------------------------------
 # Title whitelist — research science roles in biotech/pharma/CRO space
 # ---------------------------------------------------------------------------
 TITLE_WHITELIST = [
+    # Core scientist titles
     r"\bresearch\s+scientist\b",
-    r"\bscientist\s+(?:i+|1|2|3|4)\b",
+    r"\bscientist\s+(?:i+|1|2|3|4|v)\b",
     r"\bsenior\s+(?:research\s+)?scientist\b",
     r"\bstaff\s+scientist\b",
     r"\bprincipal\s+scientist\b",
     r"\bassociate\s+(?:research\s+)?scientist\b",
+    r"\br&d\s+scientist\b",
+    r"\bscientific\s+researcher\b",
+    # Investigator equivalents (biotech/pharma term for Scientist)
+    r"\bresearch\s+investigator\b",
+    r"\bsenior\s+(?:research\s+)?investigator\b",
+    r"\bprincipal\s+(?:research\s+)?investigator\b(?!\s+\(pi\))",  # exclude academic PI
+    r"\bassociate\s+(?:research\s+)?investigator\b",
+    r"\binvestigator\s+(?:i+|1|2|3)\b",
+    # Specialty scientist
     r"\btranslational\s+(?:scientist|research|medicine|biology)\b",
     r"\bpreclinical\s+(?:scientist|research|researcher)\b",
     r"\bin\s+vivo\s+(?:scientist|research|researcher|biologist)\b",
@@ -66,58 +75,63 @@ TITLE_WHITELIST = [
     r"\bimmunolog(?:ist|y\s+scientist)\b",
     r"\bmolecular\s+biolog(?:ist|y\s+scientist)\b",
     r"\bcell\s+biolog(?:ist|y\s+scientist)\b",
-    r"\br&d\s+scientist\b",
-    r"\bscientific\s+researcher\b",
     r"\bin\s+vitro\s+in\s+vivo\b",
     r"\bmouse\s+(?:model|colony|genetics|phenotyping)\b",
     r"\btransgenic\s+(?:mouse|model|scientist)\b",
     r"\bomics\s+scientist\b",
-    r"\bspatial\s+(?:transcriptomics|genomics)\s+scientist\b",
+    r"\bspatial\s+(?:transcriptomics|genomics)\s*(?:scientist|specialist)?\b",
+    r"\bcardiology\s+(?:research|scientist)\b",
+    r"\bheart\s+(?:failure|disease)\s+(?:research|scientist)\b",
+    r"\bfibrosis\s+(?:research|scientist)\b",
+    r"\bgenomics\s+scientist\b",
+    r"\btranscriptomics\s+scientist\b",
+    r"\bbiologist\b.*\b(?:cardiovascular|cardiac|preclinical|in\s+vivo|translational)\b",
+    r"\b(?:cardiovascular|cardiac|preclinical|in\s+vivo|translational)\b.*\bbiologist\b",
 ]
 
 # Hard blacklist — veto even if whitelist matched
-# Exception: explicit science/research keyword overrides these
 TITLE_BLACKLIST = [
     r"\bsoftware\s+(?:engineer|developer)\b",
     r"\bdata\s+(?:engineer|architect)\b",
-    r"\bdata\s+scientist\b",        # pure ML/AI data science
-    r"\bbioinformatician\b",        # pure bioinformatics (no wet lab)
+    r"\bdata\s+scientist\b",           # pure ML/AI data science
+    r"\bbioinformatician\b",           # pure bioinformatics (no wet lab)
     r"\bsales\b|\bmarketing\b",
-    r"\bclinical\s+research\s+(?:coordinator|associate)\b",   # human trials admin
+    r"\bclinical\s+research\s+(?:coordinator|associate)\b",
     r"\bregulatory\s+affairs\b",
     r"\bmanufacturing\s+scientist\b",
     r"\bprocess\s+development\s+scientist\b",
     r"\bquality\s+(?:assurance|control)\s+scientist\b",
     r"\bnurse\b|\bphysician\b|\bclinician\b",
-    r"\bprofessor\b|\bfaculty\b|\blecturer\b",
-    r"\bpostdoc(?:toral)?\b",       # she's transitioning OUT of postdoc
+    r"\bprofessor\b|\bfaculty\b|\blecturer\b|\btenure\b",
+    r"\bpostdoc(?:toral)?\b",          # transitioning OUT of postdoc
 ]
 
 def matches_title(title: str) -> bool:
-    """Two-stage filter: whitelist → blacklist veto."""
     t = title.lower()
     if not any(re.search(p, t) for p in TITLE_WHITELIST):
         return False
-    if re.search(r"\bscientist\b|\bresearcher\b|\bresearch\b", t):
-        return True
+    # Scientist/researcher/investigator keyword overrides blacklist
+    if re.search(r"\bscientist\b|\bresearcher\b|\bresearch\b|\binvestigator\b", t):
+        if not any(re.search(p, t) for p in TITLE_BLACKLIST):
+            return True
     if any(re.search(p, t) for p in TITLE_BLACKLIST):
         return False
     return True
 
 
 # ---------------------------------------------------------------------------
-# Title relevance pre-ranker — fast keyword signal, no API call
-# Higher score → send to LLM; lower score → keyword scorer only
+# Title relevance pre-ranker — fast signal, no API call
 # ---------------------------------------------------------------------------
 _TITLE_HIGH = [
     "cardiovascular", "preclinical", "in vivo", "translational",
     "biomarker", "drug discovery", "pharmacolog", "cardiac",
-    "cardiomyopathy", "heart failure",
+    "cardiomyopathy", "heart failure", "fibrosis", "disease model",
+    "mouse model", "transgenic",
 ]
 _TITLE_MED = [
     "research scientist", "senior scientist", "staff scientist",
     "principal scientist", "scientist ii", "scientist iii", "scientist 2",
-    "scientist 3",
+    "scientist 3", "research investigator", "senior investigator",
 ]
 
 def title_relevance(title: str) -> int:
@@ -128,7 +142,7 @@ def title_relevance(title: str) -> int:
 
 
 # ---------------------------------------------------------------------------
-# GitHub API — persist CSV across Streamlit Cloud redeployments
+# GitHub API
 # ---------------------------------------------------------------------------
 def save_csv_to_github(csv_path: str) -> bool:
     if not GITHUB_TOKEN or not os.path.exists(csv_path):
@@ -193,116 +207,158 @@ def keyword_score(title: str, desc: str, location: str = "") -> int:
     # --- Title signals ---
     title_core = {
         "cardiovascular research scientist": 18,
-        "cardiovascular scientist": 16,
-        "cardiac research scientist": 16,
-        "preclinical research scientist": 17,
-        "preclinical scientist": 15,
-        "translational research scientist": 16,
-        "translational scientist": 14,
-        "in vivo scientist": 15,
-        "staff scientist": 12,
-        "principal scientist": 12,
-        "senior research scientist": 13,
-        "senior scientist": 11,
-        "research scientist": 10,
-        "biomarker scientist": 14,
-        "drug discovery scientist": 13,
-        "pharmacologist": 12,
+        "cardiovascular scientist":          16,
+        "cardiac research scientist":        16,
+        "preclinical research scientist":    17,
+        "preclinical scientist":             15,
+        "translational research scientist":  16,
+        "translational scientist":           14,
+        "in vivo scientist":                 15,
+        "in vivo research scientist":        16,
+        "staff scientist":                   12,
+        "principal scientist":               12,
+        "senior research scientist":         13,
+        "senior scientist":                  11,
+        "research scientist":                10,
+        "research investigator":             11,
+        "senior investigator":               12,
+        "principal investigator":            10,
+        "biomarker scientist":               14,
+        "drug discovery scientist":          13,
+        "pharmacologist":                    12,
+        "heart failure scientist":           16,
+        "fibrosis scientist":                13,
+        "disease model scientist":           14,
     }
     title_good = {
         "cardiovascular": 8, "cardiac": 7, "cardiomyopathy": 9,
         "preclinical": 8, "in vivo": 8, "translational": 7,
-        "scientist ii": 6, "scientist iii": 7, "associate scientist": 5,
-        "biomarker": 7, "disease model": 8, "mouse model": 8,
-        "drug discovery": 7, "pharmacology": 6,
+        "scientist ii": 6, "scientist iii": 7, "scientist 2": 6,
+        "associate scientist": 5, "biomarker": 7, "disease model": 8,
+        "mouse model": 8, "drug discovery": 7, "pharmacology": 6,
         "flow cytometry": 6, "molecular biology": 5,
-        "cell biology": 5, "immunology": 5,
+        "cell biology": 5, "immunology": 5, "heart failure": 9,
+        "fibrosis": 7, "myocardial": 8, "cardiomyocyte": 8,
     }
     title_pts  = sum(v for k, v in title_core.items() if k in t)
     title_pts += sum(v for k, v in title_good.items() if k in t)
     score += min(title_pts, 32)
 
-    # --- Description keyword signals (Pooja's expertise) ---
+    # --- Description keyword signals ---
     desc_kw = {
         # Core cardiovascular / cardiac
-        "cardiovascular":       9, "cardiac":           8, "cardiomyopathy":   10,
-        "peripartum":          10, "heart failure":      9, "cardiomyocyte":     9,
-        "echocardiography":     8, "langendorff":        9, "ekg":               6,
-        "cardiac phenotyp":     9, "contractility":      7,
+        "cardiovascular":           9, "cardiac":               8,
+        "cardiomyopathy":          10, "peripartum":           10,
+        "heart failure":            9, "cardiomyocyte":         9,
+        "myocardial":               8, "myocyte":               7,
+        "echocardiography":         8, "echo":                  4,
+        "langendorff":              9, "ekg":                   6,
+        "cardiac phenotyp":         9, "contractility":         7,
+        "ejection fraction":        7, "fractional shortening": 7,
+        "cardiac fibrosis":         9, "cardiac hypertrophy":   8,
+        "pressure overload":        8, "tac model":             9,
+        "myocardial infarction":    8, "mi model":              7,
 
         # Preclinical / in vivo
-        "preclinical":          9, "in vivo":            8, "mouse model":       9,
-        "transgenic":           8, "knockout":           7, "mouse colony":      8,
-        "animal model":         7, "disease model":      8, "genotyping":        6,
-        "subcutaneous":         5, "tissue harvest":     6, "organ harvest":     6,
+        "preclinical":              9, "in vivo":               8,
+        "mouse model":              9, "transgenic":            8,
+        "knockout":                 7, "mouse colony":          8,
+        "animal model":             7, "disease model":         8,
+        "genotyping":               6, "phenotyping":           7,
+        "subcutaneous":             5, "tissue harvest":        6,
+        "organ harvest":            6, "survival surgery":      8,
+        "osmotic pump":             7, "isoproterenol":         8,
+        "aortic banding":           9, "pressure overload":     8,
+        "echocardiographic":        8,
 
-        # Specific assays Pooja is expert in
-        "facs":                 7, "flow cytometry":     7, "western blot":      6,
-        "elisa":                6, "ihc":                6, "immunohistochemistry": 6,
-        "icc":                  5, "immunocytochemistry": 5,
-        "qrt-pcr":              6, "qpcr":               5, "tunel":             7,
-        "beta-gal":             7, "beta-galactosidase": 7,
-        "xtt":                  5, "mtt":                5, "hydroxyproline":    7,
-        "cell culture":         4,
+        # Assays Pooja is expert in
+        "facs":                     7, "flow cytometry":        7,
+        "western blot":             6, "western blotting":      6,
+        "elisa":                    6, "ihc":                   6,
+        "immunohistochemistry":     6, "icc":                   5,
+        "immunocytochemistry":      5, "qrt-pcr":               6,
+        "qpcr":                     5, "tunel":                 7,
+        "hydroxyproline":           7, "cell culture":          4,
+        "confocal":                 5, "immunofluorescence":    6,
+        "masson trichrome":         7, "sirius red":            7,
 
-        # Omics / bioinformatics
-        "rna-seq":              7, "rnaseq":             7, "scrna-seq":         7,
-        "spatial transcriptomics": 9, "xenium":          9, "visium":            9,
-        "bulk rna":             6, "transcriptomics":    7,
-        "ipa":                  6, "ingenuity":          6, "string":            5,
-        "graphpad":             4, "bioinformatics":     4,
+        # Omics / transcriptomics
+        "rna-seq":                  7, "rnaseq":                7,
+        "scrna-seq":                7, "single cell rna":       8,
+        "spatial transcriptomics":  9, "xenium":                9,
+        "visium":                   9, "seurat":                6,
+        "bulk rna":                 6, "transcriptomics":       7,
+        "ipa":                      6, "ingenuity":             6,
+        "bioinformatics":           4, "pathway analysis":      5,
+        "gene ontology":            5, "gsea":                  5,
+        "string":                   4, "graphpad":              4,
 
         # Translational / biomarker
-        "translational":        8, "biomarker":          8, "biomarker discovery": 9,
-        "therapeutic target":   9, "target validation":  9, "drug discovery":    8,
-        "pharmacology":         7, "pharmacokinetics":   6,
+        "translational":            8, "biomarker":             8,
+        "biomarker discovery":      9, "therapeutic target":    9,
+        "target validation":        9, "target identification": 8,
+        "drug discovery":           8, "pharmacology":          7,
+        "pharmacokinetics":         6, "mechanism of action":   7,
+        "proof of concept":         6, "efficacy model":        8,
 
-        # Molecular/genetics skills
-        "molecular genetics":   7, "molecular biology":  6, "gene expression":   5,
-        "protein expression":   5, "pathway analysis":   5, "ptrh2":            10,
+        # Molecular / genetics
+        "molecular genetics":       7, "molecular biology":     6,
+        "gene expression":          5, "protein expression":    5,
+        "signaling pathway":        6, "western":               5,
+        "ptrh2":                   10, "ptrh":                  8,
 
-        # Grant/publication signals (industry values this)
-        "nature communications": 8, "peer review":       5, "publication":       4,
-        "grant":                 4, "cirm":              7,
+        # PhD requirement (strong match)
+        "ph.d. required":          10, "phd required":         10,
+        "ph.d required":           10, "ph.d. preferred":       8,
+        "phd preferred":            8, "doctorate required":    9,
+        "doctoral degree":          8, "advanced degree":       5,
 
-        # Industry setting signals (positive)
-        "biotech":               6, "pharmaceutical":    6, "pharma":            6,
-        "cro":                   5, "contract research": 5,
-        "r&d":                   6, "research and development": 6,
-        "drug development":      7, "therapeutics":      6,
+        # Industry context (positive)
+        "biotech":                  6, "pharmaceutical":        6,
+        "pharma":                   6, "cro":                   5,
+        "contract research":        5, "r&d":                   6,
+        "research and development": 6, "drug development":      7,
+        "therapeutics":             6, "life sciences":         4,
+        "biopharma":                6,
 
-        # PhD requirement (strong match for Pooja)
-        "ph.d. required":       10, "phd required":     10, "ph.d required":    10,
-        "ph.d. preferred":       8, "phd preferred":     8,
-        "doctorate required":    9, "doctoral degree":   8,
+        # Visa / relocation (important — she needs sponsorship or already approved)
+        "visa sponsorship":         8, "will sponsor":          8,
+        "sponsorship available":    8, "h1b":                   6,
+        "relocation assistance":    6, "relocation package":    6,
+        "relocation provided":      6,
 
-        # Visa/relocation (important for Pooja's J1 situation)
-        "visa sponsorship":     8, "will sponsor":       8, "sponsorship available": 8,
-        "relocation assistance": 6, "relocation package": 6, "relocation provided": 6,
-        "global":               4, "international":      4,
+        # Company name signals (top targets)
+        "astrazeneca":              6, "novartis":              6,
+        "roche":                    6, "genentech":             7,
+        "pfizer":                   5, "bristol-myers":         5,
+        "bms":                      5, "merck":                 5,
+        "abbvie":                   5, "amgen":                 6,
+        "regeneron":                6, "biogen":                5,
+        "vertex":                   5, "myokardia":             8,
+        "cytokinetics":             8, "tenax":                 7,
+        "cardiol":                  7,
     }
     desc_pts = sum(v for k, v in desc_kw.items() if k in d)
-    score += min(desc_pts, 40)
+    score += min(desc_pts, 42)
 
     # --- Seniority fit ---
-    if re.search(r"\bsenior\b|\bstaff\b|\bprincipal\b|\bsr\.\b", t):
+    if re.search(r"\bsenior\b|\bstaff\b|\bsr\.\b", t):
         score += 4
-    if re.search(r"\bscientist\s+(ii|iii|2|3)\b", t):
+    if re.search(r"\bscientist\s+(ii|iii|iv|2|3|4)\b", t):
         score += 3
     if re.search(r"\bjunior\b|\bentry\s+level\b|\bscientist\s+i\b|\bscientist\s+1\b", t):
         score -= 8
-    if re.search(r"\bpostdoc\b|\bpost-doc\b|\bpostdoctoral\b", d):
+    if re.search(r"\bpostdoc\b|\bpost-doc\b|\bpostdoctoral\b", d[:200]):
         score -= 15
 
     # Hard seniority penalties
-    if re.search(r"\bvp\b|\bvice\s+president\b", t):           score -= 30
-    if re.search(r"\bchief\b|\bcso\b|\bcmo\b", t):             score -= 35
-    if re.search(r"\bhead\s+of\b", t):                         score -= 20
-    if re.search(r"\bdirector\b", t):                          score -= 15
-    if re.search(r"\bpartner\b|\bprincipal\s+investigator\b", t): score -= 10
+    if re.search(r"\bvp\b|\bvice\s+president\b", t):            score -= 30
+    if re.search(r"\bchief\b|\bcso\b|\bcmo\b", t):              score -= 35
+    if re.search(r"\bhead\s+of\b", t):                          score -= 20
+    if re.search(r"\bdirector\b", t):                           score -= 15
 
-    # Academic PI / professor role penalty (she wants industry)
-    if any(k in d for k in ["tenure", "tenure track", "faculty position",
+    # Academic role penalty
+    if any(k in d for k in ["tenure track", "faculty position",
                              "academic appointment", "university professor"]):
         score -= 20
 
@@ -314,10 +370,9 @@ def keyword_score(title: str, desc: str, location: str = "") -> int:
 
 
 # ---------------------------------------------------------------------------
-# Batch LLM scorer — 15 jobs per Groq call, strict JSON output
+# Batch LLM scorer — 15 jobs per Groq call
 # ---------------------------------------------------------------------------
 def llm_score_batch(batch: list[dict]) -> list[int | None]:
-    """Score up to 15 jobs in one Groq call. Returns JSON list of ints."""
     if not GROQ_API_KEY or not batch:
         return [None] * len(batch)
 
@@ -326,35 +381,61 @@ def llm_score_batch(batch: list[dict]) -> list[int | None]:
     for i, j in enumerate(batch, 1):
         blocks.append(
             f"[{i}] {j['title']} @ {j['company']} | {j['location']}\n"
-            f"{j['desc'][:350]}"
+            f"{j['desc'][:400]}"
         )
 
     prompt = (
-        f"You are a scientific recruiter. Score each of the {n} jobs 0-100 for fit "
-        f"with this candidate.\n\n"
-        "CANDIDATE — Pooja Choubey, Ph.D.:\n"
-        "- Ph.D. Molecular Genetics; 10+ years preclinical cardiovascular research\n"
-        "- Co-first author Nature Communications 2026 (PTRH2 / peripartum cardiomyopathy)\n"
-        "- In vivo: Langendorff isolation, echocardiography (VEVO F2), mouse colony 200+ mice, 3 transgenic lines\n"
-        "- Assays: FACS, Western blot, IHC/ICC, ELISA, qRT-PCR, TUNEL, Beta-gal, Hydroxyproline\n"
-        "- Omics: RNA-seq, scRNA-seq, Xenium & Visium spatial transcriptomics, IPA, STRING\n"
-        "- Target: R&D / Preclinical / Translational Scientist at biotech/pharma/CRO\n"
-        "- Open to relocation: US, Europe, India. NOT seeking remote.\n\n"
-        "STRICT SCORING RUBRIC:\n"
-        "90-100: ONLY if the JD EXPLICITLY requires a Ph.D. or 'Scientist' title AND is hands-on "
-        "preclinical/cardiovascular/translational R&D at a biotech, pharma, or CRO.\n"
-        "70-89:  Strong preclinical/translational R&D role, PhD preferred, good skill overlap, industry setting.\n"
-        "50-69:  Decent — adjacent therapeutic area or relevant wet-lab techniques, partial match.\n"
-        "30-49:  Partial — mostly bioinformatics/computational, missing core in vivo/wet-lab requirement.\n"
-        "< 30:   Poor — general lab tech, sales, software engineer, QA/QC, regulatory affairs, "
-        "clinical coordinator, or any role NOT requiring hands-on preclinical research.\n\n"
+        f"You are a scientific recruiter evaluating {n} biotech/pharma job postings.\n"
+        "Score each 0–100 for fit with this specific candidate:\n\n"
+
+        "CANDIDATE — Dr. Pooja Choubey, Ph.D. Molecular Genetics:\n"
+        "CURRENT: Post-Doctoral Fellow, Lundquist Institute / Harbor-UCLA Medical Center, Torrance CA\n"
+        "EDUCATION: Ph.D. Molecular Genetics | B.Sc. Biochemistry\n"
+        "PUBLICATIONS: Co-first author, Nature Communications 2026 — PTRH2 role in peripartum "
+        "cardiomyopathy (Altmetric 78); additional publications in cardiovascular biology\n\n"
+
+        "IN VIVO EXPERTISE (10+ years):\n"
+        "- Mouse colony management: 200+ mice, 3 transgenic lines (cardiac-specific overexpression)\n"
+        "- Cardiac phenotyping: Langendorff heart isolation, echocardiography (VEVO F2), "
+        "EKG recording, in vivo contractility, pressure-volume loops\n"
+        "- Disease models: TAC (aortic banding), isoproterenol, MI, angiotensin II infusion, "
+        "osmotic pumps, survival surgeries, tissue harvest\n\n"
+
+        "CELLULAR & MOLECULAR ASSAYS:\n"
+        "- FACS / flow cytometry, Western blot, IHC, ICC, ELISA, qRT-PCR, TUNEL\n"
+        "- Beta-gal staining, hydroxyproline assay, Masson trichrome, Sirius Red\n"
+        "- Cell culture (primary cardiomyocytes, cardiac fibroblasts)\n\n"
+
+        "OMICS:\n"
+        "- RNA-seq, scRNA-seq (Seurat, cell annotation), Xenium & Visium spatial transcriptomics\n"
+        "- IPA (Ingenuity Pathway Analysis), STRING, GSEA, GO enrichment\n\n"
+
+        "TARGET ROLES: R&D Scientist / Preclinical Scientist / Translational Scientist "
+        "at biotech, pharma, or CRO — hands-on bench science.\n"
+        "PREFERRED: Senior Scientist / Scientist II–IV / Staff Scientist / Principal Scientist\n"
+        "OPEN TO: US nationwide, Europe (UK, Switzerland, Germany, France, Netherlands, "
+        "Sweden, Denmark, Belgium), India (Bangalore, Hyderabad, Pune). NOT seeking purely remote.\n\n"
+
+        "SCORING RUBRIC (BE STRICT):\n"
+        "90–100: Role is EXPLICITLY hands-on preclinical/cardiovascular/translational R&D at "
+        "biotech/pharma/CRO, PhD required/preferred, strong skill overlap with in vivo or "
+        "cardiac phenotyping or spatial transcriptomics\n"
+        "70–89: Strong R&D/preclinical role at biotech/pharma, PhD preferred, good wet-lab skill "
+        "overlap, adjacent therapeutic area (e.g. fibrosis, metabolic disease, oncology with "
+        "mouse models)\n"
+        "50–69: Decent — relevant wet-lab techniques but missing cardiovascular/preclinical focus, "
+        "OR good role but missing PhD requirement, OR CRO lab role\n"
+        "30–49: Some overlap — mostly computational, OR missing PhD, OR wrong therapeutic area "
+        "with minimal in vivo\n"
+        "< 30: Poor — QA/QC, manufacturing, regulatory, clinical coordinator, software engineer, "
+        "sales, marketing, pure bioinformatics with no wet lab, OR role clearly not needing PhD\n\n"
+
         "JOBS:\n" +
         "\n\n".join(blocks) +
-        f"\n\nReturn ONLY a raw JSON array of {n} integers, e.g. [82,45,91]. "
+        f"\n\nReturn ONLY a raw JSON array of {n} integers, e.g. [82,45,91,67]. "
         "No text, no explanation, no markdown."
     )
 
-    text = ""
     for attempt in range(3):
         try:
             r = requests.post(
@@ -363,7 +444,7 @@ def llm_score_batch(batch: list[dict]) -> list[int | None]:
                          "Content-Type": "application/json"},
                 json={"model": GROQ_MODEL,
                       "messages": [{"role": "user", "content": prompt}],
-                      "max_tokens": 100,
+                      "max_tokens": 150,
                       "temperature": 0},
                 timeout=30,
             )
@@ -375,7 +456,6 @@ def llm_score_batch(batch: list[dict]) -> list[int | None]:
             r.raise_for_status()
             text = r.json()["choices"][0]["message"]["content"].strip()
 
-            # Strict JSON parse
             try:
                 parsed = json.loads(text)
                 if isinstance(parsed, list) and len(parsed) >= n:
@@ -383,7 +463,6 @@ def llm_score_batch(batch: list[dict]) -> list[int | None]:
             except (json.JSONDecodeError, ValueError):
                 pass
 
-            # Regex fallback
             nums = re.findall(r"\b(\d{1,3})\b", text)
             if len(nums) >= n:
                 return [min(int(x), 100) for x in nums[:n]]
@@ -400,18 +479,15 @@ def llm_score_batch(batch: list[dict]) -> list[int | None]:
 
 
 # ---------------------------------------------------------------------------
-# Parallel scrape helper — one thread per search config
+# Parallel scrape helper
 # ---------------------------------------------------------------------------
 def _scrape_one(cfg: dict) -> pd.DataFrame:
-    """Run a single search pass. Returns a DataFrame (may be empty)."""
     kwargs = dict(
         site_name=cfg.get("sites", ["linkedin", "indeed", "glassdoor", "zip_recruiter"]),
         search_term=cfg["term"],
         location=cfg["location"],
         results_wanted=cfg["results"],
     )
-    if cfg.get("region", "US") == "US":
-        kwargs["is_remote"] = False
     if "distance" in cfg:
         kwargs["distance"] = cfg["distance"]
 
@@ -423,181 +499,211 @@ def _scrape_one(cfg: dict) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# Search configuration — 18 passes: US hubs + Europe + India (LinkedIn only)
+# Search configuration — 22 passes: US hubs + Europe + India
 # ---------------------------------------------------------------------------
 def build_search_configs() -> list[dict]:
-    _HUB_TERM = (
+    # Core scientist terms used across many passes
+    _CORE = (
         '"Research Scientist" OR "Senior Scientist" OR "Staff Scientist" '
-        'OR "Principal Scientist" OR "Translational Scientist" '
-        'OR "Preclinical Scientist" OR "Cardiovascular Scientist" '
-        'OR "In Vivo Scientist" OR "Biomarker Scientist" '
-        'OR "Drug Discovery Scientist" OR "Pharmacologist"'
+        'OR "Principal Scientist" OR "Scientist II" OR "Scientist III" '
+        'OR "Translational Scientist" OR "Preclinical Scientist" '
+        'OR "Cardiovascular Scientist" OR "In Vivo Scientist" '
+        'OR "Biomarker Scientist" OR "Drug Discovery Scientist" '
+        'OR "Research Investigator" OR "Senior Investigator"'
+    )
+    # Cardiovascular-specific terms for focused passes
+    _CV = (
+        '"Cardiovascular Research Scientist" OR "Cardiovascular Scientist" '
+        'OR "Cardiac Research Scientist" OR "Heart Failure Scientist" '
+        'OR "Cardiomyopathy" OR "Preclinical Cardiovascular" '
+        'OR "In Vivo Cardiovascular" OR "Translational Cardiology"'
     )
     return [
-        # 1 — US nationwide
+        # ── US NATIONWIDE ──────────────────────────────────────────────────
         {
-            "label":    "Cardiovascular Research Scientist (US nationwide)",
-            "term":     ('"Cardiovascular Research Scientist" OR "Cardiovascular Scientist" '
-                         'OR "Cardiac Research Scientist" OR "Cardiomyopathy" OR '
-                         '"Heart Failure Research Scientist"'),
+            "label":    "Cardiovascular / Cardiac Scientist (US nationwide)",
+            "term":     _CV,
             "location": "United States",
-            "results":  25,
+            "results":  50,
             "region":   "US",
         },
-        # 2 — US nationwide
         {
             "label":    "Preclinical / In Vivo Scientist (US nationwide)",
             "term":     ('"Preclinical Research Scientist" OR "Preclinical Scientist" '
                          'OR "In Vivo Scientist" OR "In Vivo Research Scientist" '
-                         'OR "Disease Model Scientist" OR "Animal Model Scientist"'),
+                         'OR "Disease Model Scientist" OR "Animal Model Scientist" '
+                         'OR "Translational Research Scientist" OR "Translational Scientist"'),
             "location": "United States",
-            "results":  25,
+            "results":  50,
             "region":   "US",
         },
-        # 3 — EUROPE: Cambridge UK — AstraZeneca HQ, Wellcome Sanger, GSK
         {
-            "label":    "Research Scientist — Cambridge UK (AstraZeneca / GSK / Wellcome Sanger)",
-            "term":     _HUB_TERM,
-            "location": "Cambridge, United Kingdom",
-            "results":  25,
-            "region":   "Europe",
-            "sites":    ["linkedin"],
-        },
-        # 4 — EUROPE: London UK — GSK HQ, UCB, Immunocore
-        {
-            "label":    "Research Scientist — London UK (GSK / UCB / Immunocore)",
-            "term":     _HUB_TERM,
-            "location": "London, United Kingdom",
-            "results":  25,
-            "region":   "Europe",
-            "sites":    ["linkedin"],
-        },
-        # 5 — US nationwide
-        {
-            "label":    "Translational / Biomarker Scientist (US nationwide)",
-            "term":     ('"Translational Research Scientist" OR "Translational Scientist" '
-                         'OR "Biomarker Scientist" OR "Biomarker Discovery" '
-                         'OR "Drug Discovery Scientist" OR "Pharmacologist"'),
+            "label":    "Biomarker / Drug Discovery Scientist (US nationwide)",
+            "term":     ('"Biomarker Scientist" OR "Biomarker Discovery" '
+                         'OR "Drug Discovery Scientist" OR "Pharmacologist" '
+                         'OR "Target Identification Scientist" '
+                         'OR "Target Validation Scientist"'),
             "location": "United States",
-            "results":  25,
+            "results":  50,
             "region":   "US",
         },
-        # 6 — US nationwide
         {
-            "label":    "Senior / Staff / Principal Scientist (US nationwide)",
+            "label":    "Senior / Staff / Principal Scientist — Cardiovascular (US)",
             "term":     ('"Senior Research Scientist" OR "Staff Scientist" '
-                         'OR "Principal Scientist" OR "Scientist II" OR "Scientist III" '
-                         'OR "Associate Scientist" cardiovascular OR preclinical'),
+                         'OR "Principal Scientist" OR "Research Investigator" '
+                         'OR "Senior Investigator" cardiovascular OR cardiac OR '
+                         '"heart failure" OR preclinical OR "in vivo"'),
             "location": "United States",
-            "results":  25,
+            "results":  50,
             "region":   "US",
         },
-        # 7 — US hub: LA / Torrance
         {
-            "label":    "Research Scientist — LA / Torrance area",
-            "term":     ('"Research Scientist" OR "Senior Scientist" OR "Translational Scientist" '
-                         'OR "Preclinical Scientist" OR "Cardiovascular" OR "In Vivo"'),
+            "label":    "Spatial Transcriptomics / Omics Scientist (US)",
+            "term":     ('"Spatial Transcriptomics" OR "Xenium" OR "Visium" '
+                         'OR "Single Cell RNA" OR "scRNA-seq" OR "Transcriptomics Scientist" '
+                         'OR "Genomics Scientist"'),
+            "location": "United States",
+            "results":  30,
+            "region":   "US",
+        },
+        # ── US HUBS ────────────────────────────────────────────────────────
+        {
+            "label":    "Scientist — LA / Torrance / Irvine area",
+            "term":     ('"Research Scientist" OR "Senior Scientist" '
+                         'OR "Translational Scientist" OR "Preclinical Scientist" '
+                         'OR "Cardiovascular" OR "In Vivo" OR "Drug Discovery"'),
             "location": "Torrance, CA",
-            "results":  25,
+            "results":  50,
             "distance": 40,
             "region":   "US",
         },
-        # 8 — EUROPE: Basel Switzerland — Novartis HQ, Roche HQ, Lonza
         {
-            "label":    "Research Scientist — Basel Switzerland (Novartis / Roche / Lonza)",
-            "term":     _HUB_TERM,
-            "location": "Basel, Switzerland",
-            "results":  25,
-            "region":   "Europe",
-            "sites":    ["linkedin"],
-        },
-        # 9 — US hub: Boston / Cambridge MA
-        {
-            "label":    "Research Scientist — Boston / Cambridge MA",
-            "term":     _HUB_TERM,
+            "label":    "Scientist — Boston / Cambridge MA (Broad / MIT / Biogen / Vertex)",
+            "term":     _CORE,
             "location": "Cambridge, MA",
-            "results":  25,
+            "results":  50,
             "distance": 30,
             "region":   "US",
         },
-        # 10 — EUROPE: Munich Germany — BioNTech, Bayer, Helmholtz
         {
-            "label":    "Research Scientist — Munich Germany (BioNTech / Bayer / Helmholtz)",
-            "term":     _HUB_TERM,
-            "location": "Munich, Germany",
-            "results":  25,
-            "region":   "Europe",
-            "sites":    ["linkedin"],
-        },
-        # 11 — US hub: San Diego CA
-        {
-            "label":    "Research Scientist — San Diego CA",
-            "term":     _HUB_TERM,
-            "location": "San Diego, CA",
-            "results":  25,
-            "distance": 30,
-            "region":   "US",
-        },
-        # 12 — EUROPE: Paris France — Sanofi HQ, Institut Pasteur
-        {
-            "label":    "Research Scientist — Paris France (Sanofi / Institut Pasteur)",
-            "term":     _HUB_TERM,
-            "location": "Paris, France",
-            "results":  25,
-            "region":   "Europe",
-            "sites":    ["linkedin"],
-        },
-        # 13 — US hub: San Francisco Bay Area
-        {
-            "label":    "Research Scientist — San Francisco Bay Area",
-            "term":     _HUB_TERM,
+            "label":    "Scientist — San Francisco / South SF (Genentech / Amgen / Gilead)",
+            "term":     _CORE,
             "location": "South San Francisco, CA",
-            "results":  25,
+            "results":  50,
             "distance": 40,
             "region":   "US",
         },
-        # 14 — US hub: Philadelphia / NJ pharma corridor
         {
-            "label":    "Research Scientist — Philadelphia / NJ pharma corridor",
-            "term":     _HUB_TERM,
+            "label":    "Scientist — San Diego CA (Pfizer / AstraZeneca / Janssen SD)",
+            "term":     _CORE,
+            "location": "San Diego, CA",
+            "results":  50,
+            "distance": 30,
+            "region":   "US",
+        },
+        {
+            "label":    "Scientist — Philadelphia / NJ pharma corridor (Merck / J&J / GSK)",
+            "term":     _CORE,
             "location": "Philadelphia, PA",
-            "results":  25,
+            "results":  50,
             "distance": 50,
             "region":   "US",
         },
-        # 15 — INDIA: Bengaluru — Biocon, AstraZeneca India, Syngene (LinkedIn only)
         {
-            "label":    "Research Scientist — Bangalore India (Biocon / AstraZeneca / Syngene)",
-            "term":     _HUB_TERM,
-            "location": "Bengaluru",
-            "results":  25,
-            "region":   "India",
-            "sites":    ["linkedin"],
-        },
-        # 16 — INDIA: Hyderabad — Dr. Reddy's, Aurobindo, Cipla R&D (LinkedIn only)
-        {
-            "label":    "Research Scientist — Hyderabad India (Dr Reddy's / Aurobindo / Cipla)",
-            "term":     _HUB_TERM,
-            "location": "Hyderabad",
-            "results":  25,
-            "region":   "India",
-            "sites":    ["linkedin"],
-        },
-        # 17 — US hub: Research Triangle Park NC
-        {
-            "label":    "Research Scientist — Research Triangle Park NC",
-            "term":     _HUB_TERM,
+            "label":    "Scientist — Research Triangle Park NC (GSK / Bayer / Syneos)",
+            "term":     _CORE,
             "location": "Durham, NC",
-            "results":  25,
+            "results":  50,
             "distance": 30,
             "region":   "US",
         },
-        # 18 — INDIA: Pune — Serum Institute, Lupin, Piramal (LinkedIn only)
         {
-            "label":    "Research Scientist — Pune India (Serum Institute / Lupin / Piramal)",
-            "term":     _HUB_TERM,
+            "label":    "Scientist — Seattle / Bothell WA (Seagen / Novo Nordisk / IQVIA)",
+            "term":     _CORE,
+            "location": "Seattle, WA",
+            "results":  30,
+            "distance": 30,
+            "region":   "US",
+        },
+        # ── EUROPE ─────────────────────────────────────────────────────────
+        {
+            "label":    "Scientist — Cambridge UK (AstraZeneca / Wellcome Sanger / GSK)",
+            "term":     _CORE,
+            "location": "Cambridge, United Kingdom",
+            "results":  50,
+            "region":   "Europe",
+            "sites":    ["linkedin"],
+        },
+        {
+            "label":    "Scientist — London UK (GSK / UCB / MSD / Immunocore)",
+            "term":     _CORE,
+            "location": "London, United Kingdom",
+            "results":  50,
+            "region":   "Europe",
+            "sites":    ["linkedin"],
+        },
+        {
+            "label":    "Scientist — Basel Switzerland (Novartis / Roche / Lonza)",
+            "term":     _CORE,
+            "location": "Basel, Switzerland",
+            "results":  50,
+            "region":   "Europe",
+            "sites":    ["linkedin"],
+        },
+        {
+            "label":    "Scientist — Zurich / Schlieren Switzerland (Novartis Institutes)",
+            "term":     _CORE,
+            "location": "Zurich, Switzerland",
+            "results":  30,
+            "region":   "Europe",
+            "sites":    ["linkedin"],
+        },
+        {
+            "label":    "Scientist — Munich Germany (BioNTech / Bayer / Helmholtz)",
+            "term":     _CORE,
+            "location": "Munich, Germany",
+            "results":  50,
+            "region":   "Europe",
+            "sites":    ["linkedin"],
+        },
+        {
+            "label":    "Scientist — Paris France (Sanofi / Institut Pasteur / Servier)",
+            "term":     _CORE,
+            "location": "Paris, France",
+            "results":  30,
+            "region":   "Europe",
+            "sites":    ["linkedin"],
+        },
+        {
+            "label":    "Scientist — Amsterdam / Leiden NL (Janssen / LUMC / BioLegend)",
+            "term":     _CORE,
+            "location": "Amsterdam, Netherlands",
+            "results":  30,
+            "region":   "Europe",
+            "sites":    ["linkedin"],
+        },
+        # ── INDIA ──────────────────────────────────────────────────────────
+        {
+            "label":    "Scientist — Bangalore India (Biocon / AstraZeneca / Syngene)",
+            "term":     _CORE,
+            "location": "Bengaluru",
+            "results":  50,
+            "region":   "India",
+            "sites":    ["linkedin"],
+        },
+        {
+            "label":    "Scientist — Hyderabad India (Dr Reddy's / Aurobindo / Cipla R&D)",
+            "term":     _CORE,
+            "location": "Hyderabad",
+            "results":  50,
+            "region":   "India",
+            "sites":    ["linkedin"],
+        },
+        {
+            "label":    "Scientist — Pune India (Serum Institute / Lupin / Piramal)",
+            "term":     _CORE,
             "location": "Pune",
-            "results":  25,
+            "results":  30,
             "region":   "India",
             "sites":    ["linkedin"],
         },
@@ -614,9 +720,7 @@ def pooja_hunt():
     alerts_sent = 0
     configs     = build_search_configs()
 
-    # -----------------------------------------------------------------------
-    # Step 1 — Parallel scrape (4 workers)
-    # -----------------------------------------------------------------------
+    # ── Step 1: Parallel scrape ────────────────────────────────────────────
     sprint(f"\n[Scrape] Launching {len(configs)} passes with {SCRAPE_WORKERS} parallel workers...")
     all_frames = []
 
@@ -640,9 +744,7 @@ def pooja_hunt():
         push_notification("Pooja Bio Hunt", "Scan ran — 0 results from all passes.", "low")
         return
 
-    # -----------------------------------------------------------------------
-    # Step 2 — Combine + deduplicate
-    # -----------------------------------------------------------------------
+    # ── Step 2: Combine + deduplicate ─────────────────────────────────────
     raw = pd.concat(all_frames, ignore_index=True)
     sprint(f"\n[Dedup] {len(raw)} total raw → ", end="")
 
@@ -660,9 +762,7 @@ def pooja_hunt():
     raw = raw.drop_duplicates(subset=["_title_co"], keep="first")
     sprint(f"{len(raw)} after dedup")
 
-    # -----------------------------------------------------------------------
-    # Step 3 — Title filter
-    # -----------------------------------------------------------------------
+    # ── Step 3: Title filter ───────────────────────────────────────────────
     raw["title_lower"] = raw["title"].str.lower().fillna("")
     mask     = raw["title_lower"].apply(matches_title)
     filtered = raw[mask].copy()
@@ -673,12 +773,8 @@ def pooja_hunt():
         push_notification("Pooja Bio Hunt", "Scan complete — 0 relevant titles found.", "low")
         return
 
-    # -----------------------------------------------------------------------
-    # Step 4 — Pre-rank by title relevance; split into LLM pool vs keyword pool
-    # -----------------------------------------------------------------------
+    # ── Step 4: Pre-rank by title relevance; split LLM vs keyword pool ────
     filtered["_title_rel"] = filtered["title"].apply(title_relevance)
-
-    # Sort: highest title relevance first, then most recent
     if "date_posted" in filtered.columns:
         filtered = filtered.sort_values(
             ["_title_rel", "date_posted"], ascending=[False, False]
@@ -688,14 +784,10 @@ def pooja_hunt():
 
     llm_pool     = filtered.head(SCORE_LLM_TOP).copy()
     keyword_pool = filtered.iloc[SCORE_LLM_TOP:].copy()
-
     sprint(f"[Score]  {len(llm_pool)} → LLM batch  |  {len(keyword_pool)} → keyword scorer\n")
 
-    # -----------------------------------------------------------------------
-    # Step 5a — LLM batch scoring (15 jobs per Groq call)
-    # -----------------------------------------------------------------------
+    # ── Step 5a: LLM batch scoring ────────────────────────────────────────
     score_map: dict[str, tuple[int, str]] = {}
-
     llm_rows = list(llm_pool.iterrows())
     for b_start in range(0, len(llm_rows), BATCH_SIZE):
         batch = llm_rows[b_start:b_start + BATCH_SIZE]
@@ -709,7 +801,6 @@ def pooja_hunt():
             for _, r in batch
         ]
         scores = llm_score_batch(payload)
-
         for (_, row), llm in zip(batch, scores):
             url = str(row.get("job_url", ""))
             if llm is not None:
@@ -723,12 +814,9 @@ def pooja_hunt():
                     ),
                     "keyword",
                 )
+        time.sleep(2)
 
-        time.sleep(2)   # polite delay between batch API calls
-
-    # -----------------------------------------------------------------------
-    # Step 5b — Keyword scoring for the remainder
-    # -----------------------------------------------------------------------
+    # ── Step 5b: Keyword scoring for remainder ────────────────────────────
     for _, row in keyword_pool.iterrows():
         url = str(row.get("job_url", ""))
         score_map[url] = (
@@ -740,9 +828,7 @@ def pooja_hunt():
             "keyword",
         )
 
-    # -----------------------------------------------------------------------
-    # Step 6 — Collect results, send alerts, build CSV
-    # -----------------------------------------------------------------------
+    # ── Step 6: Collect results, alerts, CSV ──────────────────────────────
     scored_list = []
     for _, row in filtered.iterrows():
         title    = str(row.get("title", "Unknown"))
@@ -790,9 +876,7 @@ def pooja_hunt():
         push_notification("Pooja Bio Hunt", "Scan done — no jobs cleared score threshold.", "low")
         return
 
-    # -----------------------------------------------------------------------
-    # Step 7 — Merge with existing CSV (utf-8-sig for international chars)
-    # -----------------------------------------------------------------------
+    # ── Step 7: Merge + save CSV ──────────────────────────────────────────
     new_df = pd.DataFrame(scored_list)
 
     if os.path.exists(CSV_PATH):
@@ -804,7 +888,6 @@ def pooja_hunt():
 
     combined = combined.sort_values("Score", ascending=False)
     combined.to_csv(CSV_PATH, index=False, encoding="utf-8-sig")
-
     save_csv_to_github(CSV_PATH)
 
     strong = len(new_df[new_df["Score"] >= 80])
@@ -824,6 +907,5 @@ def pooja_hunt():
     )
 
 
-# ---------------------------------------------------------------------------
 if __name__ == "__main__":
     pooja_hunt()

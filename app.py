@@ -36,6 +36,14 @@ inject_pwa("DJ Audit Hunt")
 st.title("💼 DJ's Audit Hunt")
 st.caption("Remote · EAD (J2) · IT Audit / GRC / SOX · Auto-scan every 12h")
 
+with st.expander("📲 Install as App on your phone", expanded=False):
+    st.markdown("""
+**Android (Chrome):** Open this page → tap the ⋮ menu → **"Add to Home Screen"** or **"Install app"** → tap Add
+**iPhone / iPad (Safari):** Open this page in Safari → tap the **Share** button (⬆) → **"Add to Home Screen"** → Add
+
+The app will open full-screen, no browser bar — just like a native app.
+""")
+
 # ---------------------------------------------------------------------------
 # Action bar — full width for mobile tap
 # ---------------------------------------------------------------------------

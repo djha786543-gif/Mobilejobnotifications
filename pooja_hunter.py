@@ -413,6 +413,8 @@ def llm_score_batch(batch: list[dict]) -> list[int | None]:
         "TARGET ROLES: R&D Scientist / Preclinical Scientist / Translational Scientist "
         "at biotech, pharma, or CRO — hands-on bench science.\n"
         "PREFERRED: Senior Scientist / Scientist II–IV / Staff Scientist / Principal Scientist\n"
+        "NOT SUITABLE FOR: Director, VP, Head of, Chief, Managing Director, SVP — "
+        "candidate is a postdoc transitioning to industry scientist, NOT a department head.\n"
         "OPEN TO: US nationwide, Europe (UK, Switzerland, Germany, France, Netherlands, "
         "Sweden, Denmark, Belgium), India (Bangalore, Hyderabad, Pune). NOT seeking purely remote.\n\n"
 
@@ -429,6 +431,8 @@ def llm_score_batch(batch: list[dict]) -> list[int | None]:
         "with minimal in vivo\n"
         "< 30: Poor — QA/QC, manufacturing, regulatory, clinical coordinator, software engineer, "
         "sales, marketing, pure bioinformatics with no wet lab, OR role clearly not needing PhD\n\n"
+        "CRITICAL: If the title contains Director, VP, Vice President, Head of, Chief, SVP, or "
+        "Managing Director — score MAX 30. This candidate needs a bench scientist role, NOT management.\n\n"
 
         "JOBS:\n" +
         "\n\n".join(blocks) +
@@ -483,7 +487,7 @@ def llm_score_batch(batch: list[dict]) -> list[int | None]:
 # ---------------------------------------------------------------------------
 def _scrape_one(cfg: dict) -> pd.DataFrame:
     kwargs = dict(
-        site_name=cfg.get("sites", ["linkedin", "indeed", "glassdoor", "zip_recruiter"]),
+        site_name=cfg.get("sites", ["indeed"]),   # LinkedIn/Glassdoor/ZipRecruiter 403 on Render
         search_term=cfg["term"],
         location=cfg["location"],
         results_wanted=cfg["results"],
@@ -632,7 +636,7 @@ def build_search_configs() -> list[dict]:
             "location": "Cambridge, United Kingdom",
             "results":  50,
             "region":   "Europe",
-            "sites":    ["linkedin"],
+            "sites":    ["indeed"],   # LinkedIn 403 on Render cloud IPs
         },
         {
             "label":    "Scientist — London UK (GSK / UCB / MSD / Immunocore)",
@@ -640,7 +644,7 @@ def build_search_configs() -> list[dict]:
             "location": "London, United Kingdom",
             "results":  50,
             "region":   "Europe",
-            "sites":    ["linkedin"],
+            "sites":    ["indeed"],   # LinkedIn 403 on Render cloud IPs
         },
         {
             "label":    "Scientist — Basel Switzerland (Novartis / Roche / Lonza)",
@@ -648,7 +652,7 @@ def build_search_configs() -> list[dict]:
             "location": "Basel, Switzerland",
             "results":  50,
             "region":   "Europe",
-            "sites":    ["linkedin"],
+            "sites":    ["indeed"],   # LinkedIn 403 on Render cloud IPs
         },
         {
             "label":    "Scientist — Zurich / Schlieren Switzerland (Novartis Institutes)",
@@ -656,7 +660,7 @@ def build_search_configs() -> list[dict]:
             "location": "Zurich, Switzerland",
             "results":  30,
             "region":   "Europe",
-            "sites":    ["linkedin"],
+            "sites":    ["indeed"],   # LinkedIn 403 on Render cloud IPs
         },
         {
             "label":    "Scientist — Munich Germany (BioNTech / Bayer / Helmholtz)",
@@ -664,7 +668,7 @@ def build_search_configs() -> list[dict]:
             "location": "Munich, Germany",
             "results":  50,
             "region":   "Europe",
-            "sites":    ["linkedin"],
+            "sites":    ["indeed"],   # LinkedIn 403 on Render cloud IPs
         },
         {
             "label":    "Scientist — Paris France (Sanofi / Institut Pasteur / Servier)",
@@ -672,7 +676,7 @@ def build_search_configs() -> list[dict]:
             "location": "Paris, France",
             "results":  30,
             "region":   "Europe",
-            "sites":    ["linkedin"],
+            "sites":    ["indeed"],   # LinkedIn 403 on Render cloud IPs
         },
         {
             "label":    "Scientist — Amsterdam / Leiden NL (Janssen / LUMC / BioLegend)",
@@ -680,7 +684,7 @@ def build_search_configs() -> list[dict]:
             "location": "Amsterdam, Netherlands",
             "results":  30,
             "region":   "Europe",
-            "sites":    ["linkedin"],
+            "sites":    ["indeed"],   # LinkedIn 403 on Render cloud IPs
         },
         # ── INDIA ──────────────────────────────────────────────────────────
         {
@@ -689,7 +693,7 @@ def build_search_configs() -> list[dict]:
             "location": "Bengaluru",
             "results":  50,
             "region":   "India",
-            "sites":    ["linkedin"],
+            "sites":    ["indeed"],   # LinkedIn 403 on Render cloud IPs
         },
         {
             "label":    "Scientist — Hyderabad India (Dr Reddy's / Aurobindo / Cipla R&D)",
@@ -697,7 +701,7 @@ def build_search_configs() -> list[dict]:
             "location": "Hyderabad",
             "results":  50,
             "region":   "India",
-            "sites":    ["linkedin"],
+            "sites":    ["indeed"],   # LinkedIn 403 on Render cloud IPs
         },
         {
             "label":    "Scientist — Pune India (Serum Institute / Lupin / Piramal)",
@@ -705,7 +709,7 @@ def build_search_configs() -> list[dict]:
             "location": "Pune",
             "results":  30,
             "region":   "India",
-            "sites":    ["linkedin"],
+            "sites":    ["indeed"],   # LinkedIn 403 on Render cloud IPs
         },
     ]
 

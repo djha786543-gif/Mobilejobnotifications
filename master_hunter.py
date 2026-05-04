@@ -356,16 +356,19 @@ Candidate profile:
 - Location preference: Remote (anywhere US) OR in/around Los Angeles CA area (Torrance-based)
 - {la_context}
 - Open to all levels (analyst → manager), prefers contract/W2
+- SENIORITY: Targets Analyst, Senior, Lead, Manager levels. NOT suitable for VP, Director, Head of, Chief, Partner, or C-suite roles
 
 Job description:
 {desc[:2800]}
 
 Scoring guide:
-- 90–100: Perfect IT Audit/ITGC/SOX/GRC contract or direct hire, fully remote or LA area, EAD-ok
-- 70–89: Strong IT audit relevance, good skill overlap, remote or LA hybrid
+- 90–100: Perfect IT Audit/ITGC/SOX/GRC contract or direct hire, fully remote or LA area, EAD-ok, analyst-to-manager level
+- 70–89: Strong IT audit relevance, good skill overlap, remote or LA hybrid, appropriate seniority
 - 50–69: Decent audit/compliance role, partial criteria match
-- 30–49: Some overlap but missing key criteria (wrong location, seniority, partial relevance)
-- 0–29: Poor fit (wrong field, clearance required, sponsorship required, fully on-site outside LA)
+- 30–49: Some overlap but missing key criteria (wrong location, seniority mismatch, partial relevance)
+- 0–29: Poor fit — wrong field, clearance required, sponsorship required, fully on-site outside LA, OR executive-level role (VP / Director / Head of / Chief / Partner) that is too senior for this candidate
+
+IMPORTANT: If the title or JD indicates VP, Vice President, Director, Head of, Chief, Managing Director, or Partner level, score MAX 35 regardless of other criteria — this candidate is NOT qualified for executive roles.
 
 Return ONLY a single integer 0–100. No explanation."""
 
@@ -494,7 +497,7 @@ def master_hunt():
     for cfg in build_search_configs():
         sprint(f"\n[Search] {cfg['label']} ({cfg['results']} results)...")
         kwargs = dict(
-            site_name=["linkedin", "indeed", "glassdoor", "zip_recruiter"],
+            site_name=["indeed"],   # LinkedIn/ZipRecruiter/Glassdoor 403 on Render cloud IPs
             search_term=cfg["term"],
             location=cfg["location"],
             results_wanted=cfg["results"],

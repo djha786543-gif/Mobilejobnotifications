@@ -1,5 +1,6 @@
 
 ============================================================
+<<<<<<< HEAD
 [Scanner] IT Audit Hunt — 2026-05-05 11:09
 ============================================================
 
@@ -26,4 +27,49 @@
 
 [Search] IT Audit / GRC — Orange County (75 results)...
   → 0 results
+=======
+[Scanner] IT Audit Hunt — 2026-05-05 23:12
+============================================================
+
+[Search] Core IT Audit (US) (150 results)...
+2026-05-05 23:12:36,553 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
+2026-05-05 23:12:36,553 - INFO - JobSpy:Linkedin - finished scraping
+2026-05-05 23:12:36,721 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
+  [Error] failed to do request: Get "https://www.glassdoor.com//findPopularLocationAjax.htm?maxLocationsToReturn=10&term=United States": unexpected EOF
+
+[Search] SOX / GRC (US) (150 results)...
+2026-05-05 23:12:42,586 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
+2026-05-05 23:12:42,635 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
+  [Error] failed to do request: Get "https://www.glassdoor.com//findPopularLocationAjax.htm?maxLocationsToReturn=10&term=United States": unexpected EOF
+
+[Search] Tech Risk / Compliance Analyst (US) (125 results)...
+2026-05-05 23:12:48,626 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
+2026-05-05 23:12:48,661 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
+  [Error] failed to do request: Get "https://www.glassdoor.com//findPopularLocationAjax.htm?maxLocationsToReturn=10&term=United States": unexpected EOF
+
+[Search] Controls / Internal Audit (US) (125 results)...
+2026-05-05 23:12:54,657 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
+2026-05-05 23:12:54,718 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
+  [Error] failed to do request: Get "https://www.glassdoor.com//findPopularLocationAjax.htm?maxLocationsToReturn=10&term=United States": unexpected EOF
+
+[Search] CISA required/preferred (US) (100 results)...
+2026-05-05 23:13:00,684 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
+2026-05-05 23:13:00,725 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
+  [Error] failed to do request: Get "https://www.glassdoor.com//findPopularLocationAjax.htm?maxLocationsToReturn=10&term=United States": unexpected EOF
+
+[Search] IT Audit — Los Angeles area (100 results)...
+2026-05-05 23:13:06,695 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
+2026-05-05 23:13:06,766 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
+  [Error] failed to do request: Get "https://www.glassdoor.com//findPopularLocationAjax.htm?maxLocationsToReturn=10&term=Los Angeles, CA": unexpected EOF
+
+[Search] GRC / Compliance / Controls — LA area (75 results)...
+2026-05-05 23:13:12,727 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
+2026-05-05 23:13:12,782 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
+  [Error] failed to do request: Get "https://www.glassdoor.com//findPopularLocationAjax.htm?maxLocationsToReturn=10&term=Los Angeles, CA": unexpected EOF
+
+[Search] IT Audit / GRC — Orange County (75 results)...
+2026-05-05 23:13:18,795 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
+2026-05-05 23:13:19,180 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
+  [Error] failed to do request: Get "https://www.glassdoor.com//findPopularLocationAjax.htm?maxLocationsToReturn=10&term=Irvine, CA": unexpected EOF
+>>>>>>> 72d1cb1 (chore: auto-scan 2026-05-05 23:13 UTC)
 [Scanner] No results from any search pass.

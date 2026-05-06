@@ -1,6 +1,5 @@
 
 ============================================================
-<<<<<<< HEAD
 [Scanner] IT Audit Hunt — 2026-05-05 11:09
 ============================================================
 
@@ -27,7 +26,9 @@
 
 [Search] IT Audit / GRC — Orange County (75 results)...
   → 0 results
-=======
+[Scanner] No results from any search pass.
+
+============================================================
 [Scanner] IT Audit Hunt — 2026-05-05 23:12
 ============================================================
 
@@ -71,5 +72,33 @@
 2026-05-05 23:13:18,795 - ERROR - JobSpy:LinkedIn - LinkedIn response status code 403 - Host not in allowlist
 2026-05-05 23:13:19,180 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter response status code 403 with response: Host not in allowlist
   [Error] failed to do request: Get "https://www.glassdoor.com//findPopularLocationAjax.htm?maxLocationsToReturn=10&term=Irvine, CA": unexpected EOF
->>>>>>> 72d1cb1 (chore: auto-scan 2026-05-05 23:13 UTC)
+[Scanner] No results from any search pass.
+
+============================================================
+[Scanner] IT Audit Hunt — 2026-05-06 11:04
+============================================================
+
+[Search] Core IT Audit (US) (150 results)...
+  → 0 results
+
+[Search] SOX / GRC (US) (150 results)...
+  → 0 results
+
+[Search] Tech Risk / Compliance Analyst (US) (125 results)...
+  → 0 results
+
+[Search] Controls / Internal Audit (US) (125 results)...
+  → 0 results
+
+[Search] CISA required/preferred (US) (100 results)...
+  → 0 results
+
+[Search] IT Audit — Los Angeles area (100 results)...
+  → 0 results
+
+[Search] GRC / Compliance / Controls — LA area (75 results)...
+  → 0 results
+
+[Search] IT Audit / GRC — Orange County (75 results)...
+  → 0 results
 [Scanner] No results from any search pass.

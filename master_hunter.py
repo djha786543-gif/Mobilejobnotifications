@@ -684,13 +684,15 @@ def master_hunt():
     sprint(f"\n[Dedup] {len(raw)} total raw → ", end="")
 
     if "job_url" in raw.columns:
-        raw["_url_norm"] = (
-            raw["job_url"]
-            .astype(str)
-            .str.split("?").str[0]
-            .str.strip()
-            .str.lower()
-        )
+        def _norm_url(u: str) -> str:
+            u = str(u).strip().lower()
+            # Indeed job IDs live IN the query string (?jk=...) — don't strip them.
+            # For all other sites the ID is in the path, so stripping query params is safe.
+            if "indeed.com" in u:
+                return u   # keep full URL including ?jk=...
+            return u.split("?")[0]
+
+        raw["_url_norm"] = raw["job_url"].apply(_norm_url)
         raw = raw.drop_duplicates(subset=["_url_norm"], keep="first")
 
     raw["_title_co"] = (

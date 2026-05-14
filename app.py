@@ -205,10 +205,10 @@ if os.path.exists(CSV_PATH):
     df["Score"] = df["Score"].astype(int)
     df["PostedDate"] = pd.to_datetime(df["Posted"], errors="coerce")
 
-    # Hard 7-day window — only show jobs posted within the last 7 days
-    _cutoff_7d = datetime.now() - timedelta(days=7)
-    _has_date  = df["PostedDate"].notna()
-    df = df[~_has_date | (df["PostedDate"] >= _cutoff_7d)]
+    # Hard 30-day window — drop truly stale postings but keep a reasonable backlog
+    _cutoff_30d = datetime.now() - timedelta(days=30)
+    _has_date   = df["PostedDate"].notna()
+    df = df[~_has_date | (df["PostedDate"] >= _cutoff_30d)]
 
     # Identify latest scan batch (jobs scanned within 2h of the most recent ScannedAt)
     if "ScannedAt" in df.columns:

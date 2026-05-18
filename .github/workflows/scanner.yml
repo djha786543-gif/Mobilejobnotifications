@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0      # full history needed for rebase
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -21,8 +23,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: |
-          pip install python-jobspy pandas requests python-dotenv groq
+        run: pip install python-jobspy pandas requests python-dotenv groq
 
       - name: Run scanner
         env:
@@ -32,10 +33,14 @@ jobs:
           GITHUB_REPO:     ${{ github.repository }}
         run: python master_hunter.py
 
-      - name: Commit updated CSV
+      - name: Commit and push updated CSV
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
+          # Pull latest (save_csv_to_github may have already committed via API)
+          git fetch origin main
+          git reset --soft origin/main
           git add Scored_Audit_Leads.csv
-          git diff --cached --quiet || git commit -m "chore: auto-scan $(date -u +'%Y-%m-%d %H:%M UTC')"
-          git push
+          git diff --cached --quiet && echo "No CSV changes to commit" && exit 0
+          git commit -m "chore: auto-scan $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push origin main

@@ -97,3 +97,5 @@
 
 [Warning] 12/12 passes returned 0 results.
 [Scanner] No results from any search pass. Likely IP block by Indeed.
+
+[Run recorded at 2026-06-22 23:17:50 UTC — 0 new leads, all sources IP-blocked]

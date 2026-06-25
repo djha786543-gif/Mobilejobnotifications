@@ -110,3 +110,56 @@
 [Push Error] ntfy.sh unreachable (proxy 403)
 
 [Run recorded at 2026-06-25 11:15 UTC — 0 new leads, all sources IP-blocked]
+
+
+============================================================
+[Scanner] IT Audit Hunt — 2026-06-25 23:04
+============================================================
+
+[Search] Core IT Audit (US) (150 results)...
+  [Indeed error attempt 1]: ProxyError — 403 Forbidden
+  [Indeed error attempt 2]: ProxyError — 403 Forbidden
+  [Indeed error attempt 3]: ProxyError — 403 Forbidden
+  → Trying fallback: ziprecruiter... [error]: 'ZIPRECRUITER'
+  → Trying fallback: glassdoor... [error]: unexpected EOF
+  → 0 results from all sources (likely IP block or no new postings)
+
+[Search] SOX / ITGC (US) (125 results)...
+  → 0 results from all sources (likely IP block or no new postings)
+
+[Search] GRC Roles (US) (125 results)...
+  → 0 results from all sources (likely IP block or no new postings)
+
+[Search] Tech Risk / Compliance (US) (125 results)...
+  → 0 results from all sources (likely IP block or no new postings)
+
+[Search] Internal Audit / Controls (US) (125 results)...
+  → 0 results from all sources (likely IP block or no new postings)
+
+[Search] CISA Required/Preferred (US) (100 results)...
+  → 0 results from all sources (likely IP block or no new postings)
+
+[Search] AI Governance / AI Audit (US) (100 results)...
+  → 0 results from all sources (likely IP block or no new postings)
+
+[Search] SOC 1 / SOC 2 Audit (US) (100 results)...
+  → 0 results from all sources (likely IP block or no new postings)
+
+[Search] FFIEC / Banking IT Audit (US) (75 results)...
+  → 0 results from all sources (likely IP block or no new postings)
+
+[Search] IT Audit — Los Angeles area (100 results)...
+  → 0 results from all sources (likely IP block or no new postings)
+
+[Search] IT Audit / GRC — Orange County (75 results)...
+  → 0 results from all sources (likely IP block or no new postings)
+
+[Search] Remote IT Audit / GRC (100 results)...
+  → Trying fallback: glassdoor... [error]: 403 status code
+  → 0 results from all sources (likely IP block or no new postings)
+
+[Warning] 12/12 passes returned 0 results.
+[Scanner] No results from any search pass. Likely IP block by Indeed.
+[Push Error] ntfy.sh unreachable (proxy 403)
+
+[Run recorded at 2026-06-25 23:15 UTC — 0 new leads, all sources IP-blocked]

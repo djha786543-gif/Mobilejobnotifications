@@ -146,3 +146,49 @@
 [Push Error] ntfy.sh unreachable (proxy 403)
 
 [Run recorded at 2026-06-28 11:15 UTC — 0 new leads, all sources IP-blocked]
+
+============================================================
+[Scanner] IT Audit Hunt — 2026-06-28 23:04
+============================================================
+
+[Search] Core IT Audit (US) (150 results)...
+  → 0 results from all sources (Indeed/ZipRecruiter/Glassdoor — proxy 403 block)
+
+[Search] SOX / ITGC (US) (125 results)...
+  → 0 results from all sources (proxy 403 block)
+
+[Search] GRC Roles (US) (125 results)...
+  → 0 results from all sources (proxy 403 block)
+
+[Search] Tech Risk / Compliance (US) (125 results)...
+  → 0 results from all sources (proxy 403 block)
+
+[Search] Internal Audit / Controls (US) (125 results)...
+  → 0 results from all sources (proxy 403 block)
+
+[Search] CISA Required/Preferred (US) (100 results)...
+  → 0 results from all sources (proxy 403 block)
+
+[Search] AI Governance / AI Audit (US) (100 results)...
+  → 0 results from all sources (proxy 403 block)
+
+[Search] SOC 1 / SOC 2 Audit (US) (100 results)...
+  → 0 results from all sources (proxy 403 block)
+
+[Search] FFIEC / Banking IT Audit (US) (75 results)...
+  → 0 results from all sources (proxy 403 block)
+
+[Search] IT Audit — Los Angeles area (100 results)...
+  → 0 results from all sources (proxy 403 block)
+
+[Search] IT Audit / GRC — Orange County (75 results)...
+  → 0 results from all sources (proxy 403 block)
+
+[Search] Remote IT Audit / GRC (100 results)...
+  → 0 results from all sources (proxy 403 block)
+
+[Warning] 12/12 passes returned 0 results.
+[Scanner] No results from any search pass. Likely IP block by Indeed/job boards.
+[Push Error] ntfy.sh unreachable (proxy 403)
+
+[Run recorded at 2026-06-28 23:20 UTC — 0 new leads, all sources IP-blocked]

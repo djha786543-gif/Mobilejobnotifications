@@ -1,6 +1,6 @@
 
 ============================================================
-[Scanner] IT Audit Hunt — 2026-07-02 23:18
+[Scanner] IT Audit Hunt — 2026-07-03 23:16
 ============================================================
 
 [Search] Core IT Audit (US) (150 results)...
@@ -73,38 +73,3 @@
 
 [Search] FFIEC / Banking IT Audit (US) (75 results)...
   [Indeed error attempt 1]: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
-  [Indeed error attempt 2]: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
-  [Indeed error attempt 3]: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
-  → Trying fallback: ziprecruiter...
-  [ziprecruiter fallback error]: 'ZIPRECRUITER'
-  → 0 results from all sources (likely IP block or no new postings)
-
-[Search] IT Audit — Los Angeles area (100 results)...
-  [Indeed error attempt 1]: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
-  [Indeed error attempt 2]: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
-  [Indeed error attempt 3]: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
-  → Trying fallback: ziprecruiter...
-  [ziprecruiter fallback error]: 'ZIPRECRUITER'
-  → 0 results from all sources (likely IP block or no new postings)
-
-[Search] IT Audit / GRC — Orange County (75 results)...
-  [Indeed error attempt 1]: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
-  [Indeed error attempt 2]: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
-  [Indeed error attempt 3]: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
-  → Trying fallback: ziprecruiter...
-  [ziprecruiter fallback error]: 'ZIPRECRUITER'
-  → 0 results from all sources (likely IP block or no new postings)
-
-[Search] Remote IT Audit / GRC (100 results)...
-  [Indeed error attempt 1]: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
-  [Indeed error attempt 2]: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
-  [Indeed error attempt 3]: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
-  → Trying fallback: ziprecruiter...
-  [ziprecruiter fallback error]: 'ZIPRECRUITER'
-  → Trying fallback: glassdoor...
-  → 0 results (glassdoor fallback)
-  → 0 results from all sources (likely IP block or no new postings)
-
-[Warning] 12/12 passes returned 0 results.
-[Scanner] No results from any search pass. Likely IP block by Indeed.
-[Push Error] HTTPSConnectionPool(host='ntfy.sh', port=443): Max retries exceeded with url: /dj-audit-786543 (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))

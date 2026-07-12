@@ -110,3 +110,23 @@
 [Warning] 12/12 passes returned 0 results.
 [Scanner] No results from any search pass. Likely IP block by Indeed.
 [Push Error] HTTPSConnectionPool(host='ntfy.sh', port=443): Max retries exceeded with url: /dj-audit-786543 (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+
+============================================================
+[Scanner] IT Audit Hunt — 2026-07-12 11:05
+============================================================
+
+[Search] Core IT Audit (US) (150 results)...
+  [Indeed error attempt 1-3]: ProxyError 403 Forbidden
+  → Trying fallback: ziprecruiter... [ZIPRECRUITER key error]
+  → Trying fallback: glassdoor... [EOF error]
+  → 0 results from all sources (likely IP block or no new postings)
+
+[Search] SOX / ITGC (US) → 0 results (proxy block)
+[Search] GRC Roles (US) → 0 results (proxy block)
+[Search] Tech Risk / Compliance (US) → 0 results (proxy block)
+[Search] Internal Audit / Controls (US) → 0 results (proxy block)
+[Search] CISA Required/Preferred (US) → (scan timeout)
+
+[Warning] Scan timed out after 300s. All attempted passes returned 0 results.
+[Scanner] No results from any search pass. Likely IP block by Indeed/ZipRecruiter/Glassdoor.
+[Note] Committed latest known-good Scored_Audit_Leads.csv (2857 records) from prior successful run.

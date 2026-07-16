@@ -1,6 +1,6 @@
 
 ============================================================
-[Scanner] IT Audit Hunt — 2026-07-16 11:05
+[Scanner] IT Audit Hunt — 2026-07-16 23:04
 ============================================================
 
 [Search] Core IT Audit (US) (150 results)...
@@ -102,11 +102,6 @@
   → Trying fallback: ziprecruiter...
   [ziprecruiter fallback error]: 'ZIPRECRUITER'
   → Trying fallback: glassdoor...
-2026-07-16 11:16:36,883 - ERROR - JobSpy:Glassdoor - Glassdoor response status code 403
-2026-07-16 11:16:36,883 - ERROR - JobSpy:Glassdoor - Glassdoor: location not parsed
+2026-07-16 23:15:48,780 - ERROR - JobSpy:Glassdoor - Glassdoor response status code 403
+2026-07-16 23:15:48,781 - ERROR - JobSpy:Glassdoor - Glassdoor: location not parsed
   → 0 results (glassdoor fallback)
-  → 0 results from all sources (likely IP block or no new postings)
-
-[Warning] 12/12 passes returned 0 results.
-[Scanner] No results from any search pass. Likely IP block by Indeed.
-[Push Error] HTTPSConnectionPool(host='ntfy.sh', port=443): Max retries exceeded with url: /dj-audit-786543 (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))

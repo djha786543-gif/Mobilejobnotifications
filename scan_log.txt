@@ -111,3 +111,12 @@
 [Scanner] No results from any search pass. Likely IP block by Indeed.
 [Push Error] HTTPSConnectionPool(host='ntfy.sh', port=443): Max retries exceeded with url: /dj-audit-786543 (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
 
+
+============================================================
+[Scanner] IT Audit Hunt — 2026-08-21 11:15
+============================================================
+
+[Warning] 12/12 passes returned 0 results.
+[Scanner] No results from any search pass — all job boards blocked by proxy (Indeed 403, ZipRecruiter error, Glassdoor 403).
+[Push Error] ntfy.sh also unreachable via proxy.
+[Scan] Completed 2026-08-21 11:26 UTC — 0 new leads scored.

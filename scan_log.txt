@@ -1,6 +1,6 @@
 
 ============================================================
-[Scanner] IT Audit Hunt — 2026-08-23 23:05
+[Scanner] IT Audit Hunt — 2026-08-24 11:18
 ============================================================
 
 [Search] Core IT Audit (US) (150 results)...
@@ -102,8 +102,8 @@
   → Trying fallback: ziprecruiter...
   [ziprecruiter fallback error]: 'ZIPRECRUITER'
   → Trying fallback: glassdoor...
-2026-08-23 23:16:25,688 - ERROR - JobSpy:Glassdoor - Glassdoor response status code 403
-2026-08-23 23:16:25,689 - ERROR - JobSpy:Glassdoor - Glassdoor: location not parsed
+2026-08-24 11:29:03,006 - ERROR - JobSpy:Glassdoor - Glassdoor response status code 403
+2026-08-24 11:29:03,006 - ERROR - JobSpy:Glassdoor - Glassdoor: location not parsed
   → 0 results (glassdoor fallback)
   → 0 results from all sources (likely IP block or no new postings)
 

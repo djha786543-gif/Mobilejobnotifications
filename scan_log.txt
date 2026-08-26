@@ -144,3 +144,14 @@
 [Warning] 12/12 passes returned 0 results.
 [Scanner] No results from any search pass. Likely IP block by job board.
 [Push Error] ntfy.sh unreachable — 403 Proxy Forbidden
+
+============================================================
+[Scanner] IT Audit Hunt — 2026-08-26 11:24 UTC
+============================================================
+[Search] All 12 search passes returned 0 results.
+  → Indeed: 403 Proxy Forbidden (all attempts)
+  → ZipRecruiter: blocked
+  → Glassdoor: blocked
+[Warning] 12/12 passes returned 0 results.
+[Scanner] No results from any search pass. Likely IP block by job board.
+[Push Error] ntfy.sh unreachable — 403 Proxy Forbidden

@@ -1,14 +1,27 @@
-Scan Date: 2026-09-10 11:06 UTC
-Status: BLOCKED — All job board sources returned 0 results
+Scan Date: 2026-09-10 23:05 UTC
+Status: BLOCKED - 0 results from all 12 search passes
+Reason: Cloud proxy (403 Forbidden) blocked outbound connections to job board APIs
+  - Indeed API: Tunnel connection failed: 403 Forbidden (all 3 attempts per pass)
+  - ZipRecruiter: Site enum lookup failed ('ZIPRECRUITER')
+  - Glassdoor: HTTP 403 / location not parsed
 
-Root cause: Cloud execution environment network proxy blocks outbound connections
-to Indeed (apis.indeed.com), ZipRecruiter, and Glassdoor with HTTP 403 Forbidden.
-ntfy.sh push notification also blocked by proxy.
+Search passes attempted (12/12):
+  1. Core IT Audit (US) - 0 results
+  2. SOX / ITGC (US) - 0 results
+  3. GRC Roles (US) - 0 results
+  4. Tech Risk / Compliance (US) - 0 results
+  5. Internal Audit / Controls (US) - 0 results
+  6. CISA Required/Preferred (US) - 0 results
+  7. AI Governance / AI Audit (US) - 0 results
+  8. SOC 1 / SOC 2 Audit (US) - 0 results
+  9. FFIEC / Banking IT Audit (US) - 0 results
+  10. IT Audit - Los Angeles area - 0 results
+  11. IT Audit / GRC - Orange County - 0 results
+  12. Remote IT Audit / GRC - 0 results
 
-Search passes attempted: 12/12
-Results returned: 0
-Leads scored: 0
-CSV updated: No
+New leads added: 0
+Alerts sent: 0
+CSV unchanged (existing data preserved)
 
-Action required: Run the scanner from a machine with unrestricted outbound internet
-access (e.g. local machine, a VPS, or a CI runner without the proxy restriction).
+Action needed: The scheduled cloud environment blocks direct scraping of job board APIs.
+Consider running master_hunter.py from a local machine or a VPS with unrestricted outbound access.

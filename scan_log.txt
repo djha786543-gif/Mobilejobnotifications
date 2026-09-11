@@ -1,31 +1,56 @@
-Scan Date: 2026-09-11 11:06 UTC
+============================================================
+[Scanner] IT Audit Hunt — 2026-09-11 23:05
+============================================================
+
+[Search] Core IT Audit (US) (150 results)...
+  [Indeed error attempt 1]: 403 Forbidden (proxy block)
+  [Indeed error attempt 2]: 403 Forbidden (proxy block)
+  [Indeed error attempt 3]: 403 Forbidden (proxy block)
+  → Trying fallback: ziprecruiter...
+  [ziprecruiter fallback error]: 'ZIPRECRUITER'
+  → Trying fallback: glassdoor...
+  [glassdoor fallback error]: unexpected EOF
+  → 0 results from all sources
+
+[Search] SOX / ITGC (US) (125 results)...
+  [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
+  [ziprecruiter fallback error]: 'ZIPRECRUITER'
+  → 0 results from all sources
+
+[Search] GRC Roles (US) (125 results)...
+  [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
+  [ziprecruiter fallback error]: 'ZIPRECRUITER'
+  → 0 results from all sources
+
+[Search] Tech Risk / Compliance (US) (125 results)...
+  [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
+  [ziprecruiter fallback error]: 'ZIPRECRUITER'
+  → 0 results from all sources
+
+[Search] Internal Audit / Controls (US) (125 results)...
+  [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
+  [ziprecruiter fallback error]: 'ZIPRECRUITER'
+  → 0 results from all sources
+
+[Search] CISA Required/Preferred (US) (100 results)...
+  [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
+  [ziprecruiter fallback error]: 'ZIPRECRUITER'
+  → 0 results — TIMED OUT before completing pass
+
+--- SCAN ABORTED (timeout at ~320s) ---
+
+Passes not reached: AI Governance, SOC 1/2, FFIEC, LA area, Orange County, Remote
+
+============================================================
+Scan Date: 2026-09-11 23:05 UTC
 Status: BLOCKED - 0 results from all 12 search passes
 Reason: Cloud proxy (403 Forbidden) blocked outbound connections to job board APIs
-  - Indeed API: Tunnel connection failed: 403 Forbidden (all 3 attempts per pass)
-  - ZipRecruiter: Site enum lookup failed ('ZIPRECRUITER')
-  - Glassdoor: unexpected EOF / connection failed
-
-Search passes attempted (partial — script timed out at 300s):
-  1. Core IT Audit (US) - 0 results
-  2. SOX / ITGC (US) - 0 results
-  3. GRC Roles (US) - 0 results
-  4. Tech Risk / Compliance (US) - 0 results
-  5. Internal Audit / Controls (US) - 0 results
-  6. CISA Required/Preferred (US) - 0 results (partial - script timed out)
-  7. AI Governance / AI Audit (US) - not reached
-  8. SOC 1 / SOC 2 Audit (US) - not reached
-  9. FFIEC / Banking IT Audit (US) - not reached
-  10. IT Audit - Los Angeles area - not reached
-  11. IT Audit / GRC - Orange County - not reached
-  12. Remote IT Audit / GRC - not reached
 
 New leads added: 0
 Alerts sent: 0
 CSV unchanged (existing data preserved)
 
-Action needed: The cloud execution environment's egress proxy (organization policy) blocks
-direct CONNECT tunnels to job board APIs (Indeed, ZipRecruiter, Glassdoor).
-This is a persistent infrastructure-level block — not a transient failure.
-
-Recommendation: Run master_hunter.py from a local machine or a VPS/home server
-with unrestricted outbound internet access to collect new IT Audit job leads.
+Action needed: The cloud execution environment egress proxy blocks all job boards.
+This is a persistent infrastructure-level block — same as prior runs.
+Recommendation: Run master_hunter.py from a local machine or VPS with open internet.
+============================================================

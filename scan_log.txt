@@ -1,27 +1,31 @@
-Scan Date: 2026-09-10 23:05 UTC
+Scan Date: 2026-09-11 11:06 UTC
 Status: BLOCKED - 0 results from all 12 search passes
 Reason: Cloud proxy (403 Forbidden) blocked outbound connections to job board APIs
   - Indeed API: Tunnel connection failed: 403 Forbidden (all 3 attempts per pass)
   - ZipRecruiter: Site enum lookup failed ('ZIPRECRUITER')
-  - Glassdoor: HTTP 403 / location not parsed
+  - Glassdoor: unexpected EOF / connection failed
 
-Search passes attempted (12/12):
+Search passes attempted (partial — script timed out at 300s):
   1. Core IT Audit (US) - 0 results
   2. SOX / ITGC (US) - 0 results
   3. GRC Roles (US) - 0 results
   4. Tech Risk / Compliance (US) - 0 results
   5. Internal Audit / Controls (US) - 0 results
-  6. CISA Required/Preferred (US) - 0 results
-  7. AI Governance / AI Audit (US) - 0 results
-  8. SOC 1 / SOC 2 Audit (US) - 0 results
-  9. FFIEC / Banking IT Audit (US) - 0 results
-  10. IT Audit - Los Angeles area - 0 results
-  11. IT Audit / GRC - Orange County - 0 results
-  12. Remote IT Audit / GRC - 0 results
+  6. CISA Required/Preferred (US) - 0 results (partial - script timed out)
+  7. AI Governance / AI Audit (US) - not reached
+  8. SOC 1 / SOC 2 Audit (US) - not reached
+  9. FFIEC / Banking IT Audit (US) - not reached
+  10. IT Audit - Los Angeles area - not reached
+  11. IT Audit / GRC - Orange County - not reached
+  12. Remote IT Audit / GRC - not reached
 
 New leads added: 0
 Alerts sent: 0
 CSV unchanged (existing data preserved)
 
-Action needed: The scheduled cloud environment blocks direct scraping of job board APIs.
-Consider running master_hunter.py from a local machine or a VPS with unrestricted outbound access.
+Action needed: The cloud execution environment's egress proxy (organization policy) blocks
+direct CONNECT tunnels to job board APIs (Indeed, ZipRecruiter, Glassdoor).
+This is a persistent infrastructure-level block — not a transient failure.
+
+Recommendation: Run master_hunter.py from a local machine or a VPS/home server
+with unrestricted outbound internet access to collect new IT Audit job leads.

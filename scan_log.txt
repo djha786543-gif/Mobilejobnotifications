@@ -1,14 +1,10 @@
 ============================================================
-[Scanner] IT Audit Hunt — 2026-09-11 23:05
+[Scanner] IT Audit Hunt — 2026-09-12 11:04
 ============================================================
 
 [Search] Core IT Audit (US) (150 results)...
-  [Indeed error attempt 1]: 403 Forbidden (proxy block)
-  [Indeed error attempt 2]: 403 Forbidden (proxy block)
-  [Indeed error attempt 3]: 403 Forbidden (proxy block)
-  → Trying fallback: ziprecruiter...
+  [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
   [ziprecruiter fallback error]: 'ZIPRECRUITER'
-  → Trying fallback: glassdoor...
   [glassdoor fallback error]: unexpected EOF
   → 0 results from all sources
 
@@ -35,14 +31,45 @@
 [Search] CISA Required/Preferred (US) (100 results)...
   [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
   [ziprecruiter fallback error]: 'ZIPRECRUITER'
-  → 0 results — TIMED OUT before completing pass
+  → 0 results from all sources
 
---- SCAN ABORTED (timeout at ~320s) ---
+[Search] AI Governance / AI Audit (US) (100 results)...
+  [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
+  [ziprecruiter fallback error]: 'ZIPRECRUITER'
+  [glassdoor fallback error]: unexpected EOF
+  → 0 results from all sources
 
-Passes not reached: AI Governance, SOC 1/2, FFIEC, LA area, Orange County, Remote
+[Search] SOC 1 / SOC 2 Audit (US) (100 results)...
+  [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
+  [ziprecruiter fallback error]: 'ZIPRECRUITER'
+  → 0 results from all sources
+
+[Search] FFIEC / Banking IT Audit (US) (75 results)...
+  [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
+  [ziprecruiter fallback error]: 'ZIPRECRUITER'
+  → 0 results from all sources
+
+[Search] IT Audit — Los Angeles area (100 results)...
+  [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
+  [ziprecruiter fallback error]: 'ZIPRECRUITER'
+  → 0 results from all sources
+
+[Search] IT Audit / GRC — Orange County (75 results)...
+  [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
+  [ziprecruiter fallback error]: 'ZIPRECRUITER'
+  → 0 results from all sources
+
+[Search] Remote IT Audit / GRC (100 results)...
+  [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
+  [ziprecruiter fallback error]: 'ZIPRECRUITER'
+  [glassdoor fallback error]: 403 Forbidden
+  → 0 results from all sources
+
+[Warning] 12/12 passes returned 0 results.
+[Push Error] ntfy.sh unreachable (proxy block)
 
 ============================================================
-Scan Date: 2026-09-11 23:05 UTC
+Scan Date: 2026-09-12 11:04 UTC
 Status: BLOCKED - 0 results from all 12 search passes
 Reason: Cloud proxy (403 Forbidden) blocked outbound connections to job board APIs
 

@@ -1,66 +1,66 @@
 ============================================================
-[Scanner] IT Audit Hunt — 2026-09-12 11:04
+[Scanner] IT Audit Hunt — 2026-09-12 23:05
 ============================================================
 
 [Search] Core IT Audit (US) (150 results)...
-  [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
+  [Indeed error attempt 1]: 403 Forbidden (proxy block)
   [ziprecruiter fallback error]: 'ZIPRECRUITER'
   [glassdoor fallback error]: unexpected EOF
   → 0 results from all sources
 
 [Search] SOX / ITGC (US) (125 results)...
-  [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
+  [Indeed error attempt 1]: 403 Forbidden (proxy block)
   [ziprecruiter fallback error]: 'ZIPRECRUITER'
   → 0 results from all sources
 
 [Search] GRC Roles (US) (125 results)...
-  [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
+  [Indeed error attempt 1]: 403 Forbidden (proxy block)
   [ziprecruiter fallback error]: 'ZIPRECRUITER'
   → 0 results from all sources
 
 [Search] Tech Risk / Compliance (US) (125 results)...
-  [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
+  [Indeed error attempt 1]: 403 Forbidden (proxy block)
   [ziprecruiter fallback error]: 'ZIPRECRUITER'
   → 0 results from all sources
 
 [Search] Internal Audit / Controls (US) (125 results)...
-  [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
+  [Indeed error attempt 1]: 403 Forbidden (proxy block)
   [ziprecruiter fallback error]: 'ZIPRECRUITER'
   → 0 results from all sources
 
 [Search] CISA Required/Preferred (US) (100 results)...
-  [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
+  [Indeed error attempt 1]: 403 Forbidden (proxy block)
   [ziprecruiter fallback error]: 'ZIPRECRUITER'
   → 0 results from all sources
 
 [Search] AI Governance / AI Audit (US) (100 results)...
-  [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
+  [Indeed error attempt 1]: 403 Forbidden (proxy block)
   [ziprecruiter fallback error]: 'ZIPRECRUITER'
   [glassdoor fallback error]: unexpected EOF
   → 0 results from all sources
 
 [Search] SOC 1 / SOC 2 Audit (US) (100 results)...
-  [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
+  [Indeed error attempt 1]: 403 Forbidden (proxy block)
   [ziprecruiter fallback error]: 'ZIPRECRUITER'
   → 0 results from all sources
 
 [Search] FFIEC / Banking IT Audit (US) (75 results)...
-  [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
+  [Indeed error attempt 1]: 403 Forbidden (proxy block)
   [ziprecruiter fallback error]: 'ZIPRECRUITER'
   → 0 results from all sources
 
 [Search] IT Audit — Los Angeles area (100 results)...
-  [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
+  [Indeed error attempt 1]: 403 Forbidden (proxy block)
   [ziprecruiter fallback error]: 'ZIPRECRUITER'
   → 0 results from all sources
 
 [Search] IT Audit / GRC — Orange County (75 results)...
-  [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
+  [Indeed error attempt 1]: 403 Forbidden (proxy block)
   [ziprecruiter fallback error]: 'ZIPRECRUITER'
   → 0 results from all sources
 
 [Search] Remote IT Audit / GRC (100 results)...
-  [Indeed error attempts 1-3]: 403 Forbidden (proxy block)
+  [Indeed error attempt 1]: 403 Forbidden (proxy block)
   [ziprecruiter fallback error]: 'ZIPRECRUITER'
   [glassdoor fallback error]: 403 Forbidden
   → 0 results from all sources
@@ -69,15 +69,15 @@
 [Push Error] ntfy.sh unreachable (proxy block)
 
 ============================================================
-Scan Date: 2026-09-12 11:04 UTC
+Scan Date: 2026-09-12 23:05 UTC
 Status: BLOCKED - 0 results from all 12 search passes
-Reason: Cloud proxy (403 Forbidden) blocked outbound connections to job board APIs
+Reason: Cloud proxy (403 Forbidden) blocked outbound connections to job board APIs (Indeed, ZipRecruiter, Glassdoor)
 
 New leads added: 0
 Alerts sent: 0
 CSV unchanged (existing data preserved)
 
 Action needed: The cloud execution environment egress proxy blocks all job boards.
-This is a persistent infrastructure-level block — same as prior runs.
+This is a persistent infrastructure-level block — same as prior runs (11:04 UTC today).
 Recommendation: Run master_hunter.py from a local machine or VPS with open internet.
 ============================================================

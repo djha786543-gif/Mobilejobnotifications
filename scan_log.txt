@@ -110,3 +110,12 @@
 [Warning] 12/12 passes returned 0 results.
 [Scanner] No results from any search pass. Likely IP block by Indeed.
 [Push Error] HTTPSConnectionPool(host='ntfy.sh', port=443): Max retries exceeded with url: /dj-audit-786543 (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+
+--- Scan Run: 2026-09-16 11:10 UTC ---
+Status: BLOCKED — all job board sources returned 0 results
+Reason: Cloud sandbox egress proxy blocks connections to job boards
+  - apis.indeed.com:443 -> 403 Forbidden (proxy policy)
+  - ziprecruiter -> blocked
+  - glassdoor.com -> blocked
+  Action needed: Run scanner from a machine with unrestricted outbound access
+  (e.g. local machine or a VPS without restrictive proxy)

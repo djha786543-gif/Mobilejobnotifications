@@ -1,15 +1,14 @@
 ============================================================
-[Scanner] IT Audit Hunt — 2026-09-22 11:15
+[Scanner] IT Audit Hunt — 2026-09-22 23:15
 ============================================================
 STATUS: PROXY BLOCK — all job boards unreachable (0 new results)
 
 All outbound connections to job boards rejected by agent proxy (organization policy):
-  - apis.indeed.com:443 — connect_rejected ×20 (403 Forbidden)
-  - ziprecruiter — API key error / proxy block
+  - apis.indeed.com:443 — ProxyError: Tunnel connection failed: 403 Forbidden (all 3 attempts per pass)
+  - ziprecruiter — 'ZIPRECRUITER' key error / proxy block
   - glassdoor — unexpected EOF / proxy block
 
 No new leads scored. Existing CSV retained (prior scan leads).
-Scanner timed out after 360s with no results from any source.
 
 Searches attempted (all blocked):
   - Core IT Audit (US) → 0 results
@@ -18,7 +17,12 @@ Searches attempted (all blocked):
   - Tech Risk / Compliance (US) → 0 results
   - Internal Audit / Controls (US) → 0 results
   - CISA Required/Preferred (US) → 0 results
-  - AI Governance / AI Audit (US) → 0 results (timeout)
+  - AI Governance / AI Audit (US) → 0 results
+  - SOC 1 / SOC 2 Audit (US) → 0 results
+  - FFIEC / Banking IT Audit (US) → 0 results
+  - IT Audit — Los Angeles area → 0 results
+  - IT Audit / GRC — Orange County → timed out (pass 11/12)
+  - Remote IT Audit / GRC → not reached (timeout)
 
 Note: This is a persistent proxy-block condition. Job board APIs
 (Indeed, ZipRecruiter, Glassdoor) are blocked by organization egress

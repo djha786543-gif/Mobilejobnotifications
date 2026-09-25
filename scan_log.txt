@@ -1,8 +1,8 @@
-Scan Run: 2026-09-25 11:09 UTC
+Scan Run: 2026-09-24 23:08 UTC
 Status: BLOCKED — egress proxy denied outbound connections to job sites
-Indeed: 403 Forbidden (proxy policy — Tunnel connection failed)
-ZipRecruiter: 'ZIPRECRUITER' key error (site not supported in this environment)
-Glassdoor: Connection error (unexpected EOF)
+Indeed: 403 Forbidden (proxy policy)
+ZipRecruiter: Connection error
+Glassdoor: Connection error
 New leads found: 0
-Existing CSV leads: unchanged (last updated 2026-09-25 03:26 UTC)
+Existing CSV leads: unchanged
 Note: Cloud execution environment blocks scrapers via egress policy. Run locally for results.

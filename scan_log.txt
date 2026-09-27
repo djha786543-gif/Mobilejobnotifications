@@ -1,6 +1,6 @@
-Scan Run: 2026-09-25 23:09 UTC
+Scan Run: 2026-09-27 11:09 UTC
 Status: BLOCKED — egress proxy denied outbound connections to job sites
-Indeed: 403 Forbidden (proxy policy) — apis.indeed.com:443 connect_rejected
+Indeed: 403 Forbidden (proxy policy) — apis.indeed.com:443 connect_rejected (×17)
 ZipRecruiter: Error ('ZIPRECRUITER' key issue)
 Glassdoor: Connection error (unexpected EOF)
 New leads found: 0

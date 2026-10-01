@@ -1,4 +1,28 @@
 ============================================================
+IT Audit Hunt — 2026-10-01 11:12 UTC
+============================================================
+RESULT: 0 results — all 12 search passes blocked by environment proxy policy.
+
+ERROR: The remote cloud execution environment's outbound network proxy
+denied CONNECT tunnels to job board APIs:
+  - apis.indeed.com:443  → 403 Forbidden (proxy policy)
+  - ziprecruiter         → ZIPRECRUITER env key not configured
+  - glassdoor            → connection reset (proxy policy)
+
+All 12 search passes failed (Indeed + fallback sites blocked).
+Groq AI scoring was not reached — no candidate jobs to score.
+Scored_Audit_Leads.csv was NOT updated (no new data fetched).
+
+CAUSE: Cloud execution environment (claude.ai/code) restricts egress to
+job board scraping endpoints. The scan must run from a local machine or
+a cloud environment with unrestricted outbound HTTPS access.
+
+RECOMMENDATION: Run master_hunter.py from:
+  - Your local Windows desktop (DESKTOP_SETUP.txt has instructions)
+  - A VPS/VM with unrestricted outbound access
+  - The Render.com deployment (render.yaml is configured)
+
+============================================================
 IT Audit Hunt — 2026-09-30 23:10 UTC
 ============================================================
 RESULT: 0 results — all 12 search passes blocked by environment proxy policy.

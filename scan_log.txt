@@ -1,4 +1,21 @@
 ============================================================
+IT Audit Hunt — 2026-10-04 23:09 UTC
+============================================================
+RESULT: 0 results — all job board endpoints blocked by cloud proxy (403 Forbidden).
+
+DETAILS:
+  - Indeed (apis.indeed.com) → 403 Forbidden on all 3 attempts per search
+  - ZipRecruiter → 'ZIPRECRUITER' key error (not configured)
+  - Glassdoor → CONNECT tunnel failed 403
+
+All 12 search passes returned 0 results (scan timed out after 4 passes).
+Groq AI scoring not reached — no candidate jobs to score.
+Scored_Audit_Leads.csv was NOT updated.
+
+CAUSE: Cloud environment proxy blocks outbound CONNECT to job board APIs.
+RECOMMENDATION: Run from local desktop (see DESKTOP_SETUP.txt), VPS, or Render.com.
+
+============================================================
 IT Audit Hunt — 2026-10-04 11:10 UTC
 ============================================================
 RESULT: 0 results — script execution blocked by cloud environment security policy.

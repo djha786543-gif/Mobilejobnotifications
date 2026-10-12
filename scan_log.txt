@@ -1,152 +1,149 @@
 
 ============================================================
-[Scanner] IT Audit Hunt — 2026-10-12 11:21
+[Scanner] IT Audit Hunt — 2026-10-12 23:15
 ============================================================
 
 [Search] Core IT Audit (US) (150 results)...
-2026-10-12 11:21:56,918 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:15:32,495 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → 0 results (indeed attempt 1/3) — retrying in 20s...
-2026-10-12 11:22:17,289 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:15:52,734 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → 0 results (indeed attempt 2/3) — retrying in 20s...
-2026-10-12 11:22:37,661 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:16:13,034 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → Trying fallback: ziprecruiter...
-2026-10-12 11:22:38,096 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-10-12 23:16:13,344 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
   → 0 results (ziprecruiter fallback)
   → Trying fallback: glassdoor...
-2026-10-12 11:22:46,497 - ERROR - JobSpy:Glassdoor - Glassdoor: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-10-12 23:16:21,671 - ERROR - JobSpy:Glassdoor - Glassdoor: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
   → 0 results (glassdoor fallback)
   → 0 results from all sources (likely IP block or no new postings)
 
 [Search] SOX / ITGC (US) (125 results)...
-2026-10-12 11:22:59,820 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:16:34,980 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → 0 results (indeed attempt 1/3) — retrying in 20s...
-2026-10-12 11:23:20,220 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:16:55,349 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → 0 results (indeed attempt 2/3) — retrying in 20s...
-2026-10-12 11:23:40,684 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:17:15,648 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → Trying fallback: ziprecruiter...
-2026-10-12 11:23:41,033 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-10-12 23:17:15,946 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
   → 0 results (ziprecruiter fallback)
   → 0 results from all sources (likely IP block or no new postings)
 
 [Search] GRC Roles (US) (125 results)...
-2026-10-12 11:23:54,385 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:17:29,310 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → 0 results (indeed attempt 1/3) — retrying in 20s...
-2026-10-12 11:24:14,720 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:17:49,653 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → 0 results (indeed attempt 2/3) — retrying in 20s...
-2026-10-12 11:24:35,104 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:18:09,981 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → Trying fallback: ziprecruiter...
-2026-10-12 11:24:35,403 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-10-12 23:18:10,292 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
   → 0 results (ziprecruiter fallback)
   → 0 results from all sources (likely IP block or no new postings)
 
 [Search] Tech Risk / Compliance (US) (125 results)...
-2026-10-12 11:24:48,738 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:18:23,600 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → 0 results (indeed attempt 1/3) — retrying in 20s...
-2026-10-12 11:25:09,243 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:18:43,927 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → 0 results (indeed attempt 2/3) — retrying in 20s...
-2026-10-12 11:25:29,507 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:19:04,239 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → Trying fallback: ziprecruiter...
-2026-10-12 11:25:29,806 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-10-12 23:19:04,508 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
   → 0 results (ziprecruiter fallback)
   → 0 results from all sources (likely IP block or no new postings)
 
 [Search] Internal Audit / Controls (US) (125 results)...
-2026-10-12 11:25:43,290 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:19:17,846 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → 0 results (indeed attempt 1/3) — retrying in 20s...
-2026-10-12 11:26:03,692 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:19:38,157 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → 0 results (indeed attempt 2/3) — retrying in 20s...
-2026-10-12 11:26:24,039 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:19:58,468 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → Trying fallback: ziprecruiter...
-2026-10-12 11:26:24,469 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-10-12 23:19:58,768 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
   → 0 results (ziprecruiter fallback)
   → 0 results from all sources (likely IP block or no new postings)
 
 [Search] CISA Required/Preferred (US) (100 results)...
-2026-10-12 11:26:37,935 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:20:12,090 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → 0 results (indeed attempt 1/3) — retrying in 20s...
-2026-10-12 11:26:58,304 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:20:32,403 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → 0 results (indeed attempt 2/3) — retrying in 20s...
-2026-10-12 11:27:18,609 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:20:52,649 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → Trying fallback: ziprecruiter...
-2026-10-12 11:27:18,992 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-10-12 23:20:52,927 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
   → 0 results (ziprecruiter fallback)
   → 0 results from all sources (likely IP block or no new postings)
 
 [Search] AI Governance / AI Audit (US) (100 results)...
-2026-10-12 11:27:32,307 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:21:06,253 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → 0 results (indeed attempt 1/3) — retrying in 20s...
-2026-10-12 11:27:52,766 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:21:26,539 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → 0 results (indeed attempt 2/3) — retrying in 20s...
-2026-10-12 11:28:13,133 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:21:46,862 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → Trying fallback: ziprecruiter...
-2026-10-12 11:28:13,475 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-10-12 23:21:47,152 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
   → 0 results (ziprecruiter fallback)
   → Trying fallback: glassdoor...
-2026-10-12 11:28:21,783 - ERROR - JobSpy:Glassdoor - Glassdoor: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-10-12 23:21:55,451 - ERROR - JobSpy:Glassdoor - Glassdoor: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
   → 0 results (glassdoor fallback)
   → 0 results from all sources (likely IP block or no new postings)
 
 [Search] SOC 1 / SOC 2 Audit (US) (100 results)...
-2026-10-12 11:28:35,141 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:22:08,775 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → 0 results (indeed attempt 1/3) — retrying in 20s...
-2026-10-12 11:28:55,553 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:22:29,023 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → 0 results (indeed attempt 2/3) — retrying in 20s...
-2026-10-12 11:29:15,872 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:22:49,317 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → Trying fallback: ziprecruiter...
-2026-10-12 11:29:16,245 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-10-12 23:22:49,608 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
   → 0 results (ziprecruiter fallback)
   → 0 results from all sources (likely IP block or no new postings)
 
 [Search] FFIEC / Banking IT Audit (US) (75 results)...
-2026-10-12 11:29:29,622 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:23:02,850 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → 0 results (indeed attempt 1/3) — retrying in 20s...
-2026-10-12 11:29:50,000 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:23:23,164 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → 0 results (indeed attempt 2/3) — retrying in 20s...
-2026-10-12 11:30:10,337 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:23:43,540 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → Trying fallback: ziprecruiter...
-2026-10-12 11:30:10,662 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-10-12 23:23:43,827 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
   → 0 results (ziprecruiter fallback)
   → 0 results from all sources (likely IP block or no new postings)
 
 [Search] IT Audit — Los Angeles area (100 results)...
-2026-10-12 11:30:24,025 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:23:57,170 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → 0 results (indeed attempt 1/3) — retrying in 20s...
-2026-10-12 11:30:44,375 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:24:17,508 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → 0 results (indeed attempt 2/3) — retrying in 20s...
-2026-10-12 11:31:04,721 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:24:37,811 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → Trying fallback: ziprecruiter...
-2026-10-12 11:31:05,042 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-10-12 23:24:38,109 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
   → 0 results (ziprecruiter fallback)
   → 0 results from all sources (likely IP block or no new postings)
 
 [Search] IT Audit / GRC — Orange County (75 results)...
-2026-10-12 11:31:18,393 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:24:51,493 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → 0 results (indeed attempt 1/3) — retrying in 20s...
-2026-10-12 11:31:38,684 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:25:11,823 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → 0 results (indeed attempt 2/3) — retrying in 20s...
-2026-10-12 11:31:59,062 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:25:32,119 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → Trying fallback: ziprecruiter...
-2026-10-12 11:31:59,410 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-10-12 23:25:32,412 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
   → 0 results (ziprecruiter fallback)
   → 0 results from all sources (likely IP block or no new postings)
 
 [Search] Remote IT Audit / GRC (100 results)...
-2026-10-12 11:32:12,797 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:25:45,699 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → 0 results (indeed attempt 1/3) — retrying in 20s...
-2026-10-12 11:32:33,183 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:26:06,021 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → 0 results (indeed attempt 2/3) — retrying in 20s...
-2026-10-12 11:32:53,561 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
+2026-10-12 23:26:26,313 - ERROR - JobSpy:Indeed - Indeed: HTTPSConnectionPool(host='apis.indeed.com', port=443): Max retries exceeded with url: /graphql (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
   → Trying fallback: ziprecruiter...
-2026-10-12 11:32:53,875 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-10-12 23:26:26,613 - ERROR - JobSpy:ZipRecruiter - ZipRecruiter: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
   → 0 results (ziprecruiter fallback)
   → Trying fallback: glassdoor...
-2026-10-12 11:33:02,184 - ERROR - JobSpy:Glassdoor - Glassdoor: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-10-12 23:26:34,905 - ERROR - JobSpy:Glassdoor - Glassdoor: Failed to perform, curl: (7) CONNECT tunnel failed, response 403. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
   → 0 results (glassdoor fallback)
   → 0 results from all sources (likely IP block or no new postings)
 
 [Warning] 12/12 passes returned 0 results.
 [Scanner] No results from any search pass. Likely IP block by Indeed.
 [Push Error] HTTPSConnectionPool(host='ntfy.sh', port=443): Max retries exceeded with url: /dj-audit-786543 (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))
-EXIT:0
-
-[exited with code 0]

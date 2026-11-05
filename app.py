@@ -249,7 +249,7 @@ if os.path.exists(CSV_PATH):
                 n_loc_filter = st.selectbox("Location", ["All", "Remote", "LA Area"], key="new_loc_filter")
             nf3, nf4 = st.columns(2)
             with nf3:
-                n_recency_opts = {"All (≤7d)": 0, "Last 3d": 3, "Last 1d": 1}
+                n_recency_opts = {"All (≤15d)": 0, "Last 7d": 7, "Last 3d": 3, "Last 1d": 1}
                 n_recency_sel  = st.selectbox("Posted within", list(n_recency_opts.keys()), key="new_recency")
                 n_recency_days = n_recency_opts[n_recency_sel]
             with nf4:
@@ -299,7 +299,7 @@ if os.path.exists(CSV_PATH):
         with f1:
             min_score = st.slider("Min score", 0, 100, 50, step=5)
         with f2:
-            recency_opts = {"All (≤7d)": 0, "Last 3d": 3, "Last 1d": 1}
+            recency_opts = {"All (≤15d)": 0, "Last 7d": 7, "Last 3d": 3, "Last 1d": 1}
             recency_sel  = st.selectbox("Posted within", list(recency_opts.keys()))
             recency_days = recency_opts[recency_sel]
         f3, f4 = st.columns(2)

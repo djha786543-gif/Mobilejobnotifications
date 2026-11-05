@@ -36,16 +36,11 @@ jobs:
           GITHUB_REPO:   ${{ github.repository }}
         run: python master_hunter.py
 
-      - name: Commit DJ CSV
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git fetch origin main
-          git reset --soft origin/main
-          git add Scored_Audit_Leads.csv
-          git diff --cached --quiet && echo "No DJ CSV changes" && exit 0
-          git commit -m "chore: auto-scan DJ $(date -u +'%Y-%m-%d %H:%M UTC')"
-          git push origin main || (git pull --rebase origin main && git push origin main)
+      - name: Upload DJ CSV
+        uses: actions/upload-artifact@v4
+        with:
+          name: dj-leads
+          path: Scored_Audit_Leads.csv
 
   # ── Pooja scanner ──────────────────────────────────────────────────────────
   scan-pooja:
@@ -69,13 +64,32 @@ jobs:
           GITHUB_REPO:       ${{ github.repository }}
         run: python pooja_hunter.py
 
-      - name: Commit Pooja CSV
+      - name: Upload Pooja CSV
+        uses: actions/upload-artifact@v4
+        with:
+          name: pooja-leads
+          path: Scored_Pooja_Leads.csv
+
+  # ── Commit both CSVs once both scanners finish ──────────────────────────────
+  commit:
+    needs: [scan-dj, scan-pooja]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dj-leads
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: pooja-leads
+
+      - name: Commit CSVs
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git fetch origin main
-          git reset --soft origin/main
-          git add Scored_Pooja_Leads.csv
-          git diff --cached --quiet && echo "No Pooja CSV changes" && exit 0
-          git commit -m "chore: auto-scan Pooja $(date -u +'%Y-%m-%d %H:%M UTC')"
-          git push origin main || (git pull --rebase origin main && git push origin main)
+          git add Scored_Audit_Leads.csv Scored_Pooja_Leads.csv
+          git diff --cached --quiet && echo "No CSV changes" && exit 0
+          git commit -m "chore: auto-scan $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push origin main

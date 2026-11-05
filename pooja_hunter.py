@@ -35,6 +35,7 @@ GITHUB_REPO    = os.getenv("GITHUB_REPO", "djha786543-gif/Mobilejobnotifications
 CSV_PATH       = "Scored_Pooja_Leads.csv"
 GROQ_MODEL     = "llama-3.3-70b-versatile"
 GROQ_ENDPOINT  = "https://api.groq.com/openai/v1/chat/completions"
+HOURS_OLD      = 360   # 15 days
 MIN_SAVE_SCORE = 35
 MAX_ALERTS     = 10
 SCORE_LLM_TOP  = 80    # top N by title relevance → LLM batch
@@ -87,14 +88,21 @@ TITLE_WHITELIST = [
     r"\btranscriptomics\s+scientist\b",
     r"\bbiologist\b.*\b(?:cardiovascular|cardiac|preclinical|in\s+vivo|translational)\b",
     r"\b(?:cardiovascular|cardiac|preclinical|in\s+vivo|translational)\b.*\bbiologist\b",
+    # Postdoctoral positions (academic/research institutions)
+    r"\bpostdoctoral\s+(?:fellow|scientist|researcher|associate|position)\b",
+    r"\bpostdoc(?:toral)?\s+(?:fellow|researcher|associate)\b",
+    r"\bpostdoc\b",
 ]
 
 # Hard blacklist — veto even if whitelist matched
 TITLE_BLACKLIST = [
     r"\bsoftware\s+(?:engineer|developer)\b",
     r"\bdata\s+(?:engineer|architect)\b",
-    r"\bdata\s+scientist\b",           # pure ML/AI data science
-    r"\bbioinformatician\b",           # pure bioinformatics (no wet lab)
+    r"\bdata\s+scientist\b",                    # pure ML/AI data science
+    r"\bbioinformatician\b",                    # hardcore bioinformatics, no wet lab
+    r"\bbioinformatics\s+(?:scientist|analyst|engineer|developer|specialist)\b",
+    r"\bcomputational\s+biolog(?:ist|y)\b",     # pure computational role
+    r"\bcomputational\s+scientist\b",
     r"\bsales\b|\bmarketing\b",
     r"\bclinical\s+research\s+(?:coordinator|associate)\b",
     r"\bregulatory\s+affairs\b",
@@ -103,17 +111,41 @@ TITLE_BLACKLIST = [
     r"\bquality\s+(?:assurance|control)\s+scientist\b",
     r"\bnurse\b|\bphysician\b|\bclinician\b",
     r"\bprofessor\b|\bfaculty\b|\blecturer\b|\btenure\b",
-    r"\bpostdoc(?:toral)?\b",          # transitioning OUT of postdoc
+    # NOTE: postdoc intentionally NOT blacklisted — Pooja needs academic US roles (J1)
 ]
+
+# ---------------------------------------------------------------------------
+# J1-eligible US employer filter
+# Pooja is on J1 — corporate pharma/biotech cannot sponsor H1B immediately.
+# Only keep US positions at academic, government, or non-profit research orgs.
+# ---------------------------------------------------------------------------
+_US_J1_ELIGIBLE_RE = re.compile(
+    r"universit|college\b|medical\s+center|medical\s+school|school\s+of\s+medicine"
+    r"|health\s+(system|network|sciences|center)|hospital\b|clinic\b"
+    r"|\binstitute\b|\bfoundation\b|research\s+(center|institute|consortium)"
+    r"|national\s+(institute|cancer|heart|lab|laboratory|institute)"
+    r"|\bnih\b|\bnci\b|\bnhlbi\b|\bniddk\b|\bnimh\b|\bcdc\b|\bfda\b|\busda\b"
+    r"|veterans\s+affairs|\bvamc\b|\bva\s+medical"
+    r"|children'?s\b|pediatric\b|academic\s+medical"
+    r"|\bhutchinson\b|\bhutch\b|dana.farber|\bscripps\b|\bsalk\b"
+    r"|broad\s+institute|\bwistar\b|mayo\s+clinic|cleveland\s+clinic"
+    r"|johns\s+hopkins|moffitt|jackson\s+lab|jax\b|chop\b"
+    r"|\blundquist\b|harbor.ucla|cedars.sinai|mount\s+sinai|cornell\b"
+    r"|stanford\s+(?:university|hospital|medicine)|ucsf\b|ucsd\b|ucla\b|usc\b"
+    r"|mit\s*\b|caltech\b|carnegie\s+mellon|emory|vanderbilt|duke\s+university",
+    re.IGNORECASE,
+)
+
+def is_us_j1_eligible(company: str) -> bool:
+    """Return True if the company is an academic / government / non-profit
+    research institution suitable for Pooja's J1 visa status."""
+    return bool(_US_J1_ELIGIBLE_RE.search(company))
+
 
 def matches_title(title: str) -> bool:
     t = title.lower()
     if not any(re.search(p, t) for p in TITLE_WHITELIST):
         return False
-    # Scientist/researcher/investigator keyword overrides blacklist
-    if re.search(r"\bscientist\b|\bresearcher\b|\bresearch\b|\binvestigator\b", t):
-        if not any(re.search(p, t) for p in TITLE_BLACKLIST):
-            return True
     if any(re.search(p, t) for p in TITLE_BLACKLIST):
         return False
     return True
@@ -348,8 +380,20 @@ def keyword_score(title: str, desc: str, location: str = "") -> int:
         score += 3
     if re.search(r"\bjunior\b|\bentry\s+level\b|\bscientist\s+i\b|\bscientist\s+1\b", t):
         score -= 8
-    if re.search(r"\bpostdoc\b|\bpost-doc\b|\bpostdoctoral\b", d[:200]):
-        score -= 15
+    # Postdoc at academic institution — actively desired for J1 US eligibility
+    if re.search(r"\bpostdoc\b|\bpost-doc\b|\bpostdoctoral\b", t):
+        score += 10   # academic postdoc is a target role
+
+    # Hard bioinformatics-only penalty — Pooja is a wet-lab scientist, not a pure analyst
+    _WET_LAB_KW = ["mouse", "in vivo", "animal", "cell culture", "western blot",
+                   "flow cytometry", "facs", "ihc", "elisa", "phenotyp", "echocard",
+                   "langendorff", "qpcr", "qrt-pcr", "confocal", "immunofluorescence"]
+    _BIOINF_HEAVY = ["bioinformatics", "pipeline", "workflow", "cloud", "aws", "hpc",
+                     "kubernetes", "docker", "nextflow", "snakemake", "linux", "bash scripting"]
+    has_wet = any(k in d for k in _WET_LAB_KW)
+    has_bioinf = sum(1 for k in _BIOINF_HEAVY if k in d)
+    if has_bioinf >= 3 and not has_wet:
+        score -= 25   # hardcore bioinformatics/computational, no wet-lab component
 
     # Hard seniority penalties
     if re.search(r"\bvp\b|\bvice\s+president\b", t):            score -= 30
@@ -410,29 +454,39 @@ def llm_score_batch(batch: list[dict]) -> list[int | None]:
         "- RNA-seq, scRNA-seq (Seurat, cell annotation), Xenium & Visium spatial transcriptomics\n"
         "- IPA (Ingenuity Pathway Analysis), STRING, GSEA, GO enrichment\n\n"
 
-        "TARGET ROLES: R&D Scientist / Preclinical Scientist / Translational Scientist "
-        "at biotech, pharma, or CRO — hands-on bench science.\n"
-        "PREFERRED: Senior Scientist / Scientist II–IV / Staff Scientist / Principal Scientist\n"
-        "NOT SUITABLE FOR: Director, VP, Head of, Chief, Managing Director, SVP — "
-        "candidate is a postdoc transitioning to industry scientist, NOT a department head.\n"
-        "OPEN TO: US nationwide, Europe (UK, Switzerland, Germany, France, Netherlands, "
-        "Sweden, Denmark, Belgium), India (Bangalore, Hyderabad, Pune). NOT seeking purely remote.\n\n"
+        "VISA STATUS: J1 visa (US). For US positions ONLY universities, medical centers, "
+        "research institutes, government labs (NIH, NHLBI, CDC), and non-profit research "
+        "foundations are eligible — corporate pharma/biotech cannot sponsor J1 transfer "
+        "immediately. International positions (Europe, India) have no visa restriction.\n\n"
+
+        "TARGET ROLES (in priority order):\n"
+        "1. Postdoctoral Fellow/Scientist at a US academic/research institution "
+        "(university, medical center, research institute, NIH) — WET-LAB focused\n"
+        "2. Research Scientist / Scientist II–IV / Staff Scientist at academic or "
+        "international (Europe/India) biotech/pharma\n"
+        "3. Senior Scientist / Principal Scientist — international OK, US only if academic\n"
+        "NOT SUITABLE FOR: Director, VP, Head of, Chief, Managing Director — "
+        "bench scientist transitioning, NOT a department head.\n"
+        "CRITICAL WET-LAB REQUIREMENT: Pooja is a hands-on bench scientist. Roles must "
+        "require or strongly prefer wet-lab work (mouse models, cardiac phenotyping, cell "
+        "biology, immunoassays, histology). DO NOT score highly for roles that are primarily "
+        "or exclusively computational/bioinformatics with no wet-lab component.\n\n"
 
         "SCORING RUBRIC (BE STRICT):\n"
-        "90–100: Role is EXPLICITLY hands-on preclinical/cardiovascular/translational R&D at "
-        "biotech/pharma/CRO, PhD required/preferred, strong skill overlap with in vivo or "
-        "cardiac phenotyping or spatial transcriptomics\n"
-        "70–89: Strong R&D/preclinical role at biotech/pharma, PhD preferred, good wet-lab skill "
-        "overlap, adjacent therapeutic area (e.g. fibrosis, metabolic disease, oncology with "
-        "mouse models)\n"
+        "90–100: Role is EXPLICITLY hands-on wet-lab preclinical/cardiovascular/translational "
+        "R&D; PhD required/preferred; strong overlap with in vivo, cardiac phenotyping, spatial "
+        "transcriptomics, or mouse models; at a J1-eligible institution if US-based\n"
+        "70–89: Strong wet-lab R&D role, PhD preferred, good skill overlap, adjacent therapeutic "
+        "area (fibrosis, metabolic/liver disease, MASH, oncology with mouse models)\n"
         "50–69: Decent — relevant wet-lab techniques but missing cardiovascular/preclinical focus, "
-        "OR good role but missing PhD requirement, OR CRO lab role\n"
-        "30–49: Some overlap — mostly computational, OR missing PhD, OR wrong therapeutic area "
-        "with minimal in vivo\n"
+        "OR good role but missing PhD requirement, OR postdoc at smaller/less known institution\n"
+        "30–49: Some wet-lab overlap but mostly computational, OR missing PhD, OR wrong area\n"
         "< 30: Poor — QA/QC, manufacturing, regulatory, clinical coordinator, software engineer, "
-        "sales, marketing, pure bioinformatics with no wet lab, OR role clearly not needing PhD\n\n"
-        "CRITICAL: If the title contains Director, VP, Vice President, Head of, Chief, SVP, or "
-        "Managing Director — score MAX 30. This candidate needs a bench scientist role, NOT management.\n\n"
+        "sales, marketing, PURE bioinformatics/computational with NO wet-lab requirement\n\n"
+        "CRITICAL: If the title contains Director, VP, Vice President, Head of, Chief, SVP — "
+        "score MAX 25.\n"
+        "CRITICAL: If the role is exclusively computational/bioinformatics with no wet-lab "
+        "component in the description — score MAX 30 regardless of title.\n\n"
 
         "JOBS:\n" +
         "\n\n".join(blocks) +
@@ -491,6 +545,7 @@ def _scrape_one(cfg: dict) -> pd.DataFrame:
         search_term=cfg["term"],
         location=cfg["location"],
         results_wanted=cfg["results"],
+        hours_old=HOURS_OLD,                      # 15-day window
     )
     if "distance" in cfg:
         kwargs["distance"] = cfg["distance"]
@@ -523,6 +578,50 @@ def build_search_configs() -> list[dict]:
         'OR "In Vivo Cardiovascular" OR "Translational Cardiology"'
     )
     return [
+        # ── US ACADEMIC / RESEARCH INSTITUTIONS (J1-eligible) ─────────────
+        # Pooja is on J1 — only academic, government, and non-profit research
+        # institutions can employ her without immediate H1B transfer.
+        {
+            "label":    "Postdoctoral Fellow — Cardiovascular / In Vivo (US Academic)",
+            "term":     ('"Postdoctoral Fellow" OR "Postdoctoral Scientist" '
+                         'OR "Postdoctoral Associate" OR "Postdoctoral Researcher" '
+                         'cardiovascular OR cardiac OR "in vivo" OR "mouse model" '
+                         'OR "peripartum" OR cardiomyopathy OR "heart failure" '
+                         'OR "molecular genetics" OR translational'),
+            "location": "United States",
+            "results":  50,
+            "region":   "US",
+        },
+        {
+            "label":    "Postdoctoral Fellow — MASH / Hepatic / Metabolic (US Academic)",
+            "term":     ('"Postdoctoral Fellow" OR "Postdoctoral Scientist" '
+                         'OR "Postdoctoral Associate" OR "Postdoctoral Researcher" '
+                         'MASH OR NASH OR "liver disease" OR hepatic OR metabolic '
+                         'OR "steatohepatitis" OR senescence OR "mouse model" OR "in vivo"'),
+            "location": "United States",
+            "results":  40,
+            "region":   "US",
+        },
+        {
+            "label":    "Research Scientist — Academic Medical Centers / Institutes (US)",
+            "term":     ('"Research Scientist" OR "Senior Scientist" OR "Staff Scientist" '
+                         'cardiovascular OR cardiac OR "in vivo" OR "mouse model" '
+                         'OR translational OR "molecular genetics" OR "cell biology" '
+                         'OR "spatial transcriptomics"'),
+            "location": "United States",
+            "results":  50,
+            "region":   "US",
+        },
+        {
+            "label":    "Postdoctoral Fellow — Spatial Transcriptomics / Omics (US Academic)",
+            "term":     ('"Postdoctoral Fellow" OR "Postdoctoral Scientist" '
+                         'OR "Postdoctoral Associate" '
+                         '"spatial transcriptomics" OR xenium OR visium OR "single cell" '
+                         'OR "scRNA-seq" OR "bulk RNA-seq" OR transcriptomics'),
+            "location": "United States",
+            "results":  30,
+            "region":   "US",
+        },
         # ── US NATIONWIDE ──────────────────────────────────────────────────
         {
             "label":    "Cardiovascular / Cardiac Scientist (US nationwide)",
@@ -772,6 +871,24 @@ def pooja_hunt():
     filtered = raw[mask].copy()
     sprint(f"[Filter] {len(raw)} → {len(filtered)} passed title filter "
            f"(removed {len(raw) - len(filtered)} non-science jobs)")
+
+    # ── Step 3b: J1 corporate filter (US only) ────────────────────────────
+    # Pooja is on J1 visa. Corporate pharma/biotech cannot transfer her visa
+    # immediately. Keep only academic/government/non-profit institutions for US.
+    # International results (Europe, India) are unaffected.
+    us_mask  = filtered["_region"] == "US"
+    intl_mask = ~us_mask
+    us_df    = filtered[us_mask].copy()
+    intl_df  = filtered[intl_mask].copy()
+
+    us_eligible = us_df["company"].fillna("").apply(is_us_j1_eligible)
+    us_filtered = us_df[us_eligible].copy()
+    removed_corp = len(us_df) - len(us_filtered)
+    sprint(f"[J1 Filter] US: {len(us_df)} → {len(us_filtered)} kept "
+           f"({removed_corp} corporate positions removed)")
+
+    filtered = pd.concat([us_filtered, intl_df], ignore_index=True)
+    sprint(f"[J1 Filter] Combined: {len(filtered)} jobs (US academic + international)")
 
     if filtered.empty:
         push_notification("Pooja Bio Hunt", "Scan complete — 0 relevant titles found.", "low")

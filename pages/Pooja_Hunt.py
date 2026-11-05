@@ -67,7 +67,7 @@ with st.expander("Candidate profile", expanded=False):
 - In vivo: Langendorff · echo (VEVO F2) · EKG · contractility
 - Assays: FACS · WB · IHC/ICC · ELISA · qRT-PCR · TUNEL
 - Omics: RNA-seq · scRNA-seq · Xenium · Visium · IPA · STRING
-- Target: R&D / Preclinical / Translational Scientist at biotech/pharma/CRO
+- Target: Postdoctoral Fellow (US academic/govt) · R&D / Preclinical / Translational Scientist (international)
 """)
 
 st.divider()
@@ -110,7 +110,7 @@ if os.path.exists(LOG_PATH):
                     break
     except Exception:
         pass
-st.caption(f"🕐 Last scan: {last_scan}  ·  Covers US, Europe & India (18 passes)")
+st.caption(f"🕐 Last scan: {last_scan}  ·  Covers US academic/govt + Europe + India (26 passes)")
 st.divider()
 
 # ---------------------------------------------------------------------------
@@ -244,10 +244,10 @@ if os.path.exists(CSV_PATH):
     if "Region" not in df.columns:
         df["Region"] = "US"
 
-    # Hard 7-day window — only show jobs posted within the last 7 days
-    _cutoff_7d = datetime.now() - timedelta(days=7)
-    _has_date  = df["PostedDate"].notna()
-    df = df[~_has_date | (df["PostedDate"] >= _cutoff_7d)]
+    # Rolling 15-day window — matches the scraper's hours_old=360 setting
+    _cutoff_15d = datetime.now() - timedelta(days=15)
+    _has_date   = df["PostedDate"].notna()
+    df = df[~_has_date | (df["PostedDate"] >= _cutoff_15d)]
 
     # Identify latest scan batch (jobs scanned within 2h of the most recent ScannedAt)
     if "ScannedAt" in df.columns:
@@ -465,11 +465,11 @@ else:
         icon="🔔",
     )
     st.markdown("""
-**18 search passes across US, Europe & India:**
+**26 search passes across US, Europe & India:**
 
-🇺🇸 US: nationwide + Boston · San Diego · Bay Area · Philadelphia/NJ · RTP NC · LA/Torrance
+🇺🇸 US (academic/govt only — J1 eligible): Postdoc cardiovascular · Postdoc MASH/hepatic · Postdoc spatial transcriptomics · Research Scientist at academic medical centers · Nationwide cardiovascular/preclinical/biomarker · LA/Torrance · Boston · San Diego · Bay Area · Philadelphia/NJ · RTP NC · Seattle
 
-🇪🇺 Europe: Cambridge UK · London · Basel · Munich · Paris
+🇪🇺 Europe: Cambridge UK · London · Basel · Zurich · Munich · Paris · Amsterdam
 
 🇮🇳 India: Bangalore · Hyderabad · Pune
 """)

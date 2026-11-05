@@ -4,6 +4,7 @@ import sys
 import time
 import requests
 import pandas as pd
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from jobspy import scrape_jobs
 
@@ -31,10 +32,12 @@ GROQ_MODEL      = "llama-3.3-70b-versatile"
 GROQ_ENDPOINT   = "https://api.groq.com/openai/v1/chat/completions"
 MIN_SAVE_SCORE  = 35
 MAX_ALERTS      = 10
-SCORE_TOP_N     = 180       # score top N after title filter
+SCORE_TOP_N     = 60        # score top N after title filter (reduced for speed)
 HOURS_OLD       = 168       # only pull jobs posted in last 7 days
-MAX_RETRIES     = 2         # retries per search pass on 0 results
-RETRY_DELAY     = 20        # seconds between retries
+MAX_RETRIES     = 1         # retries per search pass on 0 results (reduced for speed)
+RETRY_DELAY     = 10        # seconds between retries
+MAX_RESULTS     = 50        # cap per search pass (reduced for speed)
+SCRAPE_WORKERS  = 6         # parallel scrape threads
 
 
 # ---------------------------------------------------------------------------
@@ -605,7 +608,7 @@ def scrape_with_retry(cfg: dict) -> pd.DataFrame:
     base_kwargs = dict(
         search_term=cfg["term"],
         location=cfg["location"],
-        results_wanted=cfg["results"],
+        results_wanted=min(cfg["results"], MAX_RESULTS),
         country_indeed="USA",           # critical: prevents geo-blocking
         hours_old=HOURS_OLD,
         is_remote=cfg.get("remote", False),
@@ -660,15 +663,25 @@ def master_hunt():
     all_frames  = []
     blocked_passes = 0
 
-    for cfg in build_search_configs():
-        sprint(f"\n[Search] {cfg['label']} ({cfg['results']} results)...")
-        df = scrape_with_retry(cfg)
-        if not df.empty:
-            df["_search_pass"] = cfg["label"]
-            all_frames.append(df)
-        else:
-            blocked_passes += 1
-        time.sleep(5)   # polite delay between passes
+    configs = build_search_configs()
+    sprint(f"\n[Scrape] Launching {len(configs)} passes with {SCRAPE_WORKERS} parallel workers...")
+    with ThreadPoolExecutor(max_workers=SCRAPE_WORKERS) as ex:
+        futures = {ex.submit(scrape_with_retry, cfg): cfg for cfg in configs}
+        for fut in as_completed(futures):
+            cfg = futures[fut]
+            sprint(f"[Search] {cfg['label']}...")
+            try:
+                df = fut.result()
+                if not df.empty:
+                    df["_search_pass"] = cfg["label"]
+                    all_frames.append(df)
+                    sprint(f"  → {len(df)} results")
+                else:
+                    blocked_passes += 1
+                    sprint(f"  → 0 results")
+            except Exception as e:
+                sprint(f"  [Error] {cfg['label']}: {e}")
+                blocked_passes += 1
 
     if blocked_passes > 0:
         sprint(f"\n[Warning] {blocked_passes}/{len(build_search_configs())} passes returned 0 results.")

@@ -38,9 +38,10 @@ GROQ_ENDPOINT  = "https://api.groq.com/openai/v1/chat/completions"
 HOURS_OLD      = 360   # 15 days
 MIN_SAVE_SCORE = 35
 MAX_ALERTS     = 10
-SCORE_LLM_TOP  = 80    # top N by title relevance → LLM batch
+SCORE_LLM_TOP  = 45    # top N by title relevance → LLM batch
 BATCH_SIZE     = 15    # jobs per Groq call
-SCRAPE_WORKERS = 4     # parallel scrape threads
+SCRAPE_WORKERS = 8     # parallel scrape threads
+MAX_RESULTS    = 25    # cap per search pass
 
 
 # ---------------------------------------------------------------------------
@@ -544,7 +545,7 @@ def _scrape_one(cfg: dict) -> pd.DataFrame:
         site_name=cfg.get("sites", ["indeed"]),   # LinkedIn/Glassdoor/ZipRecruiter 403 on Render
         search_term=cfg["term"],
         location=cfg["location"],
-        results_wanted=cfg["results"],
+        results_wanted=min(cfg["results"], MAX_RESULTS),
         hours_old=HOURS_OLD,                      # 15-day window
     )
     if "distance" in cfg:

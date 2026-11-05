@@ -35,13 +35,15 @@ GITHUB_REPO    = os.getenv("GITHUB_REPO", "djha786543-gif/Mobilejobnotifications
 CSV_PATH       = "Scored_Pooja_Leads.csv"
 GROQ_MODEL     = "llama-3.3-70b-versatile"
 GROQ_ENDPOINT  = "https://api.groq.com/openai/v1/chat/completions"
-HOURS_OLD      = 360   # 15 days
+HOURS_OLD      = 360   # 15 days (broader window — fewer postings than IT audit)
 MIN_SAVE_SCORE = 35
 MAX_ALERTS     = 10
-SCORE_LLM_TOP  = 45    # top N by title relevance → LLM batch
+SCORE_LLM_TOP  = 60    # top N by title relevance → LLM batch (increased from 45)
 BATCH_SIZE     = 15    # jobs per Groq call
 SCRAPE_WORKERS = 8     # parallel scrape threads
-MAX_RESULTS    = 25    # cap per search pass
+MAX_RESULTS    = 50    # cap per search pass (increased from 25 to match DJ's volume)
+MAX_RETRIES    = 1     # retries per search pass on 0 results
+RETRY_DELAY    = 10    # seconds between retries
 
 
 # ---------------------------------------------------------------------------
@@ -360,6 +362,31 @@ def keyword_score(title: str, desc: str, location: str = "") -> int:
         "relocation assistance":    6, "relocation package":    6,
         "relocation provided":      6,
 
+        # Senescence / aging (Pooja's MASH/PTRH2 program extends into senescence)
+        "senescence":               8, "cellular senescence":   9,
+        "sa-β-gal":                 7, "sa-bgal":               7,
+        "p16":                      5, "p21":                   5,
+        "sasp":                     7, "senolytic":             7,
+        "senolytics":               7, "aging":                 4,
+        "age-related":              5, "healthspan":            5,
+
+        # MASH / NASH / hepatic / metabolic disease (Catalyst Grant focus)
+        "mash":                     9, "nash":                  9,
+        "steatohepatitis":          9, "steatosis":             7,
+        "fatty liver":              7, "nafld":                 8,
+        "hepatic":                  7, "liver disease":         7,
+        "metabolic disease":        7, "metabolic dysfunction": 7,
+        "metabolic syndrome":       6, "obesity model":         7,
+        "diet-induced":             7, "high-fat diet":         7,
+        "hfd":                      6, "insulin resistance":    6,
+
+        # Omics tools (from CV — more specific than before)
+        "deseq2":                   7, "seurat":                6,
+        "scanpy":                   6, "ggplot2":               4,
+        "loupe browser":            6, "xenium explorer":       7,
+        "clc genomics":             5, "bulk rna":              6,
+        "metabolomics":             7, "lipidomics":            5,
+
         # Company name signals (top targets)
         "astrazeneca":              6, "novartis":              6,
         "roche":                    6, "genentech":             7,
@@ -434,26 +461,37 @@ def llm_score_batch(batch: list[dict]) -> list[int | None]:
         "Score each 0–100 for fit with this specific candidate:\n\n"
 
         "CANDIDATE — Dr. Pooja Choubey, Ph.D. Molecular Genetics:\n"
-        "CURRENT: Post-Doctoral Fellow, Lundquist Institute / Harbor-UCLA Medical Center, Torrance CA\n"
-        "EDUCATION: Ph.D. Molecular Genetics | B.Sc. Biochemistry\n"
-        "PUBLICATIONS: Co-first author, Nature Communications 2026 — PTRH2 role in peripartum "
-        "cardiomyopathy (Altmetric 78); additional publications in cardiovascular biology\n\n"
+        "CURRENT: Postdoctoral Scientist, Lundquist Institute / Harbor-UCLA Medical Center, "
+        "Torrance CA (Matter Lab) — Sep 2025–Present\n"
+        "EDUCATION: Ph.D. Molecular Genetics, University of Delhi (2023) | M.Sc. Zoology | "
+        "B.Sc. (Hons.) Zoology — first position\n"
+        "PUBLICATIONS: 10 peer-reviewed articles + 1 book chapter; "
+        "co-first author Nature Communications 2026 (PTRH2/peripartum cardiomyopathy); "
+        "first-author JACC: Advances 2026 (PERCVD genetic screening trial); "
+        "first-author Cells 2026 (cardiac transcriptomics)\n"
+        "GRANT: PI on competitive intramural Postdoctoral Catalyst Grant (Oct 2026–Sep 2027) "
+        "testing PTRH2-driven hepatic senescence in MASH — building towards K99/R00\n\n"
 
         "IN VIVO EXPERTISE (10+ years):\n"
-        "- Mouse colony management: 200+ mice, 3 transgenic lines (cardiac-specific overexpression)\n"
-        "- Cardiac phenotyping: Langendorff heart isolation, echocardiography (VEVO F2), "
-        "EKG recording, in vivo contractility, pressure-volume loops\n"
-        "- Disease models: TAC (aortic banding), isoproterenol, MI, angiotensin II infusion, "
-        "osmotic pumps, survival surgeries, tissue harvest\n\n"
+        "- Mouse colony: 200+ mice, 3 transgenic lines (Hmox1, Ptrh2 cardiac overexpression)\n"
+        "- Cardiac phenotyping: Langendorff perfusion, echocardiography (Vevo F2), ECG, "
+        "adult cardiomyocyte isolation, in vivo contractility, pressure-volume loops\n"
+        "- Cardiac disease models: TAC (aortic banding), isoproterenol, MI, angiotensin II, "
+        "osmotic pumps, survival surgeries, tissue harvest\n"
+        "- Metabolic/MASH models: diet-induced MASH, obesity, compound dosing, "
+        "timed matings, embryo collection (E12.5–E18.5)\n\n"
 
         "CELLULAR & MOLECULAR ASSAYS:\n"
-        "- FACS / flow cytometry, Western blot, IHC, ICC, ELISA, qRT-PCR, TUNEL\n"
-        "- Beta-gal staining, hydroxyproline assay, Masson trichrome, Sirius Red\n"
-        "- Cell culture (primary cardiomyocytes, cardiac fibroblasts)\n\n"
+        "- FACS / flow cytometry, Western blot, IHC, ICC, immunofluorescence, ELISA, qRT-PCR\n"
+        "- Senescence assays: SA-β-gal, TUNEL, flow cytometry senescence panels\n"
+        "- Beta-gal, hydroxyproline assay, Masson trichrome, Sirius Red, confocal, Keyence imaging\n"
+        "- Cell culture (primary cardiomyocytes, cardiac fibroblasts, myoblasts, patient-derived)\n\n"
 
-        "OMICS:\n"
-        "- RNA-seq, scRNA-seq (Seurat, cell annotation), Xenium & Visium spatial transcriptomics\n"
-        "- IPA (Ingenuity Pathway Analysis), STRING, GSEA, GO enrichment\n\n"
+        "OMICS & DATA ANALYSIS:\n"
+        "- Bulk RNA-seq, scRNA-seq (Seurat, Scanpy, cell annotation)\n"
+        "- 10x Visium & Xenium spatial transcriptomics; Loupe Browser; Xenium Explorer\n"
+        "- R (DESeq2, Seurat, ggplot2); Python (Scanpy, pandas); CLC Genomics Workbench\n"
+        "- QIAGEN IPA, STRING, GSEA, GO enrichment; metabolomics (trained)\n\n"
 
         "VISA STATUS: J1 visa (US). For US positions ONLY universities, medical centers, "
         "research institutes, government labs (NIH, NHLBI, CDC), and non-profit research "
@@ -462,23 +500,24 @@ def llm_score_batch(batch: list[dict]) -> list[int | None]:
 
         "TARGET ROLES (in priority order):\n"
         "1. Postdoctoral Fellow/Scientist at a US academic/research institution "
-        "(university, medical center, research institute, NIH) — WET-LAB focused\n"
+        "(university, medical center, research institute, NIH) — WET-LAB focused; "
+        "cardiovascular, cardiometabolic, MASH/hepatic, senescence, or translational R&D\n"
         "2. Research Scientist / Scientist II–IV / Staff Scientist at academic or "
-        "international (Europe/India) biotech/pharma\n"
+        "international (Europe/India) biotech/pharma — cardiovascular, metabolic, or oncology\n"
         "3. Senior Scientist / Principal Scientist — international OK, US only if academic\n"
         "NOT SUITABLE FOR: Director, VP, Head of, Chief, Managing Director — "
-        "bench scientist transitioning, NOT a department head.\n"
+        "10-year bench scientist on K99/R00 track, NOT a department head.\n"
         "CRITICAL WET-LAB REQUIREMENT: Pooja is a hands-on bench scientist. Roles must "
-        "require or strongly prefer wet-lab work (mouse models, cardiac phenotyping, cell "
-        "biology, immunoassays, histology). DO NOT score highly for roles that are primarily "
+        "require or strongly prefer wet-lab work (mouse models, cardiac/metabolic phenotyping, "
+        "cell biology, immunoassays, histology). DO NOT score highly for roles that are primarily "
         "or exclusively computational/bioinformatics with no wet-lab component.\n\n"
 
         "SCORING RUBRIC (BE STRICT):\n"
-        "90–100: Role is EXPLICITLY hands-on wet-lab preclinical/cardiovascular/translational "
-        "R&D; PhD required/preferred; strong overlap with in vivo, cardiac phenotyping, spatial "
-        "transcriptomics, or mouse models; at a J1-eligible institution if US-based\n"
+        "90–100: Role is EXPLICITLY hands-on wet-lab preclinical/cardiovascular/cardiometabolic/"
+        "MASH/senescence R&D; PhD required/preferred; strong overlap with in vivo, cardiac "
+        "phenotyping, spatial transcriptomics, or mouse models; at J1-eligible institution if US\n"
         "70–89: Strong wet-lab R&D role, PhD preferred, good skill overlap, adjacent therapeutic "
-        "area (fibrosis, metabolic/liver disease, MASH, oncology with mouse models)\n"
+        "area (fibrosis, metabolic/liver disease, MASH/NASH, hepatic, oncology with mouse models)\n"
         "50–69: Decent — relevant wet-lab techniques but missing cardiovascular/preclinical focus, "
         "OR good role but missing PhD requirement, OR postdoc at smaller/less known institution\n"
         "30–49: Some wet-lab overlap but mostly computational, OR missing PhD, OR wrong area\n"
@@ -538,24 +577,69 @@ def llm_score_batch(batch: list[dict]) -> list[int | None]:
 
 
 # ---------------------------------------------------------------------------
-# Parallel scrape helper
+# Robust scrape with retry + fallback sites (mirrors DJ's scrape_with_retry)
 # ---------------------------------------------------------------------------
-def _scrape_one(cfg: dict) -> pd.DataFrame:
-    kwargs = dict(
-        site_name=cfg.get("sites", ["indeed"]),   # LinkedIn/Glassdoor/ZipRecruiter 403 on Render
+def scrape_with_retry(cfg: dict) -> pd.DataFrame:
+    """
+    Try Indeed first. If 0 results, retry up to MAX_RETRIES times.
+    If still 0, fall back to cfg['fallback_sites'] (one attempt each).
+    For US passes, passes country_indeed="USA" to prevent geo-blocking.
+    Returns labelled DataFrame or empty DataFrame.
+    """
+    is_us = cfg.get("region", "US") == "US"
+    base_kwargs = dict(
         search_term=cfg["term"],
         location=cfg["location"],
         results_wanted=min(cfg["results"], MAX_RESULTS),
-        hours_old=HOURS_OLD,                      # 15-day window
+        hours_old=HOURS_OLD,
     )
+    if is_us:
+        base_kwargs["country_indeed"] = "USA"   # critical: prevents geo-blocking on US passes
     if "distance" in cfg:
-        kwargs["distance"] = cfg["distance"]
+        base_kwargs["distance"] = cfg["distance"]
+    if cfg.get("remote"):
+        base_kwargs["is_remote"] = True
 
-    df = scrape_jobs(**kwargs)
-    if not df.empty:
-        df["_search_pass"] = cfg["label"]
-        df["_region"]      = cfg.get("region", "US")
-    return df
+    sites = cfg.get("sites", ["indeed"])
+
+    # --- Primary: Indeed (with retry) ---
+    for attempt in range(1 + MAX_RETRIES):
+        try:
+            df = scrape_jobs(site_name=sites, **base_kwargs)
+            if not df.empty:
+                df["_search_pass"] = cfg["label"]
+                df["_region"]      = cfg.get("region", "US")
+                sprint(f"  → {len(df)} raw results (indeed, attempt {attempt+1})")
+                return df
+            if attempt < MAX_RETRIES:
+                sprint(f"  → 0 results (attempt {attempt+1}/{1+MAX_RETRIES}) — retrying in {RETRY_DELAY}s...")
+                time.sleep(RETRY_DELAY)
+        except Exception as e:
+            sprint(f"  [Scrape error attempt {attempt+1}]: {e}")
+            if attempt < MAX_RETRIES:
+                time.sleep(RETRY_DELAY)
+
+    # --- Fallback: try other sites ---
+    fallback_sites = cfg.get("fallback_sites", [])
+    for site in fallback_sites:
+        try:
+            sprint(f"  → Trying fallback: {site}...")
+            # Strip country_indeed / hours_old for non-Indeed sites
+            fb_kwargs = {k: v for k, v in base_kwargs.items()
+                         if k not in ("country_indeed", "hours_old")}
+            df = scrape_jobs(site_name=[site], **fb_kwargs)
+            if not df.empty:
+                df["_search_pass"] = cfg["label"]
+                df["_region"]      = cfg.get("region", "US")
+                sprint(f"  → {len(df)} raw results ({site} fallback)")
+                return df
+            sprint(f"  → 0 results ({site} fallback)")
+        except Exception as e:
+            sprint(f"  [{site} fallback error]: {e}")
+        time.sleep(8)
+
+    sprint(f"  → 0 results from all sources (likely IP block or no new postings)")
+    return pd.DataFrame()
 
 
 # ---------------------------------------------------------------------------
@@ -590,18 +674,20 @@ def build_search_configs() -> list[dict]:
                          'OR "peripartum" OR cardiomyopathy OR "heart failure" '
                          'OR "molecular genetics" OR translational'),
             "location": "United States",
-            "results":  50,
+            "results":  100,
             "region":   "US",
+            "fallback_sites": ["ziprecruiter"],
         },
         {
-            "label":    "Postdoctoral Fellow — MASH / Hepatic / Metabolic (US Academic)",
+            "label":    "Postdoctoral Fellow — MASH / Hepatic / Senescence (US Academic)",
             "term":     ('"Postdoctoral Fellow" OR "Postdoctoral Scientist" '
                          'OR "Postdoctoral Associate" OR "Postdoctoral Researcher" '
                          'MASH OR NASH OR "liver disease" OR hepatic OR metabolic '
-                         'OR "steatohepatitis" OR senescence OR "mouse model" OR "in vivo"'),
+                         'OR steatohepatitis OR senescence OR "mouse model" OR "in vivo"'),
             "location": "United States",
-            "results":  40,
+            "results":  75,
             "region":   "US",
+            "fallback_sites": ["ziprecruiter"],
         },
         {
             "label":    "Research Scientist — Academic Medical Centers / Institutes (US)",
@@ -610,8 +696,9 @@ def build_search_configs() -> list[dict]:
                          'OR translational OR "molecular genetics" OR "cell biology" '
                          'OR "spatial transcriptomics"'),
             "location": "United States",
-            "results":  50,
+            "results":  100,
             "region":   "US",
+            "fallback_sites": ["ziprecruiter"],
         },
         {
             "label":    "Postdoctoral Fellow — Spatial Transcriptomics / Omics (US Academic)",
@@ -620,16 +707,18 @@ def build_search_configs() -> list[dict]:
                          '"spatial transcriptomics" OR xenium OR visium OR "single cell" '
                          'OR "scRNA-seq" OR "bulk RNA-seq" OR transcriptomics'),
             "location": "United States",
-            "results":  30,
+            "results":  50,
             "region":   "US",
+            "fallback_sites": ["ziprecruiter"],
         },
         # ── US NATIONWIDE ──────────────────────────────────────────────────
         {
             "label":    "Cardiovascular / Cardiac Scientist (US nationwide)",
             "term":     _CV,
             "location": "United States",
-            "results":  50,
+            "results":  100,
             "region":   "US",
+            "fallback_sites": ["ziprecruiter", "glassdoor"],
         },
         {
             "label":    "Preclinical / In Vivo Scientist (US nationwide)",
@@ -638,8 +727,9 @@ def build_search_configs() -> list[dict]:
                          'OR "Disease Model Scientist" OR "Animal Model Scientist" '
                          'OR "Translational Research Scientist" OR "Translational Scientist"'),
             "location": "United States",
-            "results":  50,
+            "results":  100,
             "region":   "US",
+            "fallback_sites": ["ziprecruiter"],
         },
         {
             "label":    "Biomarker / Drug Discovery Scientist (US nationwide)",
@@ -648,8 +738,9 @@ def build_search_configs() -> list[dict]:
                          'OR "Target Identification Scientist" '
                          'OR "Target Validation Scientist"'),
             "location": "United States",
-            "results":  50,
+            "results":  75,
             "region":   "US",
+            "fallback_sites": ["ziprecruiter"],
         },
         {
             "label":    "Senior / Staff / Principal Scientist — Cardiovascular (US)",
@@ -658,8 +749,19 @@ def build_search_configs() -> list[dict]:
                          'OR "Senior Investigator" cardiovascular OR cardiac OR '
                          '"heart failure" OR preclinical OR "in vivo"'),
             "location": "United States",
-            "results":  50,
+            "results":  75,
             "region":   "US",
+            "fallback_sites": ["ziprecruiter"],
+        },
+        {
+            "label":    "MASH / Hepatic / Metabolic Scientist (US nationwide)",
+            "term":     ('"Research Scientist" OR "Senior Scientist" OR "Scientist" '
+                         'MASH OR NASH OR steatohepatitis OR "liver disease" OR hepatic '
+                         'OR metabolic OR senescence OR "in vivo" OR "mouse model"'),
+            "location": "United States",
+            "results":  75,
+            "region":   "US",
+            "fallback_sites": ["ziprecruiter"],
         },
         {
             "label":    "Spatial Transcriptomics / Omics Scientist (US)",
@@ -667,67 +769,76 @@ def build_search_configs() -> list[dict]:
                          'OR "Single Cell RNA" OR "scRNA-seq" OR "Transcriptomics Scientist" '
                          'OR "Genomics Scientist"'),
             "location": "United States",
-            "results":  30,
+            "results":  50,
             "region":   "US",
+            "fallback_sites": ["ziprecruiter"],
         },
         # ── US HUBS ────────────────────────────────────────────────────────
         {
             "label":    "Scientist — LA / Torrance / Irvine area",
             "term":     ('"Research Scientist" OR "Senior Scientist" '
                          'OR "Translational Scientist" OR "Preclinical Scientist" '
-                         'OR "Cardiovascular" OR "In Vivo" OR "Drug Discovery"'),
+                         'OR "Cardiovascular" OR "In Vivo" OR "Drug Discovery" '
+                         'OR "Postdoctoral" OR MASH OR senescence'),
             "location": "Torrance, CA",
-            "results":  50,
+            "results":  75,
             "distance": 40,
             "region":   "US",
+            "fallback_sites": ["ziprecruiter"],
         },
         {
             "label":    "Scientist — Boston / Cambridge MA (Broad / MIT / Biogen / Vertex)",
             "term":     _CORE,
             "location": "Cambridge, MA",
-            "results":  50,
+            "results":  75,
             "distance": 30,
             "region":   "US",
+            "fallback_sites": ["ziprecruiter"],
         },
         {
             "label":    "Scientist — San Francisco / South SF (Genentech / Amgen / Gilead)",
             "term":     _CORE,
             "location": "South San Francisco, CA",
-            "results":  50,
+            "results":  75,
             "distance": 40,
             "region":   "US",
+            "fallback_sites": ["ziprecruiter"],
         },
         {
             "label":    "Scientist — San Diego CA (Pfizer / AstraZeneca / Janssen SD)",
             "term":     _CORE,
             "location": "San Diego, CA",
-            "results":  50,
+            "results":  75,
             "distance": 30,
             "region":   "US",
+            "fallback_sites": ["ziprecruiter"],
         },
         {
             "label":    "Scientist — Philadelphia / NJ pharma corridor (Merck / J&J / GSK)",
             "term":     _CORE,
             "location": "Philadelphia, PA",
-            "results":  50,
+            "results":  75,
             "distance": 50,
             "region":   "US",
+            "fallback_sites": ["ziprecruiter"],
         },
         {
             "label":    "Scientist — Research Triangle Park NC (GSK / Bayer / Syneos)",
             "term":     _CORE,
             "location": "Durham, NC",
-            "results":  50,
+            "results":  75,
             "distance": 30,
             "region":   "US",
+            "fallback_sites": ["ziprecruiter"],
         },
         {
             "label":    "Scientist — Seattle / Bothell WA (Seagen / Novo Nordisk / IQVIA)",
             "term":     _CORE,
             "location": "Seattle, WA",
-            "results":  30,
+            "results":  50,
             "distance": 30,
             "region":   "US",
+            "fallback_sites": ["ziprecruiter"],
         },
         # ── EUROPE ─────────────────────────────────────────────────────────
         {
@@ -736,7 +847,7 @@ def build_search_configs() -> list[dict]:
             "location": "Cambridge, United Kingdom",
             "results":  50,
             "region":   "Europe",
-            "sites":    ["indeed"],   # LinkedIn 403 on Render cloud IPs
+            "sites":    ["indeed"],
         },
         {
             "label":    "Scientist — London UK (GSK / UCB / MSD / Immunocore)",
@@ -744,7 +855,7 @@ def build_search_configs() -> list[dict]:
             "location": "London, United Kingdom",
             "results":  50,
             "region":   "Europe",
-            "sites":    ["indeed"],   # LinkedIn 403 on Render cloud IPs
+            "sites":    ["indeed"],
         },
         {
             "label":    "Scientist — Basel Switzerland (Novartis / Roche / Lonza)",
@@ -752,15 +863,15 @@ def build_search_configs() -> list[dict]:
             "location": "Basel, Switzerland",
             "results":  50,
             "region":   "Europe",
-            "sites":    ["indeed"],   # LinkedIn 403 on Render cloud IPs
+            "sites":    ["indeed"],
         },
         {
             "label":    "Scientist — Zurich / Schlieren Switzerland (Novartis Institutes)",
             "term":     _CORE,
             "location": "Zurich, Switzerland",
-            "results":  30,
+            "results":  50,
             "region":   "Europe",
-            "sites":    ["indeed"],   # LinkedIn 403 on Render cloud IPs
+            "sites":    ["indeed"],
         },
         {
             "label":    "Scientist — Munich Germany (BioNTech / Bayer / Helmholtz)",
@@ -768,23 +879,23 @@ def build_search_configs() -> list[dict]:
             "location": "Munich, Germany",
             "results":  50,
             "region":   "Europe",
-            "sites":    ["indeed"],   # LinkedIn 403 on Render cloud IPs
+            "sites":    ["indeed"],
         },
         {
             "label":    "Scientist — Paris France (Sanofi / Institut Pasteur / Servier)",
             "term":     _CORE,
             "location": "Paris, France",
-            "results":  30,
+            "results":  50,
             "region":   "Europe",
-            "sites":    ["indeed"],   # LinkedIn 403 on Render cloud IPs
+            "sites":    ["indeed"],
         },
         {
             "label":    "Scientist — Amsterdam / Leiden NL (Janssen / LUMC / BioLegend)",
             "term":     _CORE,
             "location": "Amsterdam, Netherlands",
-            "results":  30,
+            "results":  50,
             "region":   "Europe",
-            "sites":    ["indeed"],   # LinkedIn 403 on Render cloud IPs
+            "sites":    ["indeed"],
         },
         # ── INDIA ──────────────────────────────────────────────────────────
         {
@@ -793,7 +904,7 @@ def build_search_configs() -> list[dict]:
             "location": "Bengaluru",
             "results":  50,
             "region":   "India",
-            "sites":    ["indeed"],   # LinkedIn 403 on Render cloud IPs
+            "sites":    ["indeed"],
         },
         {
             "label":    "Scientist — Hyderabad India (Dr Reddy's / Aurobindo / Cipla R&D)",
@@ -801,15 +912,15 @@ def build_search_configs() -> list[dict]:
             "location": "Hyderabad",
             "results":  50,
             "region":   "India",
-            "sites":    ["indeed"],   # LinkedIn 403 on Render cloud IPs
+            "sites":    ["indeed"],
         },
         {
             "label":    "Scientist — Pune India (Serum Institute / Lupin / Piramal)",
             "term":     _CORE,
             "location": "Pune",
-            "results":  30,
+            "results":  50,
             "region":   "India",
-            "sites":    ["indeed"],   # LinkedIn 403 on Render cloud IPs
+            "sites":    ["indeed"],
         },
     ]
 
@@ -826,10 +937,11 @@ def pooja_hunt():
 
     # ── Step 1: Parallel scrape ────────────────────────────────────────────
     sprint(f"\n[Scrape] Launching {len(configs)} passes with {SCRAPE_WORKERS} parallel workers...")
-    all_frames = []
+    all_frames   = []
+    blocked_passes = 0
 
     with ThreadPoolExecutor(max_workers=SCRAPE_WORKERS) as ex:
-        futures = {ex.submit(_scrape_one, cfg): cfg for cfg in configs}
+        futures = {ex.submit(scrape_with_retry, cfg): cfg for cfg in configs}
         for fut in as_completed(futures):
             cfg = futures[fut]
             sprint(f"[Search] {cfg['label']}...")
@@ -837,16 +949,20 @@ def pooja_hunt():
                 df = fut.result()
                 if not df.empty:
                     all_frames.append(df)
-                    sprint(f"  → {len(df)} raw results")
+                    sprint(f"  → {len(df)} results")
                 else:
+                    blocked_passes += 1
                     sprint(f"  → 0 results")
             except Exception as e:
                 sprint(f"  [Error] {cfg['label']}: {e}")
+                blocked_passes += 1
 
-    if not all_frames:
-        sprint("[Pooja Scanner] No results from any search pass.")
-        push_notification("Pooja Bio Hunt", "Scan ran — 0 results from all passes.", "low")
-        return
+    if blocked_passes > 0:
+        sprint(f"\n[Warning] {blocked_passes}/{len(configs)} passes returned 0 results.")
+        if blocked_passes == len(configs):
+            sprint("[Pooja Scanner] No results from any search pass. Likely IP block by Indeed.")
+            push_notification("Pooja Bio Hunt", "Scan ran — 0 results from all passes (possible IP block).", "low")
+            return
 
     # ── Step 2: Combine + deduplicate ─────────────────────────────────────
     raw = pd.concat(all_frames, ignore_index=True)

@@ -114,6 +114,23 @@ TITLE_BLACKLIST = [
     r"\bquality\s+(?:assurance|control)\s+scientist\b",
     r"\bnurse\b|\bphysician\b|\bclinician\b",
     r"\bprofessor\b|\bfaculty\b|\blecturer\b|\btenure\b",
+    # Non-biology sciences — prevent generic "Research Scientist" / "Senior Scientist"
+    # matching materials, physics, environmental, or other non-life-sciences domains.
+    # Note: word-boundary \b ensures "biochemist" is NOT matched by r"\bchemist\b",
+    # and "biophysicist" is NOT matched by r"\bphysicist\b".
+    r"\bmaterials?\s+(?:scientist|science|engineer|engineering)\b",
+    r"\bphysicist\b",
+    r"\bphysics\s+(?:research|researcher|scientist)\b",
+    r"\benvironmental\s+scientist\b",
+    r"\bgeolog(?:y|ist)\b",
+    r"\becolog(?:y|ist)\b",
+    r"\bstatistician\b",
+    r"\bchemist\b",                             # \b: "biochemist" is NOT matched
+    r"\bchemical\s+engineer",
+    r"\bepidemiolog(?:y|ist)\b",
+    r"\bagricult(?:ure|ural)\s+scientist\b",
+    r"\bfood\s+scientist\b",
+    r"\bveterinar(?:y\s+scientist|ian)\b",
     # NOTE: postdoc intentionally NOT blacklisted — Pooja needs academic US roles (J1)
 ]
 
@@ -646,14 +663,25 @@ def scrape_with_retry(cfg: dict) -> pd.DataFrame:
 # Search configuration — 22 passes: US hubs + Europe + India
 # ---------------------------------------------------------------------------
 def build_search_configs() -> list[dict]:
-    # Core scientist terms used across many passes
-    _CORE = (
-        '"Research Scientist" OR "Senior Scientist" OR "Staff Scientist" '
-        'OR "Principal Scientist" OR "Scientist II" OR "Scientist III" '
-        'OR "Translational Scientist" OR "Preclinical Scientist" '
-        'OR "Cardiovascular Scientist" OR "In Vivo Scientist" '
+    # Biology-domain compound titles — inherently life-sciences, no generic terms.
+    # Use for: Europe and India passes where geographic context is not a biotech filter.
+    _BIO = (
+        '"Cardiovascular Research Scientist" OR "Cardiovascular Scientist" '
+        'OR "Cardiac Research Scientist" OR "Preclinical Research Scientist" '
+        'OR "Preclinical Scientist" OR "In Vivo Research Scientist" OR "In Vivo Scientist" '
+        'OR "Translational Research Scientist" OR "Translational Scientist" '
+        'OR "Molecular Biologist" OR "Cell Biologist" OR "Immunologist" '
         'OR "Biomarker Scientist" OR "Drug Discovery Scientist" '
-        'OR "Research Investigator" OR "Senior Investigator"'
+        'OR "Research Investigator" OR "Senior Investigator" '
+        'OR "Postdoctoral Fellow" OR "Postdoctoral Scientist" OR "Postdoctoral Associate"'
+    )
+    # _BIO + generic scientist levels — for US biotech hub city passes (Boston, SF, SD, etc.)
+    # Geographic biotech-hub context means generic "Research Scientist" is almost always
+    # a life-sciences role at those locations.
+    _HUB = (
+        _BIO +
+        ' OR "Research Scientist" OR "Senior Research Scientist" OR "Senior Scientist" '
+        'OR "Staff Scientist" OR "Principal Scientist" OR "Scientist II" OR "Scientist III"'
     )
     # Cardiovascular-specific terms for focused passes
     _CV = (
@@ -744,20 +772,25 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Senior / Staff / Principal Scientist — Cardiovascular (US)",
-            "term":     ('"Senior Research Scientist" OR "Staff Scientist" '
-                         'OR "Principal Scientist" OR "Research Investigator" '
-                         'OR "Senior Investigator" cardiovascular OR cardiac OR '
-                         '"heart failure" OR preclinical OR "in vivo"'),
+            "term":     ('"Senior Cardiovascular Scientist" OR "Senior Preclinical Scientist" '
+                         'OR "Senior In Vivo Scientist" OR "Senior Translational Scientist" '
+                         'OR "Senior Biomarker Scientist" OR "Senior Drug Discovery Scientist" '
+                         'OR "Staff Cardiovascular Scientist" OR "Staff Preclinical Scientist" '
+                         'OR "Principal Cardiovascular Scientist" OR "Principal Preclinical Scientist" '
+                         'OR "Senior Research Scientist" OR "Staff Scientist" OR "Principal Scientist"'),
             "location": "United States",
             "results":  75,
             "region":   "US",
             "fallback_sites": ["ziprecruiter"],
         },
         {
-            "label":    "MASH / Hepatic / Metabolic Scientist (US nationwide)",
-            "term":     ('"Research Scientist" OR "Senior Scientist" OR "Scientist" '
-                         'MASH OR NASH OR steatohepatitis OR "liver disease" OR hepatic '
-                         'OR metabolic OR senescence OR "in vivo" OR "mouse model"'),
+            "label":    "MASH / Hepatic / Metabolic / Senescence Scientist (US nationwide)",
+            "term":     ('"MASH Research Scientist" OR "Liver Disease Scientist" '
+                         'OR "Metabolic Disease Scientist" OR "Hepatic Research Scientist" '
+                         'OR "Steatohepatitis Scientist" OR "Senescence Scientist" '
+                         'OR "Aging Research Scientist" OR "Metabolic Syndrome Scientist" '
+                         'OR "Preclinical MASH Scientist" OR "Postdoctoral Fellow" '
+                         'OR "Research Scientist" senescence OR "Research Scientist" MASH'),
             "location": "United States",
             "results":  75,
             "region":   "US",
@@ -788,7 +821,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Boston / Cambridge MA (Broad / MIT / Biogen / Vertex)",
-            "term":     _CORE,
+            "term":     _HUB,
             "location": "Cambridge, MA",
             "results":  75,
             "distance": 30,
@@ -797,7 +830,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — San Francisco / South SF (Genentech / Amgen / Gilead)",
-            "term":     _CORE,
+            "term":     _HUB,
             "location": "South San Francisco, CA",
             "results":  75,
             "distance": 40,
@@ -806,7 +839,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — San Diego CA (Pfizer / AstraZeneca / Janssen SD)",
-            "term":     _CORE,
+            "term":     _HUB,
             "location": "San Diego, CA",
             "results":  75,
             "distance": 30,
@@ -815,7 +848,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Philadelphia / NJ pharma corridor (Merck / J&J / GSK)",
-            "term":     _CORE,
+            "term":     _HUB,
             "location": "Philadelphia, PA",
             "results":  75,
             "distance": 50,
@@ -824,7 +857,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Research Triangle Park NC (GSK / Bayer / Syneos)",
-            "term":     _CORE,
+            "term":     _HUB,
             "location": "Durham, NC",
             "results":  75,
             "distance": 30,
@@ -833,7 +866,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Seattle / Bothell WA (Seagen / Novo Nordisk / IQVIA)",
-            "term":     _CORE,
+            "term":     _HUB,
             "location": "Seattle, WA",
             "results":  50,
             "distance": 30,
@@ -841,9 +874,11 @@ def build_search_configs() -> list[dict]:
             "fallback_sites": ["ziprecruiter"],
         },
         # ── EUROPE ─────────────────────────────────────────────────────────
+        # _BIO used (not _HUB) — no geographic biotech-hub assumption outside the US.
+        # Compound biology-domain titles only, no generic "Research Scientist".
         {
             "label":    "Scientist — Cambridge UK (AstraZeneca / Wellcome Sanger / GSK)",
-            "term":     _CORE,
+            "term":     _BIO,
             "location": "Cambridge, United Kingdom",
             "results":  50,
             "region":   "Europe",
@@ -851,7 +886,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — London UK (GSK / UCB / MSD / Immunocore)",
-            "term":     _CORE,
+            "term":     _BIO,
             "location": "London, United Kingdom",
             "results":  50,
             "region":   "Europe",
@@ -859,7 +894,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Basel Switzerland (Novartis / Roche / Lonza)",
-            "term":     _CORE,
+            "term":     _BIO,
             "location": "Basel, Switzerland",
             "results":  50,
             "region":   "Europe",
@@ -867,7 +902,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Zurich / Schlieren Switzerland (Novartis Institutes)",
-            "term":     _CORE,
+            "term":     _BIO,
             "location": "Zurich, Switzerland",
             "results":  50,
             "region":   "Europe",
@@ -875,7 +910,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Munich Germany (BioNTech / Bayer / Helmholtz)",
-            "term":     _CORE,
+            "term":     _BIO,
             "location": "Munich, Germany",
             "results":  50,
             "region":   "Europe",
@@ -883,7 +918,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Paris France (Sanofi / Institut Pasteur / Servier)",
-            "term":     _CORE,
+            "term":     _BIO,
             "location": "Paris, France",
             "results":  50,
             "region":   "Europe",
@@ -891,16 +926,17 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Amsterdam / Leiden NL (Janssen / LUMC / BioLegend)",
-            "term":     _CORE,
+            "term":     _BIO,
             "location": "Amsterdam, Netherlands",
             "results":  50,
             "region":   "Europe",
             "sites":    ["indeed"],
         },
         # ── INDIA ──────────────────────────────────────────────────────────
+        # _BIO used — India has diverse industries; compound biology titles essential.
         {
             "label":    "Scientist — Bangalore India (Biocon / AstraZeneca / Syngene)",
-            "term":     _CORE,
+            "term":     _BIO,
             "location": "Bengaluru",
             "results":  50,
             "region":   "India",
@@ -908,7 +944,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Hyderabad India (Dr Reddy's / Aurobindo / Cipla R&D)",
-            "term":     _CORE,
+            "term":     _BIO,
             "location": "Hyderabad",
             "results":  50,
             "region":   "India",
@@ -916,7 +952,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Pune India (Serum Institute / Lupin / Piramal)",
-            "term":     _CORE,
+            "term":     _BIO,
             "location": "Pune",
             "results":  50,
             "region":   "India",

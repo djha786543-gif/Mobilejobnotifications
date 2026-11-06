@@ -660,86 +660,126 @@ def scrape_with_retry(cfg: dict) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# Search configuration — 22 passes: US hubs + Europe + India
+# Search configuration — 36 passes: US academic + US nationwide + US hubs + Europe (13 cities) + India
 # ---------------------------------------------------------------------------
 def build_search_configs() -> list[dict]:
-    # Biology-domain compound titles — inherently life-sciences, no generic terms.
-    # Use for: Europe and India passes where geographic context is not a biotech filter.
+    # ── Core title banks ────────────────────────────────────────────────────
+    # _BIO: biology-domain compound titles — inherently life-sciences.
+    # Use for Europe/India passes where geography is NOT a biotech filter.
     _BIO = (
         '"Cardiovascular Research Scientist" OR "Cardiovascular Scientist" '
         'OR "Cardiac Research Scientist" OR "Preclinical Research Scientist" '
         'OR "Preclinical Scientist" OR "In Vivo Research Scientist" OR "In Vivo Scientist" '
+        'OR "In Vitro Research Scientist" OR "In Vitro Scientist" '
         'OR "Translational Research Scientist" OR "Translational Scientist" '
         'OR "Molecular Biologist" OR "Cell Biologist" OR "Immunologist" '
-        'OR "Biomarker Scientist" OR "Drug Discovery Scientist" '
-        'OR "Research Investigator" OR "Senior Investigator" '
+        'OR "Flow Cytometry Scientist" OR "Biomarker Scientist" '
+        'OR "Drug Discovery Scientist" OR "Research Investigator" '
         'OR "Postdoctoral Fellow" OR "Postdoctoral Scientist" OR "Postdoctoral Associate"'
     )
-    # _BIO + generic scientist levels — for US biotech hub city passes (Boston, SF, SD, etc.)
-    # Geographic biotech-hub context means generic "Research Scientist" is almost always
-    # a life-sciences role at those locations.
+    # _HUB: _BIO + generic scientist levels for US biotech-hub city passes.
+    # Geographic context (Boston/SF/SD etc.) means generic titles are life-sciences.
     _HUB = (
         _BIO +
         ' OR "Research Scientist" OR "Senior Research Scientist" OR "Senior Scientist" '
         'OR "Staff Scientist" OR "Principal Scientist" OR "Scientist II" OR "Scientist III"'
     )
-    # Cardiovascular-specific terms for focused passes
+    # _CV: cardiovascular-specific compound titles for dedicated CV passes.
     _CV = (
         '"Cardiovascular Research Scientist" OR "Cardiovascular Scientist" '
-        'OR "Cardiac Research Scientist" OR "Heart Failure Scientist" '
-        'OR "Cardiomyopathy" OR "Preclinical Cardiovascular" '
-        'OR "In Vivo Cardiovascular" OR "Translational Cardiology"'
+        'OR "Cardiac Research Scientist" OR "Cardiometabolic Scientist" '
+        'OR "Heart Failure Research Scientist" OR "Heart Failure Scientist" '
+        'OR "Cardiomyopathy Research Scientist" OR "Preclinical Cardiovascular Scientist" '
+        'OR "In Vivo Cardiovascular Scientist" OR "Cardiovascular Biologist" '
+        'OR "Cardiovascular Pharmacologist" OR "Translational Cardiology Scientist" '
+        'OR "Preclinical Cardiologist" OR "Cardiac Disease Scientist"'
     )
+    # _IN_VIVO: in vivo / animal model / cardiac phenotyping titles — Pooja's core wet-lab.
+    # Langendorff perfusion, cardiac catheterisation, echocardiography, mouse models.
+    _IN_VIVO = (
+        '"In Vivo Research Scientist" OR "In Vivo Scientist" OR "In Vivo Biologist" '
+        'OR "In Vivo Pharmacologist" OR "Cardiac Phenotyping Scientist" '
+        'OR "Cardiovascular Biologist" OR "Cardiomyopathy Research Scientist" '
+        'OR "Heart Failure Research Scientist" OR "Cardiometabolic Scientist" '
+        'OR "Preclinical Cardiovascular Scientist" OR "Mouse Model Scientist" '
+        'OR "In Vivo Disease Model Scientist" OR "Preclinical Cardiologist" '
+        'OR "Cardiac Disease Scientist" OR "Cardiovascular Pharmacologist" '
+        'OR "Animal Model Scientist" OR "Preclinical Research Scientist"'
+    )
+    # _IN_VITRO: cell-based assay / flow cytometry / immunoassay titles — Pooja's bench skill.
+    # FACS, ELISA, Western blot, cell culture, cardiomyocyte assays, immunofluorescence.
+    _IN_VITRO = (
+        '"Cell Biology Research Scientist" OR "Cell Biology Scientist" '
+        'OR "Flow Cytometry Scientist" OR "FACS Scientist" '
+        'OR "Immunoassay Scientist" OR "Molecular Biology Research Scientist" '
+        'OR "Molecular Biologist" OR "In Vitro Research Scientist" '
+        'OR "In Vitro Scientist" OR "Cardiovascular Cell Biologist" '
+        'OR "Cardiomyocyte Research Scientist" OR "Immunology Research Scientist" '
+        'OR "Cell-Based Assay Scientist" OR "Cardiovascular Immunologist" '
+        'OR "Senescence Research Scientist" OR "Cell Biology Specialist"'
+    )
+    # _POSTDOC: clean postdoc titles only (no unquoted keywords mixed in).
+    _POSTDOC = (
+        '"Postdoctoral Fellow" OR "Postdoctoral Scientist" OR "Postdoctoral Associate" '
+        'OR "Postdoctoral Researcher" OR "Postdoctoral Research Associate"'
+    )
+
     return [
         # ── US ACADEMIC / RESEARCH INSTITUTIONS (J1-eligible) ─────────────
-        # Pooja is on J1 — only academic, government, and non-profit research
-        # institutions can employ her without immediate H1B transfer.
+        # Pooja is on J1 — academic, government, and non-profit institutions only.
         {
             "label":    "Postdoctoral Fellow — Cardiovascular / In Vivo (US Academic)",
             "term":     ('"Postdoctoral Fellow" OR "Postdoctoral Scientist" '
                          'OR "Postdoctoral Associate" OR "Postdoctoral Researcher" '
-                         'cardiovascular OR cardiac OR "in vivo" OR "mouse model" '
-                         'OR "peripartum" OR cardiomyopathy OR "heart failure" '
-                         'OR "molecular genetics" OR translational'),
+                         'OR "Postdoctoral Research Associate"'),
             "location": "United States",
             "results":  100,
             "region":   "US",
             "fallback_sites": ["ziprecruiter"],
         },
         {
-            "label":    "Postdoctoral Fellow — MASH / Hepatic / Senescence (US Academic)",
+            "label":    "Postdoctoral Fellow — MASH / Hepatic / Metabolic (US Academic)",
             "term":     ('"Postdoctoral Fellow" OR "Postdoctoral Scientist" '
                          'OR "Postdoctoral Associate" OR "Postdoctoral Researcher" '
-                         'MASH OR NASH OR "liver disease" OR hepatic OR metabolic '
-                         'OR steatohepatitis OR senescence OR "mouse model" OR "in vivo"'),
+                         'OR "Postdoctoral Research Associate"'),
             "location": "United States",
             "results":  75,
             "region":   "US",
             "fallback_sites": ["ziprecruiter"],
         },
         {
-            "label":    "Research Scientist — Academic Medical Centers / Institutes (US)",
-            "term":     ('"Research Scientist" OR "Senior Scientist" OR "Staff Scientist" '
-                         'cardiovascular OR cardiac OR "in vivo" OR "mouse model" '
-                         'OR translational OR "molecular genetics" OR "cell biology" '
-                         'OR "spatial transcriptomics"'),
-            "location": "United States",
-            "results":  100,
-            "region":   "US",
-            "fallback_sites": ["ziprecruiter"],
-        },
-        {
             "label":    "Postdoctoral Fellow — Spatial Transcriptomics / Omics (US Academic)",
-            "term":     ('"Postdoctoral Fellow" OR "Postdoctoral Scientist" '
-                         'OR "Postdoctoral Associate" '
-                         '"spatial transcriptomics" OR xenium OR visium OR "single cell" '
-                         'OR "scRNA-seq" OR "bulk RNA-seq" OR transcriptomics'),
+            "term":     _POSTDOC,
             "location": "United States",
             "results":  50,
             "region":   "US",
             "fallback_sites": ["ziprecruiter"],
         },
-        # ── US NATIONWIDE ──────────────────────────────────────────────────
+        {
+            "label":    "Research Scientist — Academic Medical Centers / Institutes (US)",
+            "term":     _HUB,
+            "location": "United States",
+            "results":  100,
+            "region":   "US",
+            "fallback_sites": ["ziprecruiter"],
+        },
+        # ── US NATIONWIDE — skill-anchored passes ─────────────────────────
+        {
+            "label":    "In Vivo / Cardiac Phenotyping Scientist (US nationwide)",
+            "term":     _IN_VIVO,
+            "location": "United States",
+            "results":  100,
+            "region":   "US",
+            "fallback_sites": ["ziprecruiter", "glassdoor"],
+        },
+        {
+            "label":    "Cell-Based Assay / In Vitro / Flow Cytometry Scientist (US nationwide)",
+            "term":     _IN_VITRO,
+            "location": "United States",
+            "results":  100,
+            "region":   "US",
+            "fallback_sites": ["ziprecruiter", "glassdoor"],
+        },
         {
             "label":    "Cardiovascular / Cardiac Scientist (US nationwide)",
             "term":     _CV,
@@ -749,11 +789,11 @@ def build_search_configs() -> list[dict]:
             "fallback_sites": ["ziprecruiter", "glassdoor"],
         },
         {
-            "label":    "Preclinical / In Vivo Scientist (US nationwide)",
+            "label":    "Preclinical / Translational Scientist (US nationwide)",
             "term":     ('"Preclinical Research Scientist" OR "Preclinical Scientist" '
-                         'OR "In Vivo Scientist" OR "In Vivo Research Scientist" '
+                         'OR "Translational Research Scientist" OR "Translational Scientist" '
                          'OR "Disease Model Scientist" OR "Animal Model Scientist" '
-                         'OR "Translational Research Scientist" OR "Translational Scientist"'),
+                         'OR "In Vivo Disease Model Scientist"'),
             "location": "United States",
             "results":  100,
             "region":   "US",
@@ -761,9 +801,9 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Biomarker / Drug Discovery Scientist (US nationwide)",
-            "term":     ('"Biomarker Scientist" OR "Biomarker Discovery" '
-                         'OR "Drug Discovery Scientist" OR "Pharmacologist" '
-                         'OR "Target Identification Scientist" '
+            "term":     ('"Biomarker Scientist" OR "Biomarker Discovery Scientist" '
+                         'OR "Drug Discovery Scientist" OR "Cardiovascular Pharmacologist" '
+                         'OR "In Vivo Pharmacologist" OR "Target Identification Scientist" '
                          'OR "Target Validation Scientist"'),
             "location": "United States",
             "results":  75,
@@ -789,18 +829,18 @@ def build_search_configs() -> list[dict]:
                          'OR "Metabolic Disease Scientist" OR "Hepatic Research Scientist" '
                          'OR "Steatohepatitis Scientist" OR "Senescence Scientist" '
                          'OR "Aging Research Scientist" OR "Metabolic Syndrome Scientist" '
-                         'OR "Preclinical MASH Scientist" OR "Postdoctoral Fellow" '
-                         'OR "Research Scientist" senescence OR "Research Scientist" MASH'),
+                         'OR "Preclinical MASH Scientist" OR "Cardiometabolic Scientist"'),
             "location": "United States",
             "results":  75,
             "region":   "US",
             "fallback_sites": ["ziprecruiter"],
         },
         {
-            "label":    "Spatial Transcriptomics / Omics Scientist (US)",
-            "term":     ('"Spatial Transcriptomics" OR "Xenium" OR "Visium" '
-                         'OR "Single Cell RNA" OR "scRNA-seq" OR "Transcriptomics Scientist" '
-                         'OR "Genomics Scientist"'),
+            "label":    "Spatial Transcriptomics / Single Cell / Omics Scientist (US)",
+            "term":     ('"Spatial Transcriptomics Scientist" OR "Single Cell Scientist" '
+                         'OR "Transcriptomics Scientist" OR "Genomics Scientist" '
+                         'OR "Single Cell RNA Scientist" OR "scRNA-seq Scientist" '
+                         'OR "Computational Biologist" OR "Bioinformatics Scientist"'),
             "location": "United States",
             "results":  50,
             "region":   "US",
@@ -809,10 +849,7 @@ def build_search_configs() -> list[dict]:
         # ── US HUBS ────────────────────────────────────────────────────────
         {
             "label":    "Scientist — LA / Torrance / Irvine area",
-            "term":     ('"Research Scientist" OR "Senior Scientist" '
-                         'OR "Translational Scientist" OR "Preclinical Scientist" '
-                         'OR "Cardiovascular" OR "In Vivo" OR "Drug Discovery" '
-                         'OR "Postdoctoral" OR MASH OR senescence'),
+            "term":     _HUB,
             "location": "Torrance, CA",
             "results":  75,
             "distance": 40,
@@ -875,7 +912,7 @@ def build_search_configs() -> list[dict]:
         },
         # ── EUROPE ─────────────────────────────────────────────────────────
         # _BIO used (not _HUB) — no geographic biotech-hub assumption outside the US.
-        # Compound biology-domain titles only, no generic "Research Scientist".
+        # Compound biology-domain titles only; includes in-vivo / in-vitro / flow cytometry.
         {
             "label":    "Scientist — Cambridge UK (AstraZeneca / Wellcome Sanger / GSK)",
             "term":     _BIO,
@@ -928,6 +965,54 @@ def build_search_configs() -> list[dict]:
             "label":    "Scientist — Amsterdam / Leiden NL (Janssen / LUMC / BioLegend)",
             "term":     _BIO,
             "location": "Amsterdam, Netherlands",
+            "results":  50,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Scientist — Stockholm / Uppsala Sweden (Karolinska / AstraZeneca SE)",
+            "term":     _BIO,
+            "location": "Stockholm, Sweden",
+            "results":  50,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Scientist — Copenhagen Denmark (Novo Nordisk / LEO Pharma / DTU)",
+            "term":     _BIO,
+            "location": "Copenhagen, Denmark",
+            "results":  50,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Scientist — Dublin Ireland (Pfizer / MSD Ireland / Trinity / UCD)",
+            "term":     _BIO,
+            "location": "Dublin, Ireland",
+            "results":  50,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Scientist — Brussels / Leuven Belgium (UCB / KU Leuven / VIB)",
+            "term":     _BIO,
+            "location": "Brussels, Belgium",
+            "results":  50,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Scientist — Milan Italy (San Raffaele / IEO / Humanitas)",
+            "term":     _BIO,
+            "location": "Milan, Italy",
+            "results":  50,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Scientist — Heidelberg Germany (EMBL / DKFZ / Heidelberg University)",
+            "term":     _BIO,
+            "location": "Heidelberg, Germany",
             "results":  50,
             "region":   "Europe",
             "sites":    ["indeed"],

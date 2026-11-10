@@ -41,7 +41,7 @@ MAX_ALERTS     = 10
 SCORE_LLM_TOP  = 60    # top N by title relevance → LLM batch (increased from 45)
 BATCH_SIZE     = 15    # jobs per Groq call
 SCRAPE_WORKERS = 8     # parallel scrape threads
-MAX_RESULTS    = 50    # cap per search pass (increased from 25 to match DJ's volume)
+MAX_RESULTS    = 100   # cap per search pass — raised to match per-city config volumes
 MAX_RETRIES    = 1     # retries per search pass on 0 results
 RETRY_DELAY    = 10    # seconds between retries
 
@@ -664,39 +664,29 @@ def scrape_with_retry(cfg: dict) -> pd.DataFrame:
 # No US passes — Pooja is targeting international opportunities only.
 # ---------------------------------------------------------------------------
 def build_search_configs() -> list[dict]:
-    # ── Core title banks ────────────────────────────────────────────────────
-    # _BIO: biology-domain compound titles — strictly life-sciences, no generic terms.
-    # Every title here is unambiguously wet-lab biology — safe for all geographies.
-    # Covers Pooja's in-vivo (cardiac phenotyping, mouse models, Langendorff) AND
-    # in-vitro (FACS, cell biology, immunoassay, cardiomyocyte assays) skill set.
-    _BIO = (
-        # Cardiovascular / cardiac phenotyping — Pooja's primary wet-lab domain
-        '"Cardiovascular Research Scientist" OR "Cardiovascular Scientist" '
-        'OR "Cardiac Research Scientist" OR "Cardiovascular Biologist" '
-        'OR "Cardiometabolic Scientist" OR "Heart Failure Research Scientist" '
-        'OR "Cardiomyopathy Research Scientist" OR "Preclinical Cardiovascular Scientist" '
-        # In vivo / animal models — core skill: echocardiography, Langendorff, TAC surgery
-        'OR "In Vivo Research Scientist" OR "In Vivo Scientist" OR "In Vivo Biologist" '
-        'OR "In Vivo Pharmacologist" OR "Preclinical Research Scientist" '
-        'OR "Preclinical Scientist" OR "Animal Model Scientist" '
-        'OR "Cardiac Phenotyping Scientist" OR "Mouse Model Scientist" '
-        # In vitro / cell biology — FACS, ELISA, Western blot, cardiomyocyte culture
-        'OR "In Vitro Research Scientist" OR "In Vitro Scientist" '
-        'OR "Cell Biology Research Scientist" OR "Cell Biology Scientist" '
-        'OR "Cell Biologist" OR "Flow Cytometry Scientist" OR "FACS Scientist" '
-        'OR "Immunoassay Scientist" OR "Cardiomyocyte Research Scientist" '
-        'OR "Cardiovascular Cell Biologist" OR "Cell-Based Assay Scientist" '
-        # Molecular biology / omics — bulk RNA-seq, scRNA-seq, DESeq2, Scanpy
-        'OR "Molecular Biologist" OR "Molecular Biology Research Scientist" '
-        'OR "Translational Research Scientist" OR "Translational Scientist" '
-        'OR "Biomarker Scientist" OR "Drug Discovery Scientist" '
-        # Immunology / senescence / MASH — Pooja's secondary research areas
-        'OR "Immunologist" OR "Immunology Research Scientist" '
-        'OR "Senescence Research Scientist" OR "Aging Research Scientist" '
-        # Postdoc — primary career level (PhD, 2 years postdoc experience)
-        'OR "Postdoctoral Fellow" OR "Postdoctoral Scientist" '
-        'OR "Postdoctoral Associate" OR "Postdoctoral Researcher" '
-        'OR "Research Investigator"'
+    # ── Search term strategy ────────────────────────────────────────────────
+    # European & APAC employers post short, generic job titles — "Research Scientist",
+    # "Scientist", "Postdoc" — biology context lives in the description, not the title.
+    # Long compound quoted phrases like "Cardiovascular Research Scientist" return near-zero
+    # results on European Indeed because employers simply don't write titles that way.
+    #
+    # Strategy: use the TITLE as the search hook (short, real titles that employers
+    # actually post), then let the title whitelist + LLM scoring filter biology relevance.
+    # The title blacklist handles non-biology contamination (materials, physics, stats etc.)
+    #
+    # _GENERIC: broad scientist / postdoc titles — matches how EU/APAC employers post.
+    _GENERIC = (
+        '"Research Scientist" OR "Senior Research Scientist" OR "Senior Scientist" '
+        'OR "Staff Scientist" OR "Principal Scientist" OR "Associate Scientist" '
+        'OR "Scientist I" OR "Scientist II" OR "Scientist III" '
+        'OR "Postdoctoral Fellow" OR "Postdoctoral Researcher" OR "Postdoctoral Associate" '
+        'OR "Postdoc" OR "Research Associate" OR "Senior Research Associate" '
+        'OR "Research Fellow" OR "Research Investigator" '
+        'OR "Drug Discovery Scientist" OR "Translational Scientist" '
+        'OR "Preclinical Scientist" OR "In Vivo Scientist" OR "In Vitro Scientist" '
+        'OR "Cell Biologist" OR "Molecular Biologist" OR "Immunologist" '
+        'OR "Flow Cytometry Scientist" OR "Cardiovascular Scientist" '
+        'OR "Biomarker Scientist"'
     )
 
     return [
@@ -705,7 +695,7 @@ def build_search_configs() -> list[dict]:
         # ═══════════════════════════════════════════════════════════════════
         {
             "label":    "Scientist — Cambridge UK (AstraZeneca / Wellcome Sanger / MRC-LMB / Babraham)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Cambridge, United Kingdom",
             "results":  100,
             "region":   "Europe",
@@ -713,7 +703,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — London UK (GSK / UCB / MSD / Crick / CRUK)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "London, United Kingdom",
             "results":  100,
             "region":   "Europe",
@@ -721,7 +711,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Basel Switzerland (Novartis / Roche / Friedrich Miescher / Lonza)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Basel, Switzerland",
             "results":  100,
             "region":   "Europe",
@@ -729,7 +719,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Stockholm / Uppsala Sweden (Karolinska / AZ Sweden / SciLifeLab)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Stockholm, Sweden",
             "results":  100,
             "region":   "Europe",
@@ -737,7 +727,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Copenhagen Denmark (Novo Nordisk / LEO Pharma / DTU / KU)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Copenhagen, Denmark",
             "results":  100,
             "region":   "Europe",
@@ -748,7 +738,7 @@ def build_search_configs() -> list[dict]:
         # ═══════════════════════════════════════════════════════════════════
         {
             "label":    "Scientist — Zurich Switzerland (Novartis Institutes / ETH / University of Zurich)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Zurich, Switzerland",
             "results":  75,
             "region":   "Europe",
@@ -756,7 +746,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Munich Germany (Bayer / Roche Munich / Helmholtz / LMU)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Munich, Germany",
             "results":  75,
             "region":   "Europe",
@@ -764,7 +754,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Heidelberg Germany (EMBL / DKFZ / BioMedX / Heidelberg University)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Heidelberg, Germany",
             "results":  75,
             "region":   "Europe",
@@ -772,7 +762,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Paris France (Sanofi / Institut Pasteur / CNRS / Servier)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Paris, France",
             "results":  75,
             "region":   "Europe",
@@ -780,7 +770,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Amsterdam / Leiden NL (Janssen / LUMC / Leiden University)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Amsterdam, Netherlands",
             "results":  75,
             "region":   "Europe",
@@ -788,7 +778,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Oxford UK (AZ Oxford / Oxford Biomedica / WIMM / NDM)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Oxford, United Kingdom",
             "results":  75,
             "region":   "Europe",
@@ -799,7 +789,7 @@ def build_search_configs() -> list[dict]:
         # ═══════════════════════════════════════════════════════════════════
         {
             "label":    "Scientist — Dublin Ireland (Pfizer / MSD Ireland / Trinity / UCD)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Dublin, Ireland",
             "results":  50,
             "region":   "Europe",
@@ -807,7 +797,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Brussels / Leuven Belgium (UCB / KU Leuven / VIB)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Brussels, Belgium",
             "results":  50,
             "region":   "Europe",
@@ -815,7 +805,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Milan Italy (San Raffaele / IEO / Humanitas / UniMi)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Milan, Italy",
             "results":  50,
             "region":   "Europe",
@@ -823,7 +813,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Barcelona Spain (IRB Barcelona / CRG / Almirall / Hospital Clinic)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Barcelona, Spain",
             "results":  50,
             "region":   "Europe",
@@ -831,7 +821,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Vienna Austria (Boehringer Ingelheim / IMBA / IMP / MedUni Wien)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Vienna, Austria",
             "results":  50,
             "region":   "Europe",
@@ -839,7 +829,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Frankfurt / Mainz Germany (BioNTech HQ / Goethe University)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Frankfurt, Germany",
             "results":  50,
             "region":   "Europe",
@@ -847,7 +837,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Edinburgh UK (MRC HGU / Roslin Institute / University of Edinburgh)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Edinburgh, United Kingdom",
             "results":  50,
             "region":   "Europe",
@@ -858,7 +848,7 @@ def build_search_configs() -> list[dict]:
         # ═══════════════════════════════════════════════════════════════════
         {
             "label":    "Scientist — Singapore (A*STAR / Novartis / GSK / NUS / Duke-NUS / GIS)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Singapore",
             "results":  100,
             "region":   "APAC",
@@ -866,7 +856,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Tokyo Japan (Takeda / Astellas / Eisai / RIKEN / Tokyo University)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Tokyo, Japan",
             "results":  75,
             "region":   "APAC",
@@ -874,7 +864,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Sydney Australia (CSIRO / Garvan Institute / UNSW / AZ Australia)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Sydney, Australia",
             "results":  75,
             "region":   "APAC",
@@ -882,7 +872,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Melbourne Australia (Monash / Walter+Eliza Hall / CSL / Murdoch)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Melbourne, Australia",
             "results":  75,
             "region":   "APAC",
@@ -890,7 +880,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Seoul South Korea (Samsung Biologics / Yonsei / SNU / KRIBB)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Seoul, South Korea",
             "results":  50,
             "region":   "APAC",
@@ -898,7 +888,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Hong Kong (HKU / HKUST / CUHK / Hong Kong Science Park)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Hong Kong",
             "results":  50,
             "region":   "APAC",
@@ -909,7 +899,7 @@ def build_search_configs() -> list[dict]:
         # ═══════════════════════════════════════════════════════════════════
         {
             "label":    "Scientist — Bangalore India (Biocon / AstraZeneca / Syngene / NCBS)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Bengaluru",
             "results":  75,
             "region":   "India",
@@ -917,7 +907,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Hyderabad India (Dr Reddy's / Aurobindo / Cipla R&D / CCMB)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Hyderabad",
             "results":  75,
             "region":   "India",
@@ -925,7 +915,7 @@ def build_search_configs() -> list[dict]:
         },
         {
             "label":    "Scientist — Pune India (Serum Institute / Lupin / Piramal / NCL)",
-            "term":     _BIO,
+            "term":     _GENERIC,
             "location": "Pune",
             "results":  50,
             "region":   "India",

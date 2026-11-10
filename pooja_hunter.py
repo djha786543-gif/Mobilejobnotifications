@@ -660,331 +660,143 @@ def scrape_with_retry(cfg: dict) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# Search configuration — 36 passes: US academic + US nationwide + US hubs + Europe (13 cities) + India
+# Search configuration — 27 passes: Europe (18 cities) + APAC (6 cities) + India (3 cities)
+# No US passes — Pooja is targeting international opportunities only.
 # ---------------------------------------------------------------------------
 def build_search_configs() -> list[dict]:
     # ── Core title banks ────────────────────────────────────────────────────
-    # _BIO: biology-domain compound titles — inherently life-sciences.
-    # Use for Europe/India passes where geography is NOT a biotech filter.
+    # _BIO: biology-domain compound titles — strictly life-sciences, no generic terms.
+    # Every title here is unambiguously wet-lab biology — safe for all geographies.
+    # Covers Pooja's in-vivo (cardiac phenotyping, mouse models, Langendorff) AND
+    # in-vitro (FACS, cell biology, immunoassay, cardiomyocyte assays) skill set.
     _BIO = (
+        # Cardiovascular / cardiac phenotyping — Pooja's primary wet-lab domain
         '"Cardiovascular Research Scientist" OR "Cardiovascular Scientist" '
-        'OR "Cardiac Research Scientist" OR "Preclinical Research Scientist" '
-        'OR "Preclinical Scientist" OR "In Vivo Research Scientist" OR "In Vivo Scientist" '
-        'OR "In Vitro Research Scientist" OR "In Vitro Scientist" '
-        'OR "Translational Research Scientist" OR "Translational Scientist" '
-        'OR "Molecular Biologist" OR "Cell Biologist" OR "Immunologist" '
-        'OR "Flow Cytometry Scientist" OR "Biomarker Scientist" '
-        'OR "Drug Discovery Scientist" OR "Research Investigator" '
-        'OR "Postdoctoral Fellow" OR "Postdoctoral Scientist" OR "Postdoctoral Associate"'
-    )
-    # _HUB: _BIO + generic scientist levels for US biotech-hub city passes.
-    # Geographic context (Boston/SF/SD etc.) means generic titles are life-sciences.
-    _HUB = (
-        _BIO +
-        ' OR "Research Scientist" OR "Senior Research Scientist" OR "Senior Scientist" '
-        'OR "Staff Scientist" OR "Principal Scientist" OR "Scientist II" OR "Scientist III"'
-    )
-    # _CV: cardiovascular-specific compound titles for dedicated CV passes.
-    _CV = (
-        '"Cardiovascular Research Scientist" OR "Cardiovascular Scientist" '
-        'OR "Cardiac Research Scientist" OR "Cardiometabolic Scientist" '
-        'OR "Heart Failure Research Scientist" OR "Heart Failure Scientist" '
+        'OR "Cardiac Research Scientist" OR "Cardiovascular Biologist" '
+        'OR "Cardiometabolic Scientist" OR "Heart Failure Research Scientist" '
         'OR "Cardiomyopathy Research Scientist" OR "Preclinical Cardiovascular Scientist" '
-        'OR "In Vivo Cardiovascular Scientist" OR "Cardiovascular Biologist" '
-        'OR "Cardiovascular Pharmacologist" OR "Translational Cardiology Scientist" '
-        'OR "Preclinical Cardiologist" OR "Cardiac Disease Scientist"'
-    )
-    # _IN_VIVO: in vivo / animal model / cardiac phenotyping titles — Pooja's core wet-lab.
-    # Langendorff perfusion, cardiac catheterisation, echocardiography, mouse models.
-    _IN_VIVO = (
-        '"In Vivo Research Scientist" OR "In Vivo Scientist" OR "In Vivo Biologist" '
-        'OR "In Vivo Pharmacologist" OR "Cardiac Phenotyping Scientist" '
-        'OR "Cardiovascular Biologist" OR "Cardiomyopathy Research Scientist" '
-        'OR "Heart Failure Research Scientist" OR "Cardiometabolic Scientist" '
-        'OR "Preclinical Cardiovascular Scientist" OR "Mouse Model Scientist" '
-        'OR "In Vivo Disease Model Scientist" OR "Preclinical Cardiologist" '
-        'OR "Cardiac Disease Scientist" OR "Cardiovascular Pharmacologist" '
-        'OR "Animal Model Scientist" OR "Preclinical Research Scientist"'
-    )
-    # _IN_VITRO: cell-based assay / flow cytometry / immunoassay titles — Pooja's bench skill.
-    # FACS, ELISA, Western blot, cell culture, cardiomyocyte assays, immunofluorescence.
-    _IN_VITRO = (
-        '"Cell Biology Research Scientist" OR "Cell Biology Scientist" '
-        'OR "Flow Cytometry Scientist" OR "FACS Scientist" '
-        'OR "Immunoassay Scientist" OR "Molecular Biology Research Scientist" '
-        'OR "Molecular Biologist" OR "In Vitro Research Scientist" '
-        'OR "In Vitro Scientist" OR "Cardiovascular Cell Biologist" '
-        'OR "Cardiomyocyte Research Scientist" OR "Immunology Research Scientist" '
-        'OR "Cell-Based Assay Scientist" OR "Cardiovascular Immunologist" '
-        'OR "Senescence Research Scientist" OR "Cell Biology Specialist"'
-    )
-    # _POSTDOC: clean postdoc titles only (no unquoted keywords mixed in).
-    _POSTDOC = (
-        '"Postdoctoral Fellow" OR "Postdoctoral Scientist" OR "Postdoctoral Associate" '
-        'OR "Postdoctoral Researcher" OR "Postdoctoral Research Associate"'
+        # In vivo / animal models — core skill: echocardiography, Langendorff, TAC surgery
+        'OR "In Vivo Research Scientist" OR "In Vivo Scientist" OR "In Vivo Biologist" '
+        'OR "In Vivo Pharmacologist" OR "Preclinical Research Scientist" '
+        'OR "Preclinical Scientist" OR "Animal Model Scientist" '
+        'OR "Cardiac Phenotyping Scientist" OR "Mouse Model Scientist" '
+        # In vitro / cell biology — FACS, ELISA, Western blot, cardiomyocyte culture
+        'OR "In Vitro Research Scientist" OR "In Vitro Scientist" '
+        'OR "Cell Biology Research Scientist" OR "Cell Biology Scientist" '
+        'OR "Cell Biologist" OR "Flow Cytometry Scientist" OR "FACS Scientist" '
+        'OR "Immunoassay Scientist" OR "Cardiomyocyte Research Scientist" '
+        'OR "Cardiovascular Cell Biologist" OR "Cell-Based Assay Scientist" '
+        # Molecular biology / omics — bulk RNA-seq, scRNA-seq, DESeq2, Scanpy
+        'OR "Molecular Biologist" OR "Molecular Biology Research Scientist" '
+        'OR "Translational Research Scientist" OR "Translational Scientist" '
+        'OR "Biomarker Scientist" OR "Drug Discovery Scientist" '
+        # Immunology / senescence / MASH — Pooja's secondary research areas
+        'OR "Immunologist" OR "Immunology Research Scientist" '
+        'OR "Senescence Research Scientist" OR "Aging Research Scientist" '
+        # Postdoc — primary career level (PhD, 2 years postdoc experience)
+        'OR "Postdoctoral Fellow" OR "Postdoctoral Scientist" '
+        'OR "Postdoctoral Associate" OR "Postdoctoral Researcher" '
+        'OR "Research Investigator"'
     )
 
     return [
-        # ── US ACADEMIC / RESEARCH INSTITUTIONS (J1-eligible) ─────────────
-        # Pooja is on J1 — academic, government, and non-profit institutions only.
+        # ═══════════════════════════════════════════════════════════════════
+        # EUROPE — Tier 1: Major pharma/biotech clusters (100 results each)
+        # ═══════════════════════════════════════════════════════════════════
         {
-            "label":    "Postdoctoral Fellow — Cardiovascular / In Vivo (US Academic)",
-            "term":     ('"Postdoctoral Fellow" OR "Postdoctoral Scientist" '
-                         'OR "Postdoctoral Associate" OR "Postdoctoral Researcher" '
-                         'OR "Postdoctoral Research Associate"'),
-            "location": "United States",
-            "results":  100,
-            "region":   "US",
-            "fallback_sites": ["ziprecruiter"],
-        },
-        {
-            "label":    "Postdoctoral Fellow — MASH / Hepatic / Metabolic (US Academic)",
-            "term":     ('"Postdoctoral Fellow" OR "Postdoctoral Scientist" '
-                         'OR "Postdoctoral Associate" OR "Postdoctoral Researcher" '
-                         'OR "Postdoctoral Research Associate"'),
-            "location": "United States",
-            "results":  75,
-            "region":   "US",
-            "fallback_sites": ["ziprecruiter"],
-        },
-        {
-            "label":    "Postdoctoral Fellow — Spatial Transcriptomics / Omics (US Academic)",
-            "term":     _POSTDOC,
-            "location": "United States",
-            "results":  50,
-            "region":   "US",
-            "fallback_sites": ["ziprecruiter"],
-        },
-        {
-            "label":    "Research Scientist — Academic Medical Centers / Institutes (US)",
-            "term":     _HUB,
-            "location": "United States",
-            "results":  100,
-            "region":   "US",
-            "fallback_sites": ["ziprecruiter"],
-        },
-        # ── US NATIONWIDE — skill-anchored passes ─────────────────────────
-        {
-            "label":    "In Vivo / Cardiac Phenotyping Scientist (US nationwide)",
-            "term":     _IN_VIVO,
-            "location": "United States",
-            "results":  100,
-            "region":   "US",
-            "fallback_sites": ["ziprecruiter", "glassdoor"],
-        },
-        {
-            "label":    "Cell-Based Assay / In Vitro / Flow Cytometry Scientist (US nationwide)",
-            "term":     _IN_VITRO,
-            "location": "United States",
-            "results":  100,
-            "region":   "US",
-            "fallback_sites": ["ziprecruiter", "glassdoor"],
-        },
-        {
-            "label":    "Cardiovascular / Cardiac Scientist (US nationwide)",
-            "term":     _CV,
-            "location": "United States",
-            "results":  100,
-            "region":   "US",
-            "fallback_sites": ["ziprecruiter", "glassdoor"],
-        },
-        {
-            "label":    "Preclinical / Translational Scientist (US nationwide)",
-            "term":     ('"Preclinical Research Scientist" OR "Preclinical Scientist" '
-                         'OR "Translational Research Scientist" OR "Translational Scientist" '
-                         'OR "Disease Model Scientist" OR "Animal Model Scientist" '
-                         'OR "In Vivo Disease Model Scientist"'),
-            "location": "United States",
-            "results":  100,
-            "region":   "US",
-            "fallback_sites": ["ziprecruiter"],
-        },
-        {
-            "label":    "Biomarker / Drug Discovery Scientist (US nationwide)",
-            "term":     ('"Biomarker Scientist" OR "Biomarker Discovery Scientist" '
-                         'OR "Drug Discovery Scientist" OR "Cardiovascular Pharmacologist" '
-                         'OR "In Vivo Pharmacologist" OR "Target Identification Scientist" '
-                         'OR "Target Validation Scientist"'),
-            "location": "United States",
-            "results":  75,
-            "region":   "US",
-            "fallback_sites": ["ziprecruiter"],
-        },
-        {
-            "label":    "Senior / Staff / Principal Scientist — Cardiovascular (US)",
-            "term":     ('"Senior Cardiovascular Scientist" OR "Senior Preclinical Scientist" '
-                         'OR "Senior In Vivo Scientist" OR "Senior Translational Scientist" '
-                         'OR "Senior Biomarker Scientist" OR "Senior Drug Discovery Scientist" '
-                         'OR "Staff Cardiovascular Scientist" OR "Staff Preclinical Scientist" '
-                         'OR "Principal Cardiovascular Scientist" OR "Principal Preclinical Scientist" '
-                         'OR "Senior Research Scientist" OR "Staff Scientist" OR "Principal Scientist"'),
-            "location": "United States",
-            "results":  75,
-            "region":   "US",
-            "fallback_sites": ["ziprecruiter"],
-        },
-        {
-            "label":    "MASH / Hepatic / Metabolic / Senescence Scientist (US nationwide)",
-            "term":     ('"MASH Research Scientist" OR "Liver Disease Scientist" '
-                         'OR "Metabolic Disease Scientist" OR "Hepatic Research Scientist" '
-                         'OR "Steatohepatitis Scientist" OR "Senescence Scientist" '
-                         'OR "Aging Research Scientist" OR "Metabolic Syndrome Scientist" '
-                         'OR "Preclinical MASH Scientist" OR "Cardiometabolic Scientist"'),
-            "location": "United States",
-            "results":  75,
-            "region":   "US",
-            "fallback_sites": ["ziprecruiter"],
-        },
-        {
-            "label":    "Spatial Transcriptomics / Single Cell / Omics Scientist (US)",
-            "term":     ('"Spatial Transcriptomics Scientist" OR "Single Cell Scientist" '
-                         'OR "Transcriptomics Scientist" OR "Genomics Scientist" '
-                         'OR "Single Cell RNA Scientist" OR "scRNA-seq Scientist" '
-                         'OR "Computational Biologist" OR "Bioinformatics Scientist"'),
-            "location": "United States",
-            "results":  50,
-            "region":   "US",
-            "fallback_sites": ["ziprecruiter"],
-        },
-        # ── US HUBS ────────────────────────────────────────────────────────
-        {
-            "label":    "Scientist — LA / Torrance / Irvine area",
-            "term":     _HUB,
-            "location": "Torrance, CA",
-            "results":  75,
-            "distance": 40,
-            "region":   "US",
-            "fallback_sites": ["ziprecruiter"],
-        },
-        {
-            "label":    "Scientist — Boston / Cambridge MA (Broad / MIT / Biogen / Vertex)",
-            "term":     _HUB,
-            "location": "Cambridge, MA",
-            "results":  75,
-            "distance": 30,
-            "region":   "US",
-            "fallback_sites": ["ziprecruiter"],
-        },
-        {
-            "label":    "Scientist — San Francisco / South SF (Genentech / Amgen / Gilead)",
-            "term":     _HUB,
-            "location": "South San Francisco, CA",
-            "results":  75,
-            "distance": 40,
-            "region":   "US",
-            "fallback_sites": ["ziprecruiter"],
-        },
-        {
-            "label":    "Scientist — San Diego CA (Pfizer / AstraZeneca / Janssen SD)",
-            "term":     _HUB,
-            "location": "San Diego, CA",
-            "results":  75,
-            "distance": 30,
-            "region":   "US",
-            "fallback_sites": ["ziprecruiter"],
-        },
-        {
-            "label":    "Scientist — Philadelphia / NJ pharma corridor (Merck / J&J / GSK)",
-            "term":     _HUB,
-            "location": "Philadelphia, PA",
-            "results":  75,
-            "distance": 50,
-            "region":   "US",
-            "fallback_sites": ["ziprecruiter"],
-        },
-        {
-            "label":    "Scientist — Research Triangle Park NC (GSK / Bayer / Syneos)",
-            "term":     _HUB,
-            "location": "Durham, NC",
-            "results":  75,
-            "distance": 30,
-            "region":   "US",
-            "fallback_sites": ["ziprecruiter"],
-        },
-        {
-            "label":    "Scientist — Seattle / Bothell WA (Seagen / Novo Nordisk / IQVIA)",
-            "term":     _HUB,
-            "location": "Seattle, WA",
-            "results":  50,
-            "distance": 30,
-            "region":   "US",
-            "fallback_sites": ["ziprecruiter"],
-        },
-        # ── EUROPE ─────────────────────────────────────────────────────────
-        # _BIO used (not _HUB) — no geographic biotech-hub assumption outside the US.
-        # Compound biology-domain titles only; includes in-vivo / in-vitro / flow cytometry.
-        {
-            "label":    "Scientist — Cambridge UK (AstraZeneca / Wellcome Sanger / GSK)",
+            "label":    "Scientist — Cambridge UK (AstraZeneca / Wellcome Sanger / MRC-LMB / Babraham)",
             "term":     _BIO,
             "location": "Cambridge, United Kingdom",
-            "results":  50,
+            "results":  100,
             "region":   "Europe",
             "sites":    ["indeed"],
         },
         {
-            "label":    "Scientist — London UK (GSK / UCB / MSD / Immunocore)",
+            "label":    "Scientist — London UK (GSK / UCB / MSD / Crick / CRUK)",
             "term":     _BIO,
             "location": "London, United Kingdom",
-            "results":  50,
+            "results":  100,
             "region":   "Europe",
             "sites":    ["indeed"],
         },
         {
-            "label":    "Scientist — Basel Switzerland (Novartis / Roche / Lonza)",
+            "label":    "Scientist — Basel Switzerland (Novartis / Roche / Friedrich Miescher / Lonza)",
             "term":     _BIO,
             "location": "Basel, Switzerland",
-            "results":  50,
+            "results":  100,
             "region":   "Europe",
             "sites":    ["indeed"],
         },
         {
-            "label":    "Scientist — Zurich / Schlieren Switzerland (Novartis Institutes)",
-            "term":     _BIO,
-            "location": "Zurich, Switzerland",
-            "results":  50,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Scientist — Munich Germany (BioNTech / Bayer / Helmholtz)",
-            "term":     _BIO,
-            "location": "Munich, Germany",
-            "results":  50,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Scientist — Paris France (Sanofi / Institut Pasteur / Servier)",
-            "term":     _BIO,
-            "location": "Paris, France",
-            "results":  50,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Scientist — Amsterdam / Leiden NL (Janssen / LUMC / BioLegend)",
-            "term":     _BIO,
-            "location": "Amsterdam, Netherlands",
-            "results":  50,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Scientist — Stockholm / Uppsala Sweden (Karolinska / AstraZeneca SE)",
+            "label":    "Scientist — Stockholm / Uppsala Sweden (Karolinska / AZ Sweden / SciLifeLab)",
             "term":     _BIO,
             "location": "Stockholm, Sweden",
-            "results":  50,
+            "results":  100,
             "region":   "Europe",
             "sites":    ["indeed"],
         },
         {
-            "label":    "Scientist — Copenhagen Denmark (Novo Nordisk / LEO Pharma / DTU)",
+            "label":    "Scientist — Copenhagen Denmark (Novo Nordisk / LEO Pharma / DTU / KU)",
             "term":     _BIO,
             "location": "Copenhagen, Denmark",
-            "results":  50,
+            "results":  100,
             "region":   "Europe",
             "sites":    ["indeed"],
         },
+        # ═══════════════════════════════════════════════════════════════════
+        # EUROPE — Tier 2: Strong academic + pharma hubs (75 results each)
+        # ═══════════════════════════════════════════════════════════════════
+        {
+            "label":    "Scientist — Zurich Switzerland (Novartis Institutes / ETH / University of Zurich)",
+            "term":     _BIO,
+            "location": "Zurich, Switzerland",
+            "results":  75,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Scientist — Munich Germany (Bayer / Roche Munich / Helmholtz / LMU)",
+            "term":     _BIO,
+            "location": "Munich, Germany",
+            "results":  75,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Scientist — Heidelberg Germany (EMBL / DKFZ / BioMedX / Heidelberg University)",
+            "term":     _BIO,
+            "location": "Heidelberg, Germany",
+            "results":  75,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Scientist — Paris France (Sanofi / Institut Pasteur / CNRS / Servier)",
+            "term":     _BIO,
+            "location": "Paris, France",
+            "results":  75,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Scientist — Amsterdam / Leiden NL (Janssen / LUMC / Leiden University)",
+            "term":     _BIO,
+            "location": "Amsterdam, Netherlands",
+            "results":  75,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Scientist — Oxford UK (AZ Oxford / Oxford Biomedica / WIMM / NDM)",
+            "term":     _BIO,
+            "location": "Oxford, United Kingdom",
+            "results":  75,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        # ═══════════════════════════════════════════════════════════════════
+        # EUROPE — Tier 3: Secondary hubs / emerging clusters (50 results)
+        # ═══════════════════════════════════════════════════════════════════
         {
             "label":    "Scientist — Dublin Ireland (Pfizer / MSD Ireland / Trinity / UCD)",
             "term":     _BIO,
@@ -1002,7 +814,7 @@ def build_search_configs() -> list[dict]:
             "sites":    ["indeed"],
         },
         {
-            "label":    "Scientist — Milan Italy (San Raffaele / IEO / Humanitas)",
+            "label":    "Scientist — Milan Italy (San Raffaele / IEO / Humanitas / UniMi)",
             "term":     _BIO,
             "location": "Milan, Italy",
             "results":  50,
@@ -1010,33 +822,109 @@ def build_search_configs() -> list[dict]:
             "sites":    ["indeed"],
         },
         {
-            "label":    "Scientist — Heidelberg Germany (EMBL / DKFZ / Heidelberg University)",
+            "label":    "Scientist — Barcelona Spain (IRB Barcelona / CRG / Almirall / Hospital Clinic)",
             "term":     _BIO,
-            "location": "Heidelberg, Germany",
+            "location": "Barcelona, Spain",
             "results":  50,
             "region":   "Europe",
             "sites":    ["indeed"],
         },
-        # ── INDIA ──────────────────────────────────────────────────────────
-        # _BIO used — India has diverse industries; compound biology titles essential.
         {
-            "label":    "Scientist — Bangalore India (Biocon / AstraZeneca / Syngene)",
+            "label":    "Scientist — Vienna Austria (Boehringer Ingelheim / IMBA / IMP / MedUni Wien)",
+            "term":     _BIO,
+            "location": "Vienna, Austria",
+            "results":  50,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Scientist — Frankfurt / Mainz Germany (BioNTech HQ / Goethe University)",
+            "term":     _BIO,
+            "location": "Frankfurt, Germany",
+            "results":  50,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Scientist — Edinburgh UK (MRC HGU / Roslin Institute / University of Edinburgh)",
+            "term":     _BIO,
+            "location": "Edinburgh, United Kingdom",
+            "results":  50,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        # ═══════════════════════════════════════════════════════════════════
+        # APAC — Asia-Pacific biotech & academic hubs
+        # ═══════════════════════════════════════════════════════════════════
+        {
+            "label":    "Scientist — Singapore (A*STAR / Novartis / GSK / NUS / Duke-NUS / GIS)",
+            "term":     _BIO,
+            "location": "Singapore",
+            "results":  100,
+            "region":   "APAC",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Scientist — Tokyo Japan (Takeda / Astellas / Eisai / RIKEN / Tokyo University)",
+            "term":     _BIO,
+            "location": "Tokyo, Japan",
+            "results":  75,
+            "region":   "APAC",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Scientist — Sydney Australia (CSIRO / Garvan Institute / UNSW / AZ Australia)",
+            "term":     _BIO,
+            "location": "Sydney, Australia",
+            "results":  75,
+            "region":   "APAC",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Scientist — Melbourne Australia (Monash / Walter+Eliza Hall / CSL / Murdoch)",
+            "term":     _BIO,
+            "location": "Melbourne, Australia",
+            "results":  75,
+            "region":   "APAC",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Scientist — Seoul South Korea (Samsung Biologics / Yonsei / SNU / KRIBB)",
+            "term":     _BIO,
+            "location": "Seoul, South Korea",
+            "results":  50,
+            "region":   "APAC",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Scientist — Hong Kong (HKU / HKUST / CUHK / Hong Kong Science Park)",
+            "term":     _BIO,
+            "location": "Hong Kong",
+            "results":  50,
+            "region":   "APAC",
+            "sites":    ["indeed"],
+        },
+        # ═══════════════════════════════════════════════════════════════════
+        # INDIA — Established biotech / pharma R&D hubs
+        # ═══════════════════════════════════════════════════════════════════
+        {
+            "label":    "Scientist — Bangalore India (Biocon / AstraZeneca / Syngene / NCBS)",
             "term":     _BIO,
             "location": "Bengaluru",
-            "results":  50,
+            "results":  75,
             "region":   "India",
             "sites":    ["indeed"],
         },
         {
-            "label":    "Scientist — Hyderabad India (Dr Reddy's / Aurobindo / Cipla R&D)",
+            "label":    "Scientist — Hyderabad India (Dr Reddy's / Aurobindo / Cipla R&D / CCMB)",
             "term":     _BIO,
             "location": "Hyderabad",
-            "results":  50,
+            "results":  75,
             "region":   "India",
             "sites":    ["indeed"],
         },
         {
-            "label":    "Scientist — Pune India (Serum Institute / Lupin / Piramal)",
+            "label":    "Scientist — Pune India (Serum Institute / Lupin / Piramal / NCL)",
             "term":     _BIO,
             "location": "Pune",
             "results":  50,

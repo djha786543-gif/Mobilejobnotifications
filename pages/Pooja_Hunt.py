@@ -110,7 +110,7 @@ if os.path.exists(LOG_PATH):
                     break
     except Exception:
         pass
-st.caption(f"🕐 Last scan: {last_scan}  ·  Covers Europe (20 passes) + US (12 passes) · Academic only")
+st.caption(f"🕐 Last scan: {last_scan}  ·  Cardiovascular · Preclinical · MASH/Senescence · Spatial Transcriptomics · Europe + US")
 st.divider()
 
 # ---------------------------------------------------------------------------
@@ -453,11 +453,17 @@ else:
         icon="🔔",
     )
     st.markdown("""
-**32 search passes across Europe + US (academic & research institutes only):**
+**Domain-focused searches across Europe + US (academic & research institutes only):**
 
-🇪🇺 **Europe (20 passes):** Cambridge UK · London · Oxford · Edinburgh · Manchester · Berlin · Munich · Heidelberg · Frankfurt/Cologne · Basel/Zurich · Vienna · Stockholm · Copenhagen · Oslo/Helsinki · Amsterdam/Utrecht · Brussels/Leuven · Paris · Madrid/Barcelona · Milan · Dublin Ireland · Tel Aviv Israel
+Each city is searched with Pooja's specific wet-lab domains — not generic job titles.
 
-🇺🇸 **US (12 passes):** Boston/Cambridge MA · New York NY · Baltimore/DC (incl. NIH) · Philadelphia PA · San Francisco Bay Area · San Diego CA · Los Angeles CA · Seattle WA · Houston TX · Chicago IL · Nashville/Atlanta · Research Triangle NC
+🔬 **Domain 1 — Cardiovascular / Preclinical / In Vivo / Mouse Models** (all cities)
+🫀 **Domain 2 — Metabolic Liver Disease / MASH / NASH / Senescence** (top hubs)
+🧬 **Domain 3 — Spatial Transcriptomics / scRNA-seq / Molecular Biology** (top hubs)
+
+🇬🇧🇩🇪🇨🇭🇸🇪🇩🇰🇳🇱🇫🇷🇮🇪 **Europe:** Cambridge UK · London · Oxford · Edinburgh · Manchester · Berlin · Munich · Heidelberg · Basel/Zurich · Stockholm · Copenhagen · Amsterdam · Paris · Dublin
+
+🇺🇸 **US:** Boston/Cambridge MA · New York NY · Baltimore/DC (NIH) · Philadelphia PA · San Francisco Bay Area · San Diego CA · Los Angeles CA · Seattle WA · Houston TX · Chicago IL
 
 **No industry/pharma/CRO results.** Academic, government, and non-profit research institutions only.
 """)

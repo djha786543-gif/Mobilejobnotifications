@@ -675,8 +675,12 @@ def scrape_with_retry(cfg: dict) -> pd.DataFrame:
         results_wanted=min(cfg["results"], MAX_RESULTS),
         hours_old=HOURS_OLD,
     )
-    if is_us:
-        base_kwargs["country_indeed"] = "USA"   # critical: prevents geo-blocking on US passes
+    # Set country_indeed so jobspy hits the correct national Indeed site.
+    # Without this, all European passes default to indeed.com (US) → 0 results.
+    if "country_indeed" in cfg:
+        base_kwargs["country_indeed"] = cfg["country_indeed"]
+    elif is_us:
+        base_kwargs["country_indeed"] = "USA"
     if "distance" in cfg:
         base_kwargs["distance"] = cfg["distance"]
     if cfg.get("remote"):
@@ -725,313 +729,124 @@ def scrape_with_retry(cfg: dict) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# Search configuration — 32 passes: Europe (20 cities) + US (12 cities)
-# Academic / research institutions only — universities, medical schools, research institutes, govt labs.
+# Search configuration — domain-specific passes across Europe + US academic hubs
+#
+# Root problem with generic title-only searches: Indeed returns any "Research
+# Scientist" in any field (AI/ML, materials, physics…).  By embedding Pooja's
+# domain keywords directly in the search term, Indeed's own relevance engine
+# pre-filters to biology-relevant postings before our title/institution filters
+# even run.
+#
+# Three domain search strings:
+#   _CARDIO  — cardiovascular / cardiac / preclinical / in vivo / mouse models
+#   _METAB   — metabolic liver disease / MASH / NASH / senescence / aging
+#   _SPATIAL — spatial transcriptomics / single-cell / molecular & cell biology
+#
+# City strategy: 13 Europe + 10 US = 23 cities.
+# _CARDIO runs everywhere (Pooja's core 10+ years expertise).
+# _METAB + _SPATIAL run in top 10 high-volume hubs.
+# Total: ~36 passes.
 # ---------------------------------------------------------------------------
 def build_search_configs() -> list[dict]:
-    _ACAD = (
-        '"Postdoctoral Fellow" OR "Postdoctoral Researcher" OR "Postdoctoral Associate" '
-        'OR "Postdoc" OR "Research Fellow" OR "Senior Research Fellow" '
-        'OR "Research Scientist" OR "Senior Research Scientist" OR "Staff Scientist" '
-        'OR "Research Associate" OR "Senior Research Associate" '
-        'OR "Assistant Professor" OR "Associate Professor" OR "Lecturer" '
-        'OR "Group Leader" OR "Junior Group Leader" OR "Research Group Leader" '
-        'OR "Visiting Researcher" OR "Visiting Scholar" OR "Research Instructor" '
-        'OR "Principal Investigator" OR "Independent Researcher" '
-        'OR "EMBO Fellow" OR "Marie Curie Fellow" OR "Wellcome Fellow" '
-        'OR "In Vivo Scientist" OR "Cardiovascular Scientist" OR "Molecular Biologist" '
-        'OR "Cell Biologist" OR "Spatial Transcriptomics Scientist"'
+
+    # Cardiovascular / preclinical / in vivo (Pooja's primary expertise)
+    _CARDIO = (
+        "postdoctoral cardiovascular cardiac in vivo preclinical "
+        "mouse model transgenic heart failure research scientist"
     )
+
+    # Metabolic liver disease / MASH / NASH / senescence (Pooja's current grant)
+    _METAB = (
+        "postdoctoral metabolic liver MASH NASH steatohepatitis senescence "
+        "aging research scientist staff scientist"
+    )
+
+    # Spatial transcriptomics / single-cell / broad molecular biology wet-lab
+    _SPATIAL = (
+        "postdoctoral spatial transcriptomics single cell RNA-seq scRNA-seq "
+        "Xenium Visium molecular biology cell biology cardiovascular research scientist"
+    )
+
+    def _eu(label, city, term, n=75, country="UK"):
+        return {"label": label, "term": term, "location": city,
+                "results": n, "region": "Europe", "sites": ["indeed"],
+                "country_indeed": country}
+
+    def _us(label, city, term, n=75):
+        return {"label": label, "term": term, "location": city,
+                "results": n, "region": "US", "sites": ["indeed"]}
 
     return [
         # ═══════════════════════════════════════════════════════════════════
-        # EUROPE — UK (major academic / research hubs)
+        # EUROPE — UK
         # ═══════════════════════════════════════════════════════════════════
-        {
-            "label":    "Academic — Cambridge UK (Crick / Sanger / Babraham / MRC / Cambridge Uni)",
-            "term":     _ACAD,
-            "location": "Cambridge, United Kingdom",
-            "results":  100,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic — London UK (UCL / King's / Imperial / Crick / Wellcome)",
-            "term":     _ACAD,
-            "location": "London, United Kingdom",
-            "results":  100,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic — Oxford UK (Oxford Cardiovascular / RDM / Trophoblast Centre)",
-            "term":     _ACAD,
-            "location": "Oxford, United Kingdom",
-            "results":  75,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic — Edinburgh UK (BHF Centre / MRC HGU / Roslin / Edinburgh Uni)",
-            "term":     _ACAD,
-            "location": "Edinburgh, United Kingdom",
-            "results":  75,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic — Manchester / Bristol / Birmingham UK",
-            "term":     _ACAD,
-            "location": "Manchester, United Kingdom",
-            "results":  75,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
+        _eu("Cardio/Preclin — Cambridge UK (Crick/Sanger/Babraham/MRC)",     "Cambridge, United Kingdom",  _CARDIO, 100, "UK"),
+        _eu("Metab/Spatial  — Cambridge UK",                                  "Cambridge, United Kingdom",  _METAB,   75, "UK"),
+        _eu("Spatial/Omics  — Cambridge UK",                                  "Cambridge, United Kingdom",  _SPATIAL, 75, "UK"),
+
+        _eu("Cardio/Preclin — London UK (UCL/King's/Imperial/Wellcome)",      "London, United Kingdom",     _CARDIO, 100, "UK"),
+        _eu("Metab/Spatial  — London UK",                                     "London, United Kingdom",     _METAB,   75, "UK"),
+        _eu("Spatial/Omics  — London UK",                                     "London, United Kingdom",     _SPATIAL, 75, "UK"),
+
+        _eu("Cardio/Preclin — Oxford UK (RDM / Cardiovascular Dept)",         "Oxford, United Kingdom",     _CARDIO,  75, "UK"),
+        _eu("Cardio/Preclin — Edinburgh UK (BHF Centre / MRC HGU)",           "Edinburgh, United Kingdom",  _CARDIO,  75, "UK"),
+        _eu("Cardio/Preclin — Manchester UK",                                  "Manchester, United Kingdom", _CARDIO,  50, "UK"),
+
         # ═══════════════════════════════════════════════════════════════════
-        # EUROPE — Germany / Austria / Switzerland
+        # EUROPE — Germany
         # ═══════════════════════════════════════════════════════════════════
-        {
-            "label":    "Academic — Berlin Germany (MDC / Charité / BIH / DZHK)",
-            "term":     _ACAD,
-            "location": "Berlin, Germany",
-            "results":  100,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic — Munich Germany (Helmholtz / TUM / LMU / MPI Ageing)",
-            "term":     _ACAD,
-            "location": "Munich, Germany",
-            "results":  100,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic — Heidelberg Germany (EMBL / DKFZ / Heidelberg Uni)",
-            "term":     _ACAD,
-            "location": "Heidelberg, Germany",
-            "results":  75,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic — Frankfurt / Cologne Germany (Goethe / Cologne CECAD / MPI Ageing)",
-            "term":     _ACAD,
-            "location": "Frankfurt, Germany",
-            "results":  75,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic — Basel / Zurich Switzerland (ETH / Uni Zurich / FMI / EPFL)",
-            "term":     _ACAD,
-            "location": "Basel, Switzerland",
-            "results":  100,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic — Vienna Austria (MedUni Wien / IMBA / IMP)",
-            "term":     _ACAD,
-            "location": "Vienna, Austria",
-            "results":  75,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
+        _eu("Cardio/Preclin — Berlin (MDC / Charité / BIH / DZHK)",          "Berlin, Germany",            _CARDIO, 100, "Germany"),
+        _eu("Metab/Spatial  — Berlin",                                         "Berlin, Germany",            _METAB,   75, "Germany"),
+
+        _eu("Cardio/Preclin — Munich (Helmholtz / TUM / LMU / MPI Ageing)",  "Munich, Germany",            _CARDIO, 100, "Germany"),
+        _eu("Metab/Spatial  — Munich",                                         "Munich, Germany",            _METAB,   75, "Germany"),
+
+        _eu("Cardio/Preclin — Heidelberg (EMBL / DKFZ / Heidelberg Uni)",    "Heidelberg, Germany",        _CARDIO,  75, "Germany"),
+
         # ═══════════════════════════════════════════════════════════════════
-        # EUROPE — Scandinavia
+        # EUROPE — Switzerland / Scandinavia / Netherlands / France / Ireland
         # ═══════════════════════════════════════════════════════════════════
-        {
-            "label":    "Academic — Stockholm / Uppsala Sweden (Karolinska / Uppsala Uni / SciLifeLab)",
-            "term":     _ACAD,
-            "location": "Stockholm, Sweden",
-            "results":  100,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic — Copenhagen Denmark (KU / NNF CBMR / reNEW / DTU)",
-            "term":     _ACAD,
-            "location": "Copenhagen, Denmark",
-            "results":  100,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic — Oslo / Helsinki / NTNU Nordic",
-            "term":     _ACAD,
-            "location": "Oslo, Norway",
-            "results":  75,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
+        _eu("Cardio/Preclin — Basel/Zurich (ETH / Uni Zurich / FMI / EPFL)", "Basel, Switzerland",         _CARDIO, 100, "Switzerland"),
+        _eu("Metab/Spatial  — Basel/Zurich",                                   "Basel, Switzerland",         _METAB,   75, "Switzerland"),
+
+        _eu("Cardio/Preclin — Stockholm (Karolinska / Uppsala / SciLifeLab)", "Stockholm, Sweden",          _CARDIO, 100, "Sweden"),
+        _eu("Metab/Spatial  — Stockholm",                                      "Stockholm, Sweden",          _METAB,   75, "Sweden"),
+
+        _eu("Cardio/Preclin — Copenhagen (KU / NNF CBMR / reNEW)",           "Copenhagen, Denmark",        _CARDIO,  75, "Denmark"),
+        _eu("Cardio/Preclin — Amsterdam NL (Amsterdam UMC / Hubrecht)",       "Amsterdam, Netherlands",     _CARDIO,  75, "Netherlands"),
+        _eu("Cardio/Preclin — Paris (Pasteur / INSERM / Institut Cochin)",    "Paris, France",              _CARDIO,  75, "France"),
+        _eu("Cardio/Preclin — Dublin IE (Trinity / RCSI / UCD)",              "Dublin, Ireland",            _CARDIO,  50, "Ireland"),
+
         # ═══════════════════════════════════════════════════════════════════
-        # EUROPE — Netherlands / Belgium / France / Spain / Italy / Ireland
+        # US — Northeast
         # ═══════════════════════════════════════════════════════════════════
-        {
-            "label":    "Academic — Amsterdam / Utrecht NL (Amsterdam UMC / Hubrecht / LUMC / Erasmus MC)",
-            "term":     _ACAD,
-            "location": "Amsterdam, Netherlands",
-            "results":  75,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic — Leuven / Brussels Belgium (KU Leuven / VIB / Ghent)",
-            "term":     _ACAD,
-            "location": "Brussels, Belgium",
-            "results":  75,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic — Paris France (Institut Pasteur / INSERM / Institut Cochin / IGBMC)",
-            "term":     _ACAD,
-            "location": "Paris, France",
-            "results":  75,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic — Madrid / Barcelona Spain (CNIC / CRG / IRB / CNIO)",
-            "term":     _ACAD,
-            "location": "Madrid, Spain",
-            "results":  50,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic — Milan Italy (San Raffaele / Human Technopole / TIGEM)",
-            "term":     _ACAD,
-            "location": "Milan, Italy",
-            "results":  50,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic — Dublin / Cork Ireland (Trinity / RCSI / UCD / UCC)",
-            "term":     _ACAD,
-            "location": "Dublin, Ireland",
-            "results":  50,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        # ═══════════════════════════════════════════════════════════════════
-        # EUROPE — Israel
-        # ═══════════════════════════════════════════════════════════════════
-        {
-            "label":    "Academic — Israel (Weizmann / Hebrew Uni / Technion / Tel Aviv Uni)",
-            "term":     _ACAD,
-            "location": "Tel Aviv, Israel",
-            "results":  50,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        # ═══════════════════════════════════════════════════════════════════
-        # US — Northeast (academic powerhouses)
-        # ═══════════════════════════════════════════════════════════════════
-        {
-            "label":    "Academic US — Boston/Cambridge MA (Harvard / MIT / MGH / BWH / Tufts / UMass)",
-            "term":     _ACAD,
-            "location": "Boston, MA",
-            "results":  100,
-            "region":   "US",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic US — New York NY (Columbia / Rockefeller / Sinai / NYU / Weill Cornell / Einstein)",
-            "term":     _ACAD,
-            "location": "New York, NY",
-            "results":  100,
-            "region":   "US",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic US — Baltimore / DC (Johns Hopkins / NIH / NCI / NHLBI / Georgetown)",
-            "term":     _ACAD,
-            "location": "Baltimore, MD",
-            "results":  100,
-            "region":   "US",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic US — Philadelphia PA (Penn / Jefferson / Wistar / Temple / Drexel)",
-            "term":     _ACAD,
-            "location": "Philadelphia, PA",
-            "results":  75,
-            "region":   "US",
-            "sites":    ["indeed"],
-        },
+        _us("Cardio/Preclin — Boston MA (Harvard/MGH/BWH/Tufts)",             "Boston, MA",                 _CARDIO, 100),
+        _us("Metab/Spatial  — Boston MA",                                      "Boston, MA",                 _METAB,   75),
+        _us("Spatial/Omics  — Boston MA",                                      "Boston, MA",                 _SPATIAL, 75),
+
+        _us("Cardio/Preclin — New York NY (Columbia/Rockefeller/Sinai/NYU)",  "New York, NY",               _CARDIO, 100),
+        _us("Metab/Spatial  — New York NY",                                    "New York, NY",               _METAB,   75),
+
+        _us("Cardio/Preclin — Baltimore MD (Johns Hopkins / NIH / NHLBI)",    "Baltimore, MD",              _CARDIO, 100),
+        _us("Metab/Spatial  — Baltimore MD",                                   "Baltimore, MD",              _METAB,   75),
+
+        _us("Cardio/Preclin — Philadelphia PA (Penn / Wistar / Temple)",      "Philadelphia, PA",           _CARDIO,  75),
+
         # ═══════════════════════════════════════════════════════════════════
         # US — West Coast
         # ═══════════════════════════════════════════════════════════════════
-        {
-            "label":    "Academic US — San Francisco Bay Area (UCSF / Gladstone / Stanford / UC Berkeley)",
-            "term":     _ACAD,
-            "location": "San Francisco, CA",
-            "results":  100,
-            "region":   "US",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic US — San Diego CA (Salk / Scripps / UCSD / Sanford-Burnham)",
-            "term":     _ACAD,
-            "location": "San Diego, CA",
-            "results":  100,
-            "region":   "US",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic US — Los Angeles CA (Cedars-Sinai / UCLA / USC / Lundquist)",
-            "term":     _ACAD,
-            "location": "Los Angeles, CA",
-            "results":  75,
-            "region":   "US",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic US — Seattle WA (UW / Fred Hutch / OHSU / Allen Institute)",
-            "term":     _ACAD,
-            "location": "Seattle, WA",
-            "results":  75,
-            "region":   "US",
-            "sites":    ["indeed"],
-        },
+        _us("Cardio/Preclin — San Francisco CA (UCSF / Gladstone / Stanford)","San Francisco, CA",          _CARDIO, 100),
+        _us("Metab/Spatial  — San Francisco CA",                               "San Francisco, CA",          _METAB,   75),
+
+        _us("Cardio/Preclin — San Diego CA (Salk / Scripps / UCSD)",          "San Diego, CA",              _CARDIO, 100),
+        _us("Cardio/Preclin — Los Angeles CA (Cedars-Sinai / UCLA / USC)",    "Los Angeles, CA",            _CARDIO,  75),
+        _us("Cardio/Preclin — Seattle WA (UW / Fred Hutch / Allen Institute)","Seattle, WA",                _CARDIO,  75),
+
         # ═══════════════════════════════════════════════════════════════════
         # US — South / Midwest
         # ═══════════════════════════════════════════════════════════════════
-        {
-            "label":    "Academic US — Houston TX (Baylor / Texas Heart / MD Anderson / UTHealth)",
-            "term":     _ACAD,
-            "location": "Houston, TX",
-            "results":  75,
-            "region":   "US",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic US — Chicago IL (Northwestern / Uchicago / Rush / UIC / Loyola)",
-            "term":     _ACAD,
-            "location": "Chicago, IL",
-            "results":  75,
-            "region":   "US",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic US — Nashville / Atlanta (Vanderbilt / Emory / Georgia Tech / Morehouse)",
-            "term":     _ACAD,
-            "location": "Nashville, TN",
-            "results":  75,
-            "region":   "US",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Academic US — Research Triangle NC / Pittsburgh PA / St. Louis MO",
-            "term":     _ACAD,
-            "location": "Durham, NC",
-            "results":  75,
-            "region":   "US",
-            "sites":    ["indeed"],
-        },
+        _us("Cardio/Preclin — Houston TX (Baylor / Texas Heart / UTHealth)",  "Houston, TX",                _CARDIO,  75),
+        _us("Cardio/Preclin — Chicago IL (Northwestern / UChicago / Rush)",   "Chicago, IL",                _CARDIO,  75),
     ]
 
 
@@ -1107,13 +922,24 @@ def pooja_hunt():
     # ── Step 3b: Academic institution filter (ALL regions) ───────────────
     # We want ONLY academic/research/government institutions worldwide.
     all_academic  = filtered["company"].fillna("").apply(is_academic_institution)
-    # For unrecognised companies, check description for academic signals
+    # For unrecognised companies, check description for institutional-posting signals.
+    # IMPORTANT: use specific phrases that only appear in institutional job ads,
+    # NOT generic phrases like "university" or "research institute" that appear
+    # in candidate requirements ("PhD from a university") in industry postings.
     _acad_desc_re = re.compile(
-        r"universit|research\s+inst|medical\s+cent|medical\s+school"
-        r"|hospital\b|\bnih\b|\bnhlbi\b|research\s+foundation"
-        r"|postdoctoral\s+fellow|postdoc\s+position|fellowship\s+program"
-        r"|tenure.track|group\s+leader|principal\s+investigator"
-        r"|faculty\s+position|academic\s+appointment",
+        r"postdoctoral\s+(?:fellow|researcher|associate|position|opening|opportunity)"
+        r"|postdoc\s+(?:position|opening|fellow|fellowship)"
+        r"|we\s+(?:are\s+)?(?:a\s+)?(?:university|research\s+institute|medical\s+school|research\s+center|research\s+centre)"
+        r"|our\s+(?:university|research\s+institute|medical\s+school|research\s+group|lab|laboratory)"
+        r"|joining\s+(?:our\s+)?(?:university|research\s+institute|department\s+of)"
+        r"|tenure.track\s+(?:position|faculty|appointment)"
+        r"|faculty\s+(?:position|opening|appointment|search)"
+        r"|junior\s+group\s+leader\s+position"
+        r"|independent\s+research\s+group"
+        r"|nih\s+funded|nhlbi\s+funded|wellcome\s+trust\s+funded|mrc\s+funded"
+        r"|bhf\s+(?:funded|fellowship|grant)|embo\s+(?:fellow|postdoc)"
+        r"|marie\s+curie\s+(?:fellow|fellowship|postdoc)"
+        r"|k99|r00|f32\s+fellowship",
         re.IGNORECASE,
     )
     desc_academic = filtered["description"].fillna("").apply(lambda d: bool(_acad_desc_re.search(d)))

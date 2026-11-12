@@ -196,12 +196,18 @@ _ACADEMIC_INST_RE = re.compile(
     r"universit|college\b|medical\s+cent(?:er|re)|medical\s+school|school\s+of\s+medicine"
     r"|health\s+(system|network|sciences|cent(?:er|re))|hospital\b"
     r"|\binstitut(?:e|o|um)\b|\binstituts?\b"
+    r"|\bumc\b|\bamc\b|\buclh\b|\bnhs\b"               # European medical center abbrevs
     r"|research\s+cent(?:er|re)|research\s+institute|research\s+foundation"
     r"|national\s+(institute|laboratory|lab\b)"
     r"|\bnih\b|\bnci\b|\bnhlbi\b|\bniddk\b|\bnimh\b|\bcdc\b|\bfda\b|\busda\b"
     r"|karolinska|helmholtz|max.planck|max-planck|leibniz"
     r"|\bcnrs\b|\binserm\b|pasteur\b|\bcnio\b|\bcnic\b"
     r"|weizmann|\bembl\b|\bdkfz\b|\bvib\b|\bhubrecht\b"
+    r"|charité|charite|\bdzhk\b|\bbih\b|\bmdc\b"        # Berlin academic centres
+    r"|\bimba\b|\bimp\s+vienna\b|\bczb\b"               # Vienna
+    r"|\bfmi\b|\bepfl\b|\beth\s+zurich\b|\bsnf\b"       # Swiss
+    r"|scilife|\bki\b.*karolinska"                       # Karolinska / SciLifeLab
+    r"|\bnnf\b|\bdtu\b|novo\s+nordisk\s+foundation"     # Denmark
     r"|veterans\s+affairs|\bvamc\b"
     r"|children'?s\b|pediatric\b|academic\s+medical"
     r"|\bhutchinson\b|\bhutch\b|dana.farber|\bscripps\b|\bsalk\b"
@@ -211,7 +217,7 @@ _ACADEMIC_INST_RE = re.compile(
     r"|stanford|ucsf\b|ucsd\b|ucla\b"
     r"|mit\b|caltech\b|carnegie\s+mellon|emory|vanderbilt|duke\s+university"
     r"|gladstone|garvan|wehi\b|monash|baker\s+(heart|institute)"
-    r"|wellcome\s+trust|crick\b|babraham|sanger\b|mrc\b",
+    r"|wellcome\s+trust|crick\b|babraham|sanger\b|\bmrc\b",
     re.IGNORECASE,
 )
 
@@ -749,22 +755,39 @@ def scrape_with_retry(cfg: dict) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 def build_search_configs() -> list[dict]:
 
+    # Boolean OR groups: (role title) AND (domain keyword)
+    # Space-separated words without OR = AND in Indeed → returns 0 results.
+    # Parenthesised OR groups ensure Indeed matches job title OR domain term.
+
     # Cardiovascular / preclinical / in vivo (Pooja's primary expertise)
     _CARDIO = (
-        "postdoctoral cardiovascular cardiac in vivo preclinical "
-        "mouse model transgenic heart failure research scientist"
+        '("Postdoctoral Fellow" OR "Postdoctoral Researcher" OR "Postdoc" OR '
+        '"Research Fellow" OR "Research Scientist" OR "Staff Scientist" OR '
+        '"In Vivo Scientist" OR "Cardiovascular Scientist" OR '
+        '"Assistant Professor" OR "Group Leader" OR "Junior Group Leader") '
+        '(cardiovascular OR cardiac OR "heart failure" OR cardiomyopathy OR '
+        '"in vivo" OR preclinical OR "mouse model" OR transgenic OR '
+        '"disease model" OR "cardiac phenotyping" OR Langendorff OR '
+        'echocardiography OR cardiomyocyte)'
     )
 
     # Metabolic liver disease / MASH / NASH / senescence (Pooja's current grant)
     _METAB = (
-        "postdoctoral metabolic liver MASH NASH steatohepatitis senescence "
-        "aging research scientist staff scientist"
+        '("Postdoctoral Fellow" OR "Postdoctoral Researcher" OR "Postdoc" OR '
+        '"Research Fellow" OR "Research Scientist" OR "Staff Scientist") '
+        '(MASH OR NASH OR steatohepatitis OR "fatty liver" OR NAFLD OR '
+        '"metabolic disease" OR senescence OR "cellular senescence" OR '
+        '"liver disease" OR "hepatic steatosis" OR aging OR "metabolic dysfunction")'
     )
 
-    # Spatial transcriptomics / single-cell / broad molecular biology wet-lab
+    # Spatial transcriptomics / single-cell / molecular biology wet-lab
     _SPATIAL = (
-        "postdoctoral spatial transcriptomics single cell RNA-seq scRNA-seq "
-        "Xenium Visium molecular biology cell biology cardiovascular research scientist"
+        '("Postdoctoral Fellow" OR "Postdoctoral Researcher" OR "Postdoc" OR '
+        '"Research Fellow" OR "Research Scientist") '
+        '("spatial transcriptomics" OR "single cell RNA" OR "scRNA-seq" OR '
+        'Xenium OR Visium OR "10x Genomics" OR "single-cell sequencing" OR '
+        '"RNA sequencing" OR "flow cytometry" OR "FACS" OR '
+        '"molecular biology" OR "cell biology")'
     )
 
     def _eu(label, city, term, n=75, country="UK"):

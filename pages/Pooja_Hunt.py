@@ -1,6 +1,6 @@
 """
-Pooja Choubey — Biotech/Pharma Industry Job Hunt
-Ph.D. Research Scientist | Cardiovascular Biology | Preclinical | Translational Medicine
+Pooja Choubey — Academic / Research Institute Job Hunt
+Ph.D. Postdoctoral Scientist | Cardiovascular Biology | Spatial Transcriptomics | Europe + US
 STRICTLY ISOLATED from DJ's audit job portal.
 """
 
@@ -29,18 +29,18 @@ NTFY_TOPIC = os.getenv("POOJA_NTFY_TOPIC", "pooja-industry-oppor")
 # Page config
 # ---------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Pooja's Industry Hunt",
+    page_title="Pooja's Academic Hunt",
     page_icon="🔬",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
-inject_pwa("Pooja Industry Hunt")
+inject_pwa("Pooja Academic Hunt")
 
 # ---------------------------------------------------------------------------
 # Header
 # ---------------------------------------------------------------------------
-st.title("🔬 Pooja's Industry Hunt")
-st.caption("Ph.D. Research Scientist · Cardiovascular Biology · Preclinical · Translational Medicine")
+st.title("🔬 Pooja's Academic Hunt")
+st.caption("Postdoctoral Researcher · Cardiovascular Biology · Spatial Transcriptomics · Universities & Research Institutes")
 
 with st.expander("📲 Install as App on your phone", expanded=False):
     st.markdown("""
@@ -64,10 +64,10 @@ with st.expander("Candidate profile", expanded=False):
     with col2:
         st.markdown("""
 **Core skills:**
-- In vivo: Langendorff · echo (VEVO F2) · EKG · contractility
-- Assays: FACS · WB · IHC/ICC · ELISA · qRT-PCR · TUNEL
-- Omics: RNA-seq · scRNA-seq · Xenium · Visium · IPA · STRING
-- Target: Postdoctoral Fellow (US academic/govt) · R&D / Preclinical / Translational Scientist (international)
+- In vivo: transgenic mouse models (Hmox1, Ptrh2) · echo (Vevo F2) · Langendorff · ECG
+- Assays: FACS · WB · IHC/ICC · ELISA · qRT-PCR · SA-β-gal · TUNEL
+- Omics: bulk RNA-seq · scRNA-seq · Xenium · 10x Visium · IPA · STRING · R · Python
+- Target: Postdoctoral Fellow · Research Scientist · Group Leader · Europe + US universities
 """)
 
 st.divider()
@@ -76,7 +76,7 @@ st.divider()
 # Action bar — full width for mobile tap
 # ---------------------------------------------------------------------------
 if st.button("🔍  Run Scan Now", use_container_width=True, type="primary"):
-    with st.status("Searching global biotech hubs...", expanded=True) as scan_status:
+    with st.status("Searching global academic hubs...", expanded=True) as scan_status:
         log_box = st.empty()
         lines   = []
         proc = subprocess.Popen(
@@ -110,30 +110,32 @@ if os.path.exists(LOG_PATH):
                     break
     except Exception:
         pass
-st.caption(f"🕐 Last scan: {last_scan}  ·  Covers US academic/govt + Europe + India (26 passes)")
+st.caption(f"🕐 Last scan: {last_scan}  ·  Covers Europe (20 passes) + US (12 passes) · Academic only")
 st.divider()
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-BIOTECH_HUBS = [
-    "cambridge", "boston", "san diego", "san francisco", "south san francisco",
-    "torrance", "los angeles", "irvine", "orange county",
-    "philadelphia", "new jersey", "nj", "durham", "raleigh", "research triangle",
-    "seattle", "new york", "nyc", "new haven", "connecticut",
-    "gaithersburg", "rockville", "maryland", "bethesda",
-    "chicago", "houston", "austin", "indianapolis",
-    "london", "oxford", "cambridge, united kingdom", "cambridge uk",
-    "basel", "zurich", "geneva", "munich", "frankfurt", "berlin", "heidelberg",
-    "amsterdam", "leiden", "paris", "lyon", "stockholm", "copenhagen",
-    "milan", "dublin", "brussels",
-    "bangalore", "bengaluru", "hyderabad", "pune", "mumbai", "chennai", "delhi",
-    "gurugram", "gurgaon", "noida",
+ACADEMIC_HUBS = [
+    # US academic
+    "boston", "cambridge, ma", "new haven", "new york", "baltimore", "bethesda",
+    "san francisco", "san diego", "los angeles", "torrance", "seattle",
+    "philadelphia", "chicago", "houston", "durham", "raleigh", "nashville",
+    "st. louis", "saint louis", "atlanta", "pittsburgh", "ann arbor",
+    # European academic
+    "london", "oxford", "cambridge, uk", "edinburgh", "manchester",
+    "berlin", "munich", "heidelberg", "frankfurt", "cologne",
+    "basel", "zurich", "geneva", "lausanne",
+    "stockholm", "copenhagen", "amsterdam", "leiden",
+    "utrecht", "brussels", "leuven", "paris",
+    "madrid", "barcelona", "milan",
+    "vienna", "oslo", "helsinki",
+    "rehovot", "tel aviv", "jerusalem",
 ]
 
-def is_biotech_hub(loc: str) -> bool:
+def is_academic_hub(loc: str) -> bool:
     loc = str(loc).lower()
-    return any(hub in loc for hub in BIOTECH_HUBS)
+    return any(hub in loc for hub in ACADEMIC_HUBS)
 
 def score_band(s: int) -> str:
     if s >= 85: return "Elite"
@@ -260,7 +262,7 @@ if os.path.exists(CSV_PATH):
     new_scan_count = int(df["IsNew"].sum())
 
     # --- Metrics — 3 per row ---
-    hub_count = int(df["Location"].apply(is_biotech_hub).sum())
+    hub_count = int(df["Location"].apply(is_academic_hub).sum())
 
     m1, m2, m3 = st.columns(3)
     m1.metric("Total",           len(df))
@@ -290,9 +292,9 @@ if os.path.exists(CSV_PATH):
                 n_recency_days = n_recency_opts[n_recency_sel]
             nf3, nf4 = st.columns(2)
             with nf3:
-                n_region_filter = st.selectbox("Region", ["All regions", "US", "Europe", "India"], key="new_region")
+                n_region_filter = st.selectbox("Region", ["All regions", "US", "Europe"], key="new_region")
             with nf4:
-                n_hub_filter = st.selectbox("Location", ["All locations", "Major biotech hubs", "LA / Torrance area"], key="new_hub")
+                n_hub_filter = st.selectbox("Location", ["All locations", "Major academic hubs"], key="new_hub")
             n_search = st.text_input("Search", placeholder="cardiovascular, genentech, senior scientist…", key="new_search")
 
             # Apply filters
@@ -303,15 +305,8 @@ if os.path.exists(CSV_PATH):
                 n_cutoff   = datetime.now() - timedelta(days=n_recency_days)
                 n_has_date = new_filtered["PostedDate"].notna()
                 new_filtered = new_filtered[~n_has_date | (new_filtered["PostedDate"] >= n_cutoff)]
-            if n_hub_filter == "Major biotech hubs":
-                new_filtered = new_filtered[new_filtered["Location"].apply(is_biotech_hub)]
-            elif n_hub_filter == "LA / Torrance area":
-                _la = ["los angeles", "torrance", "irvine", "long beach", "el segundo",
-                       "santa monica", "culver city", "burbank", "glendale", "pasadena",
-                       "orange county", "anaheim", "costa mesa", "newport beach"]
-                new_filtered = new_filtered[
-                    new_filtered["Location"].str.lower().apply(lambda l: any(c in str(l) for c in _la))
-                ]
+            if n_hub_filter == "Major academic hubs":
+                new_filtered = new_filtered[new_filtered["Location"].apply(is_academic_hub)]
             if n_search:
                 _q = n_search.lower()
                 new_filtered = new_filtered[
@@ -348,9 +343,9 @@ if os.path.exists(CSV_PATH):
             recency_days = recency_opts[recency_sel]
         f3, f4 = st.columns(2)
         with f3:
-            region_filter = st.selectbox("Region", ["All regions", "US", "Europe", "India"])
+            region_filter = st.selectbox("Region", ["All regions", "US", "Europe"])
         with f4:
-            hub_filter = st.selectbox("Location", ["All locations", "Major biotech hubs", "LA / Torrance area"])
+            hub_filter = st.selectbox("Location", ["All locations", "Major academic hubs"])
         search_text = st.text_input("Search", placeholder="cardiovascular, genentech, senior scientist…")
 
     # --- Apply filters ---
@@ -361,15 +356,8 @@ if os.path.exists(CSV_PATH):
         cutoff   = datetime.now() - timedelta(days=recency_days)
         has_date = filtered["PostedDate"].notna()
         filtered = filtered[~has_date | (filtered["PostedDate"] >= cutoff)]
-    if hub_filter == "Major biotech hubs":
-        filtered = filtered[filtered["Location"].apply(is_biotech_hub)]
-    elif hub_filter == "LA / Torrance area":
-        la = ["los angeles", "torrance", "irvine", "long beach", "el segundo",
-              "santa monica", "culver city", "burbank", "glendale", "pasadena",
-              "orange county", "anaheim", "costa mesa", "newport beach"]
-        filtered = filtered[
-            filtered["Location"].str.lower().apply(lambda l: any(c in str(l) for c in la))
-        ]
+    if hub_filter == "Major academic hubs":
+        filtered = filtered[filtered["Location"].apply(is_academic_hub)]
     if search_text:
         q = search_text.lower()
         filtered = filtered[
@@ -398,7 +386,7 @@ if os.path.exists(CSV_PATH):
     st.download_button(
         "Export CSV",
         filtered.drop(columns=["PostedDate", "Band"], errors="ignore").to_csv(index=False),
-        file_name=f"pooja_bio_leads_{datetime.now().strftime('%Y%m%d')}.csv",
+        file_name=f"pooja_academic_leads_{datetime.now().strftime('%Y%m%d')}.csv",
         mime="text/csv",
         use_container_width=True,
     )
@@ -465,11 +453,11 @@ else:
         icon="🔔",
     )
     st.markdown("""
-**26 search passes across US, Europe & India:**
+**32 search passes across Europe + US (academic & research institutes only):**
 
-🇺🇸 US (academic/govt only — J1 eligible): Postdoc cardiovascular · Postdoc MASH/hepatic · Postdoc spatial transcriptomics · Research Scientist at academic medical centers · Nationwide cardiovascular/preclinical/biomarker · LA/Torrance · Boston · San Diego · Bay Area · Philadelphia/NJ · RTP NC · Seattle
+🇪🇺 **Europe (20 passes):** Cambridge UK · London · Oxford · Edinburgh · Manchester · Berlin · Munich · Heidelberg · Frankfurt/Cologne · Basel/Zurich · Vienna · Stockholm · Copenhagen · Oslo/Helsinki · Amsterdam/Utrecht · Brussels/Leuven · Paris · Madrid/Barcelona · Milan · Dublin Ireland · Tel Aviv Israel
 
-🇪🇺 Europe: Cambridge UK · London · Basel · Zurich · Munich · Paris · Amsterdam
+🇺🇸 **US (12 passes):** Boston/Cambridge MA · New York NY · Baltimore/DC (incl. NIH) · Philadelphia PA · San Francisco Bay Area · San Diego CA · Los Angeles CA · Seattle WA · Houston TX · Chicago IL · Nashville/Atlanta · Research Triangle NC
 
-🇮🇳 India: Bangalore · Hyderabad · Pune
+**No industry/pharma/CRO results.** Academic, government, and non-profit research institutions only.
 """)

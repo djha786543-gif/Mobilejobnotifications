@@ -1,5 +1,5 @@
 """
-pooja_hunter.py — Pooja Choubey's Biotech/Pharma Job Scanner
+pooja_hunter.py — Pooja Choubey's Academic Job Scanner (Universities & Research Institutes)
 Ph.D. Molecular Genetics | Cardiovascular Biology | Preclinical | Translational Medicine
 STRICTLY ISOLATED from DJ's audit scanner.
 """
@@ -47,7 +47,7 @@ RETRY_DELAY    = 10    # seconds between retries
 
 
 # ---------------------------------------------------------------------------
-# Title whitelist — research science roles in biotech/pharma/CRO space
+# Title whitelist — research science and academic roles at universities / research institutes
 # ---------------------------------------------------------------------------
 TITLE_WHITELIST = [
     # Core scientist titles
@@ -95,6 +95,28 @@ TITLE_WHITELIST = [
     r"\bpostdoctoral\s+(?:fellow|scientist|researcher|associate|position)\b",
     r"\bpostdoc(?:toral)?\s+(?:fellow|researcher|associate)\b",
     r"\bpostdoc\b",
+    # Academic/faculty positions
+    r"\bassistant\s+professor\b",
+    r"\bassociate\s+professor\b",
+    r"\bfull\s+professor\b",
+    r"\blecturer\b",
+    r"\bjunior\s+(?:research\s+)?group\s+leader\b",
+    r"\bgroup\s+leader\b",
+    r"\bteam\s+leader\b.*\b(?:research|science|biology)\b",
+    r"\bfaculty\s+(?:member|position|role)\b",
+    r"\btenure.track\b",
+    r"\btenure\s+track\b",
+    r"\bPI\s+position\b",
+    r"\bindependent\s+(?:researcher|investigator|fellow)\b",
+    r"\bEMBO\s+fellow\b",
+    r"\bHumboldt\s+fellow\b",
+    r"\bWellcome\s+(?:fellow|trust)\b",
+    r"\bMarie\s+Curie\b",
+    r"\bMSCA\b",
+    r"\bHFSP\s+fellow\b",
+    r"\bvisiting\s+(?:scholar|researcher|scientist|fellow)\b",
+    r"\bresearch\s+instructor\b",
+    r"\binstructor\b.*\b(?:research|biology|science)\b",
 ]
 
 # Hard blacklist — veto even if whitelist matched
@@ -113,7 +135,15 @@ TITLE_BLACKLIST = [
     r"\bprocess\s+development\s+scientist\b",
     r"\bquality\s+(?:assurance|control)\s+scientist\b",
     r"\bnurse\b|\bphysician\b|\bclinician\b",
-    r"\bprofessor\b|\bfaculty\b|\blecturer\b|\btenure\b",
+    r"\bdrug\s+discovery\s+(?:director|manager|head)\b",
+    r"\bvp\s+(?:of\s+)?(?:research|science|biology)\b",
+    r"\bhead\s+of\s+(?:research|biology|science|pharmacology)\b",
+    r"\bcommercial\b.*\bscientist\b",
+    r"\bmedical\s+science\s+liaison\b",
+    r"\bfield\s+application\s+scientist\b",  # sales-focused
+    r"\bclinical\s+development\s+scientist\b",
+    r"\bquality\s+control\s+scientist\b",
+    r"\bmanufacturing\s+process\s+scientist\b",
     # Non-biology sciences — prevent generic "Research Scientist" / "Senior Scientist"
     # matching materials, physics, environmental, or other non-life-sciences domains.
     # Note: word-boundary \b ensures "biochemist" is NOT matched by r"\bchemist\b",
@@ -160,6 +190,33 @@ def is_us_j1_eligible(company: str) -> bool:
     """Return True if the company is an academic / government / non-profit
     research institution suitable for Pooja's J1 visa status."""
     return bool(_US_J1_ELIGIBLE_RE.search(company))
+
+
+_ACADEMIC_INST_RE = re.compile(
+    r"universit|college\b|medical\s+cent(?:er|re)|medical\s+school|school\s+of\s+medicine"
+    r"|health\s+(system|network|sciences|cent(?:er|re))|hospital\b"
+    r"|\binstitut(?:e|o|um)\b|\binstituts?\b"
+    r"|research\s+cent(?:er|re)|research\s+institute|research\s+foundation"
+    r"|national\s+(institute|laboratory|lab\b)"
+    r"|\bnih\b|\bnci\b|\bnhlbi\b|\bniddk\b|\bnimh\b|\bcdc\b|\bfda\b|\busda\b"
+    r"|karolinska|helmholtz|max.planck|max-planck|leibniz"
+    r"|\bcnrs\b|\binserm\b|pasteur\b|\bcnio\b|\bcnic\b"
+    r"|weizmann|\bembl\b|\bdkfz\b|\bvib\b|\bhubrecht\b"
+    r"|veterans\s+affairs|\bvamc\b"
+    r"|children'?s\b|pediatric\b|academic\s+medical"
+    r"|\bhutchinson\b|\bhutch\b|dana.farber|\bscripps\b|\bsalk\b"
+    r"|broad\s+institute|\bwistar\b|mayo\s+clinic|cleveland\s+clinic"
+    r"|johns\s+hopkins|moffitt|jackson\s+lab|jax\b|chop\b"
+    r"|\blundquist\b|harbor.ucla|cedars.sinai|mount\s+sinai"
+    r"|stanford|ucsf\b|ucsd\b|ucla\b"
+    r"|mit\b|caltech\b|carnegie\s+mellon|emory|vanderbilt|duke\s+university"
+    r"|gladstone|garvan|wehi\b|monash|baker\s+(heart|institute)"
+    r"|wellcome\s+trust|crick\b|babraham|sanger\b|mrc\b",
+    re.IGNORECASE,
+)
+
+def is_academic_institution(company: str) -> bool:
+    return bool(_ACADEMIC_INST_RE.search(company))
 
 
 def matches_title(title: str) -> bool:
@@ -254,7 +311,7 @@ def push_notification(title: str, message: str, priority: str = "default"):
 def keyword_score(title: str, desc: str, location: str = "") -> int:
     t = title.lower()
     d = (title + " " + desc).lower()
-    score = 22   # base — passed title filter
+    score = 20   # base — passed title filter
 
     # --- Title signals ---
     title_core = {
@@ -365,19 +422,31 @@ def keyword_score(title: str, desc: str, location: str = "") -> int:
         "phd preferred":            8, "doctorate required":    9,
         "doctoral degree":          8, "advanced degree":       5,
 
-        # Industry context (positive)
-        "biotech":                  6, "pharmaceutical":        6,
-        "pharma":                   6, "cro":                   5,
-        "contract research":        5, "r&d":                   6,
-        "research and development": 6, "drug development":      7,
-        "therapeutics":             6, "life sciences":         4,
-        "biopharma":                6,
-
-        # Visa / relocation (important — she needs sponsorship or already approved)
-        "visa sponsorship":         8, "will sponsor":          8,
-        "sponsorship available":    8, "h1b":                   6,
-        "relocation assistance":    6, "relocation package":    6,
-        "relocation provided":      6,
+        # Academic institution signals (strong positive for academic search)
+        "university":               8, "universität":              8,
+        "research institute":       9, "research center":          9,
+        "research centre":          9, "medical school":           8,
+        "medical center":           8, "medical centre":           8,
+        "research hospital":        7, "academic medical":         8,
+        "postdoctoral fellowship":  9, "postdoc fellowship":       9,
+        "fellowship position":      8, "research fellowship":      8,
+        "group leader":             9, "junior group leader":      9,
+        "independent group":        8, "starting group":           8,
+        "tenure track":             9, "tenure-track":             9,
+        "assistant professor":      9, "associate professor":      8,
+        "lecturer position":        8, "research lecturer":        7,
+        "k99":                      8, "r00":                      7,
+        "k award":                  7, "nih grant":                6,
+        "grant funding":            6, "extramural":               6,
+        "phd students":             7, "graduate students":        7,
+        "mentoring students":       6, "supervise students":       6,
+        "embo":                     8, "hfsp":                     8,
+        "marie curie":              8, "msca":                     8,
+        "humboldt":                 7, "wellcome trust":           8,
+        "bhf":                      7, "mrc funded":               7,
+        # Visa/work permit for international candidates
+        "work permit":              6, "visa sponsorship":         7,
+        "relocation":               5,
 
         # Senescence / aging (Pooja's MASH/PTRH2 program extends into senescence)
         "senescence":               8, "cellular senescence":   9,
@@ -404,16 +473,6 @@ def keyword_score(title: str, desc: str, location: str = "") -> int:
         "clc genomics":             5, "bulk rna":              6,
         "metabolomics":             7, "lipidomics":            5,
 
-        # Company name signals (top targets)
-        "astrazeneca":              6, "novartis":              6,
-        "roche":                    6, "genentech":             7,
-        "pfizer":                   5, "bristol-myers":         5,
-        "bms":                      5, "merck":                 5,
-        "abbvie":                   5, "amgen":                 6,
-        "regeneron":                6, "biogen":                5,
-        "vertex":                   5, "myokardia":             8,
-        "cytokinetics":             8, "tenax":                 7,
-        "cardiol":                  7,
     }
     desc_pts = sum(v for k, v in desc_kw.items() if k in d)
     score += min(desc_pts, 42)
@@ -446,14 +505,31 @@ def keyword_score(title: str, desc: str, location: str = "") -> int:
     if re.search(r"\bhead\s+of\b", t):                          score -= 20
     if re.search(r"\bdirector\b", t):                           score -= 15
 
-    # Academic role penalty
-    if any(k in d for k in ["tenure track", "faculty position",
-                             "academic appointment", "university professor"]):
-        score -= 20
-
     # Hard disqualifiers
     if any(k in d for k in ["secret clearance", "top secret", "ts/sci", "clearance required"]):
         score -= 30
+
+    # Industry company / commercial penalty
+    _INDUSTRY_SIGNALS = [
+        "drug candidate", "ind filing", "clinical pipeline", "commercial pipeline",
+        "gmp facility", "cmc development", "manufacturing process",
+        "business development", "market access", "commercial strategy",
+        "quarterly targets", "sales territory", "key account",
+    ]
+    _PHARMA_COMPANIES = [
+        "novartis", "astrazeneca", "roche", "genentech", "pfizer",
+        "merck kga", "merck & co", "sanofi", "abbvie", "amgen", "biogen",
+        "vertex pharmaceut", "bristol-myers", "bms\b", "lilly\b",
+        "boehringer ingelheim", "bayer ag", "ucb pharma",
+        "charles river", "covance", "labcorp drug", "icon plc", "iqvia",
+        "evotec", "crown bioscience", "cyagen",
+    ]
+    has_industry_signal = sum(1 for k in _INDUSTRY_SIGNALS if k in d)
+    has_pharma_company  = sum(1 for k in _PHARMA_COMPANIES if k in d)
+    if has_industry_signal >= 2:
+        score -= 20
+    if has_pharma_company >= 1:
+        score -= 15
 
     return max(0, min(score, 100))
 
@@ -474,7 +550,7 @@ def llm_score_batch(batch: list[dict]) -> list[int | None]:
         )
 
     prompt = (
-        f"You are a scientific recruiter evaluating {n} biotech/pharma job postings.\n"
+        f"You are an academic recruiter evaluating {n} university/research-institute job postings.\n"
         "Score each 0–100 for fit with this specific candidate:\n\n"
 
         "CANDIDATE — Dr. Pooja Choubey, Ph.D. Molecular Genetics:\n"
@@ -487,63 +563,52 @@ def llm_score_batch(batch: list[dict]) -> list[int | None]:
         "first-author JACC: Advances 2026 (PERCVD genetic screening trial); "
         "first-author Cells 2026 (cardiac transcriptomics)\n"
         "GRANT: PI on competitive intramural Postdoctoral Catalyst Grant (Oct 2026–Sep 2027) "
-        "testing PTRH2-driven hepatic senescence in MASH — building towards K99/R00\n\n"
+        "on PTRH2-driven hepatic senescence in MASH — building towards K99/R00\n\n"
 
         "IN VIVO EXPERTISE (10+ years):\n"
-        "- Mouse colony: 200+ mice, 3 transgenic lines (Hmox1, Ptrh2 cardiac overexpression)\n"
+        "- Transgenic mouse colony: 200+ mice, 3 lines (Hmox1, Ptrh2)\n"
         "- Cardiac phenotyping: Langendorff perfusion, echocardiography (Vevo F2), ECG, "
-        "adult cardiomyocyte isolation, in vivo contractility, pressure-volume loops\n"
-        "- Cardiac disease models: TAC (aortic banding), isoproterenol, MI, angiotensin II, "
-        "osmotic pumps, survival surgeries, tissue harvest\n"
-        "- Metabolic/MASH models: diet-induced MASH, obesity, compound dosing, "
-        "timed matings, embryo collection (E12.5–E18.5)\n\n"
+        "adult cardiomyocyte isolation, contractility assays\n"
+        "- Disease models: peripartum cardiomyopathy, heart failure, MASH/NASH, obesity, "
+        "diet-induced liver disease, timed matings, embryo collection (E12.5–E18.5)\n"
+        "- Senescence: SA-β-gal, TUNEL, flow cytometry senescence panels\n\n"
 
         "CELLULAR & MOLECULAR ASSAYS:\n"
-        "- FACS / flow cytometry, Western blot, IHC, ICC, immunofluorescence, ELISA, qRT-PCR\n"
-        "- Senescence assays: SA-β-gal, TUNEL, flow cytometry senescence panels\n"
-        "- Beta-gal, hydroxyproline assay, Masson trichrome, Sirius Red, confocal, Keyence imaging\n"
-        "- Cell culture (primary cardiomyocytes, cardiac fibroblasts, myoblasts, patient-derived)\n\n"
+        "- FACS/flow cytometry, Western blot, IHC, ICC, immunofluorescence, ELISA, qRT-PCR\n"
+        "- Confocal and Keyence imaging; histology (Masson trichrome, Sirius Red)\n"
+        "- Primary cell culture (cardiomyocytes, fibroblasts, myoblasts, patient-derived)\n\n"
 
         "OMICS & DATA ANALYSIS:\n"
-        "- Bulk RNA-seq, scRNA-seq (Seurat, Scanpy, cell annotation)\n"
+        "- Bulk RNA-seq, scRNA-seq (Seurat, Scanpy)\n"
         "- 10x Visium & Xenium spatial transcriptomics; Loupe Browser; Xenium Explorer\n"
-        "- R (DESeq2, Seurat, ggplot2); Python (Scanpy, pandas); CLC Genomics Workbench\n"
-        "- QIAGEN IPA, STRING, GSEA, GO enrichment; metabolomics (trained)\n\n"
+        "- R (DESeq2, Seurat, ggplot2); Python (Scanpy, pandas); QIAGEN IPA; STRING\n\n"
 
-        "VISA STATUS: J1 visa (US). For US positions ONLY universities, medical centers, "
-        "research institutes, government labs (NIH, NHLBI, CDC), and non-profit research "
-        "foundations are eligible — corporate pharma/biotech cannot sponsor J1 transfer "
-        "immediately. International positions (Europe, India) have no visa restriction.\n\n"
+        "TARGET ROLES (academic/research institutions ONLY):\n"
+        "1. Postdoctoral Fellow/Researcher at a university, medical school, research institute "
+        "or government lab (NIH) — WET-LAB focused; cardiovascular, cardiometabolic, "
+        "MASH/hepatic, senescence/aging, reproductive/placental, or spatial transcriptomics biology\n"
+        "2. Research Scientist / Staff Scientist / Research Fellow at a university or "
+        "non-profit research institute\n"
+        "3. Junior Group Leader / Assistant Professor / Lecturer — if at appropriate stage\n"
+        "NOT SUITABLE FOR: Pure computational/bioinformatics, clinical coordinator, "
+        "regulatory affairs, any industry role (pharma/biotech/CRO), VP/Director/Head of roles\n"
+        "CRITICAL WET-LAB REQUIREMENT: Role must require or strongly prefer wet-lab work "
+        "(mouse models, cardiac/metabolic phenotyping, cell biology, histology). "
+        "Score LOW for roles that are primarily computational with no bench component.\n\n"
 
-        "TARGET ROLES (in priority order):\n"
-        "1. Postdoctoral Fellow/Scientist at a US academic/research institution "
-        "(university, medical center, research institute, NIH) — WET-LAB focused; "
-        "cardiovascular, cardiometabolic, MASH/hepatic, senescence, or translational R&D\n"
-        "2. Research Scientist / Scientist II–IV / Staff Scientist at academic or "
-        "international (Europe/India) biotech/pharma — cardiovascular, metabolic, or oncology\n"
-        "3. Senior Scientist / Principal Scientist — international OK, US only if academic\n"
-        "NOT SUITABLE FOR: Director, VP, Head of, Chief, Managing Director — "
-        "10-year bench scientist on K99/R00 track, NOT a department head.\n"
-        "CRITICAL WET-LAB REQUIREMENT: Pooja is a hands-on bench scientist. Roles must "
-        "require or strongly prefer wet-lab work (mouse models, cardiac/metabolic phenotyping, "
-        "cell biology, immunoassays, histology). DO NOT score highly for roles that are primarily "
-        "or exclusively computational/bioinformatics with no wet-lab component.\n\n"
-
-        "SCORING RUBRIC (BE STRICT):\n"
-        "90–100: Role is EXPLICITLY hands-on wet-lab preclinical/cardiovascular/cardiometabolic/"
-        "MASH/senescence R&D; PhD required/preferred; strong overlap with in vivo, cardiac "
-        "phenotyping, spatial transcriptomics, or mouse models; at J1-eligible institution if US\n"
-        "70–89: Strong wet-lab R&D role, PhD preferred, good skill overlap, adjacent therapeutic "
-        "area (fibrosis, metabolic/liver disease, MASH/NASH, hepatic, oncology with mouse models)\n"
-        "50–69: Decent — relevant wet-lab techniques but missing cardiovascular/preclinical focus, "
-        "OR good role but missing PhD requirement, OR postdoc at smaller/less known institution\n"
-        "30–49: Some wet-lab overlap but mostly computational, OR missing PhD, OR wrong area\n"
-        "< 30: Poor — QA/QC, manufacturing, regulatory, clinical coordinator, software engineer, "
-        "sales, marketing, PURE bioinformatics/computational with NO wet-lab requirement\n\n"
-        "CRITICAL: If the title contains Director, VP, Vice President, Head of, Chief, SVP — "
-        "score MAX 25.\n"
-        "CRITICAL: If the role is exclusively computational/bioinformatics with no wet-lab "
-        "component in the description — score MAX 30 regardless of title.\n\n"
+        "SCORING RUBRIC (BE STRICT — ACADEMIC FOCUS):\n"
+        "90–100: Explicitly hands-on wet-lab cardiovascular/cardiometabolic/MASH/senescence "
+        "research at a university or research institute; PhD required; strong overlap with "
+        "in vivo, cardiac phenotyping, spatial transcriptomics, or mouse models\n"
+        "70–89: Strong wet-lab academic role, PhD preferred, good overlap, adjacent area "
+        "(liver/metabolic, aging, reproductive biology, developmental biology)\n"
+        "50–69: Academic postdoc or research scientist, relevant techniques but missing "
+        "cardiovascular/preclinical focus, OR general molecular biology/cell biology\n"
+        "30–49: Academic role but mostly computational, OR wrong field, OR missing PhD\n"
+        "< 30: Industry role, QA/QC, manufacturing, clinical, software, pure bioinformatics\n\n"
+        "CRITICAL: Industry/pharma/biotech/CRO postings — score MAX 20.\n"
+        "CRITICAL: Pure bioinformatics/computational roles with no bench work — score MAX 30.\n"
+        "CRITICAL: Director, VP, Head of — score MAX 20.\n\n"
 
         "JOBS:\n" +
         "\n\n".join(blocks) +
@@ -660,265 +725,311 @@ def scrape_with_retry(cfg: dict) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# Search configuration — 27 passes: Europe (18 cities) + APAC (6 cities) + India (3 cities)
-# No US passes — Pooja is targeting international opportunities only.
+# Search configuration — 32 passes: Europe (20 cities) + US (12 cities)
+# Academic / research institutions only — universities, medical schools, research institutes, govt labs.
 # ---------------------------------------------------------------------------
 def build_search_configs() -> list[dict]:
-    # ── Search term strategy ────────────────────────────────────────────────
-    # European & APAC employers post short, generic job titles — "Research Scientist",
-    # "Scientist", "Postdoc" — biology context lives in the description, not the title.
-    # Long compound quoted phrases like "Cardiovascular Research Scientist" return near-zero
-    # results on European Indeed because employers simply don't write titles that way.
-    #
-    # Strategy: use the TITLE as the search hook (short, real titles that employers
-    # actually post), then let the title whitelist + LLM scoring filter biology relevance.
-    # The title blacklist handles non-biology contamination (materials, physics, stats etc.)
-    #
-    # _GENERIC: broad scientist / postdoc titles — matches how EU/APAC employers post.
-    _GENERIC = (
-        '"Research Scientist" OR "Senior Research Scientist" OR "Senior Scientist" '
-        'OR "Staff Scientist" OR "Principal Scientist" OR "Associate Scientist" '
-        'OR "Scientist I" OR "Scientist II" OR "Scientist III" '
-        'OR "Postdoctoral Fellow" OR "Postdoctoral Researcher" OR "Postdoctoral Associate" '
-        'OR "Postdoc" OR "Research Associate" OR "Senior Research Associate" '
-        'OR "Research Fellow" OR "Research Investigator" '
-        'OR "Drug Discovery Scientist" OR "Translational Scientist" '
-        'OR "Preclinical Scientist" OR "In Vivo Scientist" OR "In Vitro Scientist" '
-        'OR "Cell Biologist" OR "Molecular Biologist" OR "Immunologist" '
-        'OR "Flow Cytometry Scientist" OR "Cardiovascular Scientist" '
-        'OR "Biomarker Scientist"'
+    _ACAD = (
+        '"Postdoctoral Fellow" OR "Postdoctoral Researcher" OR "Postdoctoral Associate" '
+        'OR "Postdoc" OR "Research Fellow" OR "Senior Research Fellow" '
+        'OR "Research Scientist" OR "Senior Research Scientist" OR "Staff Scientist" '
+        'OR "Research Associate" OR "Senior Research Associate" '
+        'OR "Assistant Professor" OR "Associate Professor" OR "Lecturer" '
+        'OR "Group Leader" OR "Junior Group Leader" OR "Research Group Leader" '
+        'OR "Visiting Researcher" OR "Visiting Scholar" OR "Research Instructor" '
+        'OR "Principal Investigator" OR "Independent Researcher" '
+        'OR "EMBO Fellow" OR "Marie Curie Fellow" OR "Wellcome Fellow" '
+        'OR "In Vivo Scientist" OR "Cardiovascular Scientist" OR "Molecular Biologist" '
+        'OR "Cell Biologist" OR "Spatial Transcriptomics Scientist"'
     )
 
     return [
         # ═══════════════════════════════════════════════════════════════════
-        # EUROPE — Tier 1: Major pharma/biotech clusters (100 results each)
+        # EUROPE — UK (major academic / research hubs)
         # ═══════════════════════════════════════════════════════════════════
         {
-            "label":    "Scientist — Cambridge UK (AstraZeneca / Wellcome Sanger / MRC-LMB / Babraham)",
-            "term":     _GENERIC,
+            "label":    "Academic — Cambridge UK (Crick / Sanger / Babraham / MRC / Cambridge Uni)",
+            "term":     _ACAD,
             "location": "Cambridge, United Kingdom",
             "results":  100,
             "region":   "Europe",
             "sites":    ["indeed"],
         },
         {
-            "label":    "Scientist — London UK (GSK / UCB / MSD / Crick / CRUK)",
-            "term":     _GENERIC,
+            "label":    "Academic — London UK (UCL / King's / Imperial / Crick / Wellcome)",
+            "term":     _ACAD,
             "location": "London, United Kingdom",
             "results":  100,
             "region":   "Europe",
             "sites":    ["indeed"],
         },
         {
-            "label":    "Scientist — Basel Switzerland (Novartis / Roche / Friedrich Miescher / Lonza)",
-            "term":     _GENERIC,
-            "location": "Basel, Switzerland",
-            "results":  100,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Scientist — Stockholm / Uppsala Sweden (Karolinska / AZ Sweden / SciLifeLab)",
-            "term":     _GENERIC,
-            "location": "Stockholm, Sweden",
-            "results":  100,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Scientist — Copenhagen Denmark (Novo Nordisk / LEO Pharma / DTU / KU)",
-            "term":     _GENERIC,
-            "location": "Copenhagen, Denmark",
-            "results":  100,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        # ═══════════════════════════════════════════════════════════════════
-        # EUROPE — Tier 2: Strong academic + pharma hubs (75 results each)
-        # ═══════════════════════════════════════════════════════════════════
-        {
-            "label":    "Scientist — Zurich Switzerland (Novartis Institutes / ETH / University of Zurich)",
-            "term":     _GENERIC,
-            "location": "Zurich, Switzerland",
+            "label":    "Academic — Oxford UK (Oxford Cardiovascular / RDM / Trophoblast Centre)",
+            "term":     _ACAD,
+            "location": "Oxford, United Kingdom",
             "results":  75,
             "region":   "Europe",
             "sites":    ["indeed"],
         },
         {
-            "label":    "Scientist — Munich Germany (Bayer / Roche Munich / Helmholtz / LMU)",
-            "term":     _GENERIC,
+            "label":    "Academic — Edinburgh UK (BHF Centre / MRC HGU / Roslin / Edinburgh Uni)",
+            "term":     _ACAD,
+            "location": "Edinburgh, United Kingdom",
+            "results":  75,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Academic — Manchester / Bristol / Birmingham UK",
+            "term":     _ACAD,
+            "location": "Manchester, United Kingdom",
+            "results":  75,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        # ═══════════════════════════════════════════════════════════════════
+        # EUROPE — Germany / Austria / Switzerland
+        # ═══════════════════════════════════════════════════════════════════
+        {
+            "label":    "Academic — Berlin Germany (MDC / Charité / BIH / DZHK)",
+            "term":     _ACAD,
+            "location": "Berlin, Germany",
+            "results":  100,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Academic — Munich Germany (Helmholtz / TUM / LMU / MPI Ageing)",
+            "term":     _ACAD,
             "location": "Munich, Germany",
-            "results":  75,
+            "results":  100,
             "region":   "Europe",
             "sites":    ["indeed"],
         },
         {
-            "label":    "Scientist — Heidelberg Germany (EMBL / DKFZ / BioMedX / Heidelberg University)",
-            "term":     _GENERIC,
+            "label":    "Academic — Heidelberg Germany (EMBL / DKFZ / Heidelberg Uni)",
+            "term":     _ACAD,
             "location": "Heidelberg, Germany",
             "results":  75,
             "region":   "Europe",
             "sites":    ["indeed"],
         },
         {
-            "label":    "Scientist — Paris France (Sanofi / Institut Pasteur / CNRS / Servier)",
-            "term":     _GENERIC,
-            "location": "Paris, France",
+            "label":    "Academic — Frankfurt / Cologne Germany (Goethe / Cologne CECAD / MPI Ageing)",
+            "term":     _ACAD,
+            "location": "Frankfurt, Germany",
             "results":  75,
             "region":   "Europe",
             "sites":    ["indeed"],
         },
         {
-            "label":    "Scientist — Amsterdam / Leiden NL (Janssen / LUMC / Leiden University)",
-            "term":     _GENERIC,
+            "label":    "Academic — Basel / Zurich Switzerland (ETH / Uni Zurich / FMI / EPFL)",
+            "term":     _ACAD,
+            "location": "Basel, Switzerland",
+            "results":  100,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Academic — Vienna Austria (MedUni Wien / IMBA / IMP)",
+            "term":     _ACAD,
+            "location": "Vienna, Austria",
+            "results":  75,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        # ═══════════════════════════════════════════════════════════════════
+        # EUROPE — Scandinavia
+        # ═══════════════════════════════════════════════════════════════════
+        {
+            "label":    "Academic — Stockholm / Uppsala Sweden (Karolinska / Uppsala Uni / SciLifeLab)",
+            "term":     _ACAD,
+            "location": "Stockholm, Sweden",
+            "results":  100,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Academic — Copenhagen Denmark (KU / NNF CBMR / reNEW / DTU)",
+            "term":     _ACAD,
+            "location": "Copenhagen, Denmark",
+            "results":  100,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Academic — Oslo / Helsinki / NTNU Nordic",
+            "term":     _ACAD,
+            "location": "Oslo, Norway",
+            "results":  75,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        # ═══════════════════════════════════════════════════════════════════
+        # EUROPE — Netherlands / Belgium / France / Spain / Italy / Ireland
+        # ═══════════════════════════════════════════════════════════════════
+        {
+            "label":    "Academic — Amsterdam / Utrecht NL (Amsterdam UMC / Hubrecht / LUMC / Erasmus MC)",
+            "term":     _ACAD,
             "location": "Amsterdam, Netherlands",
             "results":  75,
             "region":   "Europe",
             "sites":    ["indeed"],
         },
         {
-            "label":    "Scientist — Oxford UK (AZ Oxford / Oxford Biomedica / WIMM / NDM)",
-            "term":     _GENERIC,
-            "location": "Oxford, United Kingdom",
+            "label":    "Academic — Leuven / Brussels Belgium (KU Leuven / VIB / Ghent)",
+            "term":     _ACAD,
+            "location": "Brussels, Belgium",
             "results":  75,
             "region":   "Europe",
             "sites":    ["indeed"],
         },
-        # ═══════════════════════════════════════════════════════════════════
-        # EUROPE — Tier 3: Secondary hubs / emerging clusters (50 results)
-        # ═══════════════════════════════════════════════════════════════════
         {
-            "label":    "Scientist — Dublin Ireland (Pfizer / MSD Ireland / Trinity / UCD)",
-            "term":     _GENERIC,
-            "location": "Dublin, Ireland",
+            "label":    "Academic — Paris France (Institut Pasteur / INSERM / Institut Cochin / IGBMC)",
+            "term":     _ACAD,
+            "location": "Paris, France",
+            "results":  75,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Academic — Madrid / Barcelona Spain (CNIC / CRG / IRB / CNIO)",
+            "term":     _ACAD,
+            "location": "Madrid, Spain",
             "results":  50,
             "region":   "Europe",
             "sites":    ["indeed"],
         },
         {
-            "label":    "Scientist — Brussels / Leuven Belgium (UCB / KU Leuven / VIB)",
-            "term":     _GENERIC,
-            "location": "Brussels, Belgium",
-            "results":  50,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Scientist — Milan Italy (San Raffaele / IEO / Humanitas / UniMi)",
-            "term":     _GENERIC,
+            "label":    "Academic — Milan Italy (San Raffaele / Human Technopole / TIGEM)",
+            "term":     _ACAD,
             "location": "Milan, Italy",
             "results":  50,
             "region":   "Europe",
             "sites":    ["indeed"],
         },
         {
-            "label":    "Scientist — Barcelona Spain (IRB Barcelona / CRG / Almirall / Hospital Clinic)",
-            "term":     _GENERIC,
-            "location": "Barcelona, Spain",
-            "results":  50,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Scientist — Vienna Austria (Boehringer Ingelheim / IMBA / IMP / MedUni Wien)",
-            "term":     _GENERIC,
-            "location": "Vienna, Austria",
-            "results":  50,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Scientist — Frankfurt / Mainz Germany (BioNTech HQ / Goethe University)",
-            "term":     _GENERIC,
-            "location": "Frankfurt, Germany",
-            "results":  50,
-            "region":   "Europe",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Scientist — Edinburgh UK (MRC HGU / Roslin Institute / University of Edinburgh)",
-            "term":     _GENERIC,
-            "location": "Edinburgh, United Kingdom",
+            "label":    "Academic — Dublin / Cork Ireland (Trinity / RCSI / UCD / UCC)",
+            "term":     _ACAD,
+            "location": "Dublin, Ireland",
             "results":  50,
             "region":   "Europe",
             "sites":    ["indeed"],
         },
         # ═══════════════════════════════════════════════════════════════════
-        # APAC — Asia-Pacific biotech & academic hubs
+        # EUROPE — Israel
         # ═══════════════════════════════════════════════════════════════════
         {
-            "label":    "Scientist — Singapore (A*STAR / Novartis / GSK / NUS / Duke-NUS / GIS)",
-            "term":     _GENERIC,
-            "location": "Singapore",
+            "label":    "Academic — Israel (Weizmann / Hebrew Uni / Technion / Tel Aviv Uni)",
+            "term":     _ACAD,
+            "location": "Tel Aviv, Israel",
+            "results":  50,
+            "region":   "Europe",
+            "sites":    ["indeed"],
+        },
+        # ═══════════════════════════════════════════════════════════════════
+        # US — Northeast (academic powerhouses)
+        # ═══════════════════════════════════════════════════════════════════
+        {
+            "label":    "Academic US — Boston/Cambridge MA (Harvard / MIT / MGH / BWH / Tufts / UMass)",
+            "term":     _ACAD,
+            "location": "Boston, MA",
             "results":  100,
-            "region":   "APAC",
+            "region":   "US",
             "sites":    ["indeed"],
         },
         {
-            "label":    "Scientist — Tokyo Japan (Takeda / Astellas / Eisai / RIKEN / Tokyo University)",
-            "term":     _GENERIC,
-            "location": "Tokyo, Japan",
+            "label":    "Academic US — New York NY (Columbia / Rockefeller / Sinai / NYU / Weill Cornell / Einstein)",
+            "term":     _ACAD,
+            "location": "New York, NY",
+            "results":  100,
+            "region":   "US",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Academic US — Baltimore / DC (Johns Hopkins / NIH / NCI / NHLBI / Georgetown)",
+            "term":     _ACAD,
+            "location": "Baltimore, MD",
+            "results":  100,
+            "region":   "US",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Academic US — Philadelphia PA (Penn / Jefferson / Wistar / Temple / Drexel)",
+            "term":     _ACAD,
+            "location": "Philadelphia, PA",
             "results":  75,
-            "region":   "APAC",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Scientist — Sydney Australia (CSIRO / Garvan Institute / UNSW / AZ Australia)",
-            "term":     _GENERIC,
-            "location": "Sydney, Australia",
-            "results":  75,
-            "region":   "APAC",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Scientist — Melbourne Australia (Monash / Walter+Eliza Hall / CSL / Murdoch)",
-            "term":     _GENERIC,
-            "location": "Melbourne, Australia",
-            "results":  75,
-            "region":   "APAC",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Scientist — Seoul South Korea (Samsung Biologics / Yonsei / SNU / KRIBB)",
-            "term":     _GENERIC,
-            "location": "Seoul, South Korea",
-            "results":  50,
-            "region":   "APAC",
-            "sites":    ["indeed"],
-        },
-        {
-            "label":    "Scientist — Hong Kong (HKU / HKUST / CUHK / Hong Kong Science Park)",
-            "term":     _GENERIC,
-            "location": "Hong Kong",
-            "results":  50,
-            "region":   "APAC",
+            "region":   "US",
             "sites":    ["indeed"],
         },
         # ═══════════════════════════════════════════════════════════════════
-        # INDIA — Established biotech / pharma R&D hubs
+        # US — West Coast
         # ═══════════════════════════════════════════════════════════════════
         {
-            "label":    "Scientist — Bangalore India (Biocon / AstraZeneca / Syngene / NCBS)",
-            "term":     _GENERIC,
-            "location": "Bengaluru",
-            "results":  75,
-            "region":   "India",
+            "label":    "Academic US — San Francisco Bay Area (UCSF / Gladstone / Stanford / UC Berkeley)",
+            "term":     _ACAD,
+            "location": "San Francisco, CA",
+            "results":  100,
+            "region":   "US",
             "sites":    ["indeed"],
         },
         {
-            "label":    "Scientist — Hyderabad India (Dr Reddy's / Aurobindo / Cipla R&D / CCMB)",
-            "term":     _GENERIC,
-            "location": "Hyderabad",
-            "results":  75,
-            "region":   "India",
+            "label":    "Academic US — San Diego CA (Salk / Scripps / UCSD / Sanford-Burnham)",
+            "term":     _ACAD,
+            "location": "San Diego, CA",
+            "results":  100,
+            "region":   "US",
             "sites":    ["indeed"],
         },
         {
-            "label":    "Scientist — Pune India (Serum Institute / Lupin / Piramal / NCL)",
-            "term":     _GENERIC,
-            "location": "Pune",
-            "results":  50,
-            "region":   "India",
+            "label":    "Academic US — Los Angeles CA (Cedars-Sinai / UCLA / USC / Lundquist)",
+            "term":     _ACAD,
+            "location": "Los Angeles, CA",
+            "results":  75,
+            "region":   "US",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Academic US — Seattle WA (UW / Fred Hutch / OHSU / Allen Institute)",
+            "term":     _ACAD,
+            "location": "Seattle, WA",
+            "results":  75,
+            "region":   "US",
+            "sites":    ["indeed"],
+        },
+        # ═══════════════════════════════════════════════════════════════════
+        # US — South / Midwest
+        # ═══════════════════════════════════════════════════════════════════
+        {
+            "label":    "Academic US — Houston TX (Baylor / Texas Heart / MD Anderson / UTHealth)",
+            "term":     _ACAD,
+            "location": "Houston, TX",
+            "results":  75,
+            "region":   "US",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Academic US — Chicago IL (Northwestern / Uchicago / Rush / UIC / Loyola)",
+            "term":     _ACAD,
+            "location": "Chicago, IL",
+            "results":  75,
+            "region":   "US",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Academic US — Nashville / Atlanta (Vanderbilt / Emory / Georgia Tech / Morehouse)",
+            "term":     _ACAD,
+            "location": "Nashville, TN",
+            "results":  75,
+            "region":   "US",
+            "sites":    ["indeed"],
+        },
+        {
+            "label":    "Academic US — Research Triangle NC / Pittsburgh PA / St. Louis MO",
+            "term":     _ACAD,
+            "location": "Durham, NC",
+            "results":  75,
+            "region":   "US",
             "sites":    ["indeed"],
         },
     ]
@@ -929,7 +1040,7 @@ def build_search_configs() -> list[dict]:
 # ---------------------------------------------------------------------------
 def pooja_hunt():
     sprint(f"\n{'='*60}")
-    sprint(f"[Pooja Scanner] Biotech/Pharma Job Hunt — {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    sprint(f"[Pooja Scanner] Academic Job Hunt (Universities & Research Institutes) — {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     sprint(f"{'='*60}")
     alerts_sent = 0
     configs     = build_search_configs()
@@ -960,7 +1071,7 @@ def pooja_hunt():
         sprint(f"\n[Warning] {blocked_passes}/{len(configs)} passes returned 0 results.")
         if blocked_passes == len(configs):
             sprint("[Pooja Scanner] No results from any search pass. Likely IP block by Indeed.")
-            push_notification("Pooja Bio Hunt", "Scan ran — 0 results from all passes (possible IP block).", "low")
+            push_notification("Pooja Academic Scan", "Scan ran — 0 results from all passes (possible IP block).", "low")
             return
 
     # ── Step 2: Combine + deduplicate ─────────────────────────────────────
@@ -993,26 +1104,29 @@ def pooja_hunt():
     sprint(f"[Filter] {len(raw)} → {len(filtered)} passed title filter "
            f"(removed {len(raw) - len(filtered)} non-science jobs)")
 
-    # ── Step 3b: J1 corporate filter (US only) ────────────────────────────
-    # Pooja is on J1 visa. Corporate pharma/biotech cannot transfer her visa
-    # immediately. Keep only academic/government/non-profit institutions for US.
-    # International results (Europe, India) are unaffected.
-    us_mask  = filtered["_region"] == "US"
-    intl_mask = ~us_mask
-    us_df    = filtered[us_mask].copy()
-    intl_df  = filtered[intl_mask].copy()
+    # ── Step 3b: Academic institution filter (ALL regions) ───────────────
+    # We want ONLY academic/research/government institutions worldwide.
+    all_academic  = filtered["company"].fillna("").apply(is_academic_institution)
+    # For unrecognised companies, check description for academic signals
+    _acad_desc_re = re.compile(
+        r"universit|research\s+inst|medical\s+cent|medical\s+school"
+        r"|hospital\b|\bnih\b|\bnhlbi\b|research\s+foundation"
+        r"|postdoctoral\s+fellow|postdoc\s+position|fellowship\s+program"
+        r"|tenure.track|group\s+leader|principal\s+investigator"
+        r"|faculty\s+position|academic\s+appointment",
+        re.IGNORECASE,
+    )
+    desc_academic = filtered["description"].fillna("").apply(lambda d: bool(_acad_desc_re.search(d)))
 
-    us_eligible = us_df["company"].fillna("").apply(is_us_j1_eligible)
-    us_filtered = us_df[us_eligible].copy()
-    removed_corp = len(us_df) - len(us_filtered)
-    sprint(f"[J1 Filter] US: {len(us_df)} → {len(us_filtered)} kept "
-           f"({removed_corp} corporate positions removed)")
+    academic_mask = all_academic | desc_academic
+    non_academic  = filtered[~academic_mask]
+    filtered      = filtered[academic_mask].copy()
 
-    filtered = pd.concat([us_filtered, intl_df], ignore_index=True)
-    sprint(f"[J1 Filter] Combined: {len(filtered)} jobs (US academic + international)")
+    sprint(f"[Acad Filter] {len(academic_mask)} → {len(filtered)} kept "
+           f"({len(non_academic)} non-academic/industry removed)")
 
     if filtered.empty:
-        push_notification("Pooja Bio Hunt", "Scan complete — 0 relevant titles found.", "low")
+        push_notification("Pooja Academic Hunt", "Scan done — 0 academic roles found.", "low")
         return
 
     # ── Step 4: Pre-rank by title relevance; split LLM vs keyword pool ────
@@ -1115,7 +1229,7 @@ def pooja_hunt():
 
     if not scored_list:
         sprint("\n[Pooja Scanner] No jobs met the minimum score threshold.")
-        push_notification("Pooja Bio Hunt", "Scan done — no jobs cleared score threshold.", "low")
+        push_notification("Pooja Academic Scan", "Scan done — no jobs cleared score threshold.", "low")
         return
 
     # ── Step 7: Merge + save CSV ──────────────────────────────────────────
@@ -1140,7 +1254,7 @@ def pooja_hunt():
     sprint(f"{'='*60}\n")
 
     push_notification(
-        title="Pooja Bio Scan Complete",
+        title="Pooja Academic Scan Complete",
         message=(
             f"{len(new_df)} new leads  |  {strong} strong (80+)  |  {high} high (70+)\n"
             f"{alerts_sent} alerts  |  {len(combined)} total leads"

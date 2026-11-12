@@ -461,7 +461,7 @@ Each city is searched with Pooja's specific wet-lab domains — not generic job 
 🫀 **Domain 2 — Metabolic Liver Disease / MASH / NASH / Senescence** (top hubs)
 🧬 **Domain 3 — Spatial Transcriptomics / scRNA-seq / Molecular Biology** (top hubs)
 
-🇬🇧🇩🇪🇨🇭🇸🇪🇩🇰🇳🇱🇫🇷🇮🇪 **Europe:** Cambridge UK · London · Oxford · Edinburgh · Manchester · Berlin · Munich · Heidelberg · Basel/Zurich · Stockholm · Copenhagen · Amsterdam · Paris · Dublin
+🇬🇧🇩🇪🇨🇭🇸🇪🇩🇰🇳🇴🇫🇮🇦🇹🇧🇪🇳🇱🇫🇷🇪🇸🇮🇹🇮🇪🇱🇺🇮🇱 **Europe:** Cambridge UK · London · Oxford · Edinburgh · Manchester · Berlin · Munich · Heidelberg · Basel/Zurich · Stockholm · Copenhagen · Oslo · Helsinki · Vienna · Leuven/Brussels · Amsterdam · Paris · Madrid/Barcelona · Milan · Dublin · Luxembourg · Tel Aviv
 
 🇺🇸 **US:** Boston/Cambridge MA · New York NY · Baltimore/DC (NIH) · Philadelphia PA · San Francisco Bay Area · San Diego CA · Los Angeles CA · Seattle WA · Houston TX · Chicago IL
 

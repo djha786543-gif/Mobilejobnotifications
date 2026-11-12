@@ -835,10 +835,22 @@ def build_search_configs() -> list[dict]:
         _eu("Cardio/Preclin — Stockholm (Karolinska / Uppsala / SciLifeLab)", "Stockholm, Sweden",          _CARDIO, 100, "Sweden"),
         _eu("Metab/Spatial  — Stockholm",                                      "Stockholm, Sweden",          _METAB,   75, "Sweden"),
 
-        _eu("Cardio/Preclin — Copenhagen (KU / NNF CBMR / reNEW)",           "Copenhagen, Denmark",        _CARDIO,  75, "Denmark"),
-        _eu("Cardio/Preclin — Amsterdam NL (Amsterdam UMC / Hubrecht)",       "Amsterdam, Netherlands",     _CARDIO,  75, "Netherlands"),
+        _eu("Cardio/Preclin — Copenhagen (KU / NNF CBMR / reNEW / DTU)",      "Copenhagen, Denmark",        _CARDIO,  75, "Denmark"),
+        _eu("Cardio/Preclin — Oslo (UiO / Oslo Uni Hospital / NTNU)",         "Oslo, Norway",               _CARDIO,  75, "Norway"),
+        _eu("Cardio/Preclin — Helsinki (Uni Helsinki / HiLIFE / FIMM)",       "Helsinki, Finland",          _CARDIO,  50, "Finland"),
+
+        _eu("Cardio/Preclin — Vienna (MedUni Wien / IMBA / IMP / CeMM)",     "Vienna, Austria",            _CARDIO,  75, "Austria"),
+        _eu("Metab/Spatial  — Vienna",                                         "Vienna, Austria",            _METAB,   50, "Austria"),
+
+        _eu("Cardio/Preclin — Amsterdam NL (Amsterdam UMC / Hubrecht / LUMC)","Amsterdam, Netherlands",     _CARDIO,  75, "Netherlands"),
+        _eu("Cardio/Preclin — Leuven/Brussels (KU Leuven / VIB / Ghent)",    "Leuven, Belgium",            _CARDIO,  75, "Belgium"),
+
         _eu("Cardio/Preclin — Paris (Pasteur / INSERM / Institut Cochin)",    "Paris, France",              _CARDIO,  75, "France"),
+        _eu("Cardio/Preclin — Madrid/Barcelona (CNIC / CRG / IRB / CNIO)",   "Madrid, Spain",              _CARDIO,  75, "Spain"),
+        _eu("Cardio/Preclin — Milan (San Raffaele / Human Technopole)",       "Milan, Italy",               _CARDIO,  75, "Italy"),
         _eu("Cardio/Preclin — Dublin IE (Trinity / RCSI / UCD)",              "Dublin, Ireland",            _CARDIO,  50, "Ireland"),
+        _eu("Cardio/Preclin — Luxembourg (LIH / LCSB / Uni Luxembourg)",      "Luxembourg City, Luxembourg", _CARDIO,  50, "Luxembourg"),
+        _eu("Cardio/Preclin — Israel (Weizmann / Hebrew Uni / Technion)",     "Tel Aviv, Israel",           _CARDIO,  50, "Israel"),
 
         # ═══════════════════════════════════════════════════════════════════
         # US — Northeast

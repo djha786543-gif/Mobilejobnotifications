@@ -453,13 +453,19 @@ else:
         icon="🔔",
     )
     st.markdown("""
-**Domain-focused searches across Europe + US (academic & research institutes only):**
+**Multi-source scan — domain-focused, academic & research institutes only:**
 
-Each city is searched with Pooja's specific wet-lab domains — not generic job titles.
+Each source is searched with Pooja's specific wet-lab domains, not generic job titles.
 
-🔬 **Domain 1 — Cardiovascular / Preclinical / In Vivo / Mouse Models** (all cities)
-🫀 **Domain 2 — Metabolic Liver Disease / MASH / NASH / Senescence** (top hubs)
-🧬 **Domain 3 — Spatial Transcriptomics / scRNA-seq / Molecular Biology** (top hubs)
+🔬 **Domain 1 — Cardiovascular / Cardiac / In Vivo / Preclinical / Mouse Models**
+🫀 **Domain 2 — Metabolic Liver Disease / MASH / NASH / Senescence / Aging**
+🧬 **Domain 3 — Spatial Transcriptomics / scRNA-seq / Molecular & Cell Biology**
+
+**Sources scraped each run:**
+- **Indeed** (national sites per country) — cardiovascular/preclinical biology postdocs & scientists
+- **LinkedIn** — academic postdoc & research scientist postings globally
+- **jobs.ac.uk** — all UK universities, MRC/BBSRC/BHF-funded labs, NHS research trusts
+- **Nature Careers** — global academic & research institute postings (nature.com/naturecareers)
 
 🇬🇧🇩🇪🇨🇭🇸🇪🇩🇰🇳🇴🇫🇮🇦🇹🇧🇪🇳🇱🇫🇷🇪🇸🇮🇹🇮🇪🇱🇺🇮🇱 **Europe:** Cambridge UK · London · Oxford · Edinburgh · Manchester · Berlin · Munich · Heidelberg · Basel/Zurich · Stockholm · Copenhagen · Oslo · Helsinki · Vienna · Leuven/Brussels · Amsterdam · Paris · Madrid/Barcelona · Milan · Dublin · Luxembourg · Tel Aviv
 

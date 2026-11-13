@@ -11,6 +11,8 @@ import sys
 import time
 import requests
 import pandas as pd
+import xml.etree.ElementTree as ET
+from urllib.parse import quote_plus
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from jobspy import scrape_jobs
@@ -735,6 +737,171 @@ def scrape_with_retry(cfg: dict) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
+# Custom scraper — jobs.ac.uk  (UK academic job board, RSS feed)
+# Covers all UK universities, research institutes, NHS trusts, MRC/BBSRC labs.
+# No API key needed — public RSS.
+# ---------------------------------------------------------------------------
+_JOBS_AC_UK_QUERIES = [
+    "postdoctoral cardiovascular cardiac",
+    "postdoctoral in vivo mouse model preclinical",
+    "postdoctoral spatial transcriptomics single cell",
+    "postdoctoral MASH liver metabolic senescence",
+    "research scientist cardiovascular cardiac in vivo",
+    "research fellow cardiovascular cardiac molecular biology",
+    "group leader cardiovascular junior",
+    "assistant professor cardiovascular molecular biology",
+]
+
+def scrape_jobs_ac_uk() -> pd.DataFrame:
+    """Scrape jobs.ac.uk RSS for UK academic biology positions."""
+    sprint("\n[jobs.ac.uk] Scraping UK academic job board...")
+    rows = []
+    seen_urls: set[str] = set()
+    base = "https://www.jobs.ac.uk/search/?keywords={q}&sort=pd&orderby=d&format=rss"
+    headers = {"User-Agent": "Mozilla/5.0 (compatible; JobScanner/1.0)"}
+
+    for q in _JOBS_AC_UK_QUERIES:
+        url = base.format(q=quote_plus(q))
+        try:
+            r = requests.get(url, headers=headers, timeout=20)
+            if r.status_code != 200:
+                sprint(f"  [jobs.ac.uk] HTTP {r.status_code} for '{q}'")
+                continue
+            root = ET.fromstring(r.content)
+            jac_ns = "http://www.jobs.ac.uk/"
+            count_before = len(rows)
+            for item in root.findall(".//item"):
+                link = (item.findtext("link") or "").strip()
+                if not link or link in seen_urls:
+                    continue
+                seen_urls.add(link)
+                # Strip HTML tags from description
+                raw_desc = item.findtext("description") or ""
+                desc = re.sub(r"<[^>]+>", " ", raw_desc).strip()
+                rows.append({
+                    "title":        (item.findtext("title") or "").strip(),
+                    "company":      (item.findtext(f"{{{jac_ns}}}institution") or "").strip(),
+                    "location":     (item.findtext(f"{{{jac_ns}}}location") or "").strip(),
+                    "job_url":      link,
+                    "description":  desc,
+                    "date_posted":  (item.findtext("pubDate") or "").strip(),
+                    "job_type":     "fulltime",
+                    "_search_pass": f"jobs.ac.uk — {q}",
+                    "_region":      "Europe",
+                })
+            sprint(f"  [jobs.ac.uk] '{q}' → {len(rows) - count_before} new")
+            time.sleep(2)
+        except ET.ParseError as e:
+            sprint(f"  [jobs.ac.uk] XML parse error for '{q}': {e}")
+        except Exception as e:
+            sprint(f"  [jobs.ac.uk] Error for '{q}': {e}")
+
+    if not rows:
+        return pd.DataFrame()
+    df = pd.DataFrame(rows)
+    sprint(f"  [jobs.ac.uk] Total: {len(df)} unique UK academic postings")
+    return df
+
+
+# ---------------------------------------------------------------------------
+# Custom scraper — Nature Careers  (nature.com/naturecareers)
+# Global academic + research institute postings; strong cardiovascular coverage.
+# Uses their public search JSON API.
+# ---------------------------------------------------------------------------
+_NATURE_QUERIES = [
+    "postdoctoral cardiovascular cardiac",
+    "postdoctoral in vivo mouse model preclinical",
+    "postdoctoral spatial transcriptomics",
+    "research scientist cardiovascular heart failure",
+    "postdoctoral MASH liver metabolic senescence",
+    "group leader cardiovascular molecular biology",
+    "assistant professor cardiovascular biology",
+]
+
+def scrape_nature_careers() -> pd.DataFrame:
+    """Scrape Nature Careers for academic biology positions."""
+    sprint("\n[Nature Careers] Scraping nature.com/naturecareers...")
+    rows = []
+    seen_urls: set[str] = set()
+    headers = {
+        "User-Agent": "Mozilla/5.0 (compatible; JobScanner/1.0)",
+        "Accept": "application/json, text/html",
+    }
+
+    for q in _NATURE_QUERIES:
+        url = (
+            "https://www.nature.com/naturecareers/jobs/search.json"
+            f"?q={quote_plus(q)}&sort=date&order=desc&per_page=25"
+        )
+        try:
+            r = requests.get(url, headers=headers, timeout=20)
+            if r.status_code != 200:
+                # Fallback: try RSS endpoint
+                rss_url = (
+                    "https://www.nature.com/naturecareers/jobs/search/rss"
+                    f"?q={quote_plus(q)}"
+                )
+                r = requests.get(rss_url, headers=headers, timeout=20)
+                if r.status_code != 200:
+                    sprint(f"  [Nature] HTTP {r.status_code} for '{q}'")
+                    continue
+                try:
+                    root = ET.fromstring(r.content)
+                    for item in root.findall(".//item"):
+                        link = (item.findtext("link") or "").strip()
+                        if not link or link in seen_urls:
+                            continue
+                        seen_urls.add(link)
+                        desc = re.sub(r"<[^>]+>", " ", item.findtext("description") or "").strip()
+                        rows.append({
+                            "title":        (item.findtext("title") or "").strip(),
+                            "company":      "",
+                            "location":     "",
+                            "job_url":      link,
+                            "description":  desc,
+                            "date_posted":  (item.findtext("pubDate") or "").strip(),
+                            "job_type":     "fulltime",
+                            "_search_pass": f"Nature Careers — {q}",
+                            "_region":      "Europe",
+                        })
+                except ET.ParseError:
+                    pass
+                time.sleep(2)
+                continue
+
+            data = r.json()
+            jobs = data if isinstance(data, list) else data.get("jobs", data.get("results", []))
+            count_before = len(rows)
+            for job in jobs:
+                link = job.get("url") or job.get("link") or job.get("apply_url", "")
+                if not link or link in seen_urls:
+                    continue
+                seen_urls.add(link)
+                rows.append({
+                    "title":        job.get("title", "").strip(),
+                    "company":      job.get("institution", job.get("company", "")).strip(),
+                    "location":     job.get("location", "").strip(),
+                    "job_url":      link,
+                    "description":  job.get("description", job.get("body", "")).strip(),
+                    "date_posted":  job.get("posted_date", job.get("date", "")).strip(),
+                    "job_type":     "fulltime",
+                    "_search_pass": f"Nature Careers — {q}",
+                    "_region":      "Europe",
+                })
+            sprint(f"  [Nature] '{q}' → {len(rows) - count_before} new")
+
+        except Exception as e:
+            sprint(f"  [Nature Careers] Error for '{q}': {e}")
+        time.sleep(2)
+
+    if not rows:
+        return pd.DataFrame()
+    df = pd.DataFrame(rows)
+    sprint(f"  [Nature Careers] Total: {len(df)} unique postings")
+    return df
+
+
+# ---------------------------------------------------------------------------
 # Search configuration — domain-specific passes across Europe + US academic hubs
 #
 # Root problem with generic title-only searches: Indeed returns any "Research
@@ -882,6 +1049,26 @@ def build_search_configs() -> list[dict]:
         # ═══════════════════════════════════════════════════════════════════
         _us("Cardio/Preclin — Houston TX (Baylor / Texas Heart / UTHealth)",  "Houston, TX",                _CARDIO,  75),
         _us("Cardio/Preclin — Chicago IL (Northwestern / UChicago / Rush)",   "Chicago, IL",                _CARDIO,  75),
+
+        # ═══════════════════════════════════════════════════════════════════
+        # LINKEDIN — global academic postings (no country_indeed needed)
+        # LinkedIn has strong coverage of postdoc/scientist roles posted by
+        # university labs, research institutes, and faculty directly.
+        # ═══════════════════════════════════════════════════════════════════
+        {"label": "LinkedIn — London UK (cardiovascular/preclinical)",   "term": _CARDIO, "location": "London, United Kingdom",   "results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — Cambridge UK (cardiovascular/preclinical)","term": _CARDIO, "location": "Cambridge, United Kingdom","results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — Germany (cardiovascular/preclinical)",     "term": _CARDIO, "location": "Germany",                  "results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — Switzerland (cardiovascular/preclinical)", "term": _CARDIO, "location": "Switzerland",              "results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — Netherlands/Belgium (cardio/preclinical)", "term": _CARDIO, "location": "Netherlands",             "results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — Scandinavia (cardiovascular/preclinical)", "term": _CARDIO, "location": "Sweden",                  "results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — France/Spain (cardiovascular/preclinical)","term": _CARDIO, "location": "France",                  "results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — Boston MA (cardiovascular/preclinical)",   "term": _CARDIO, "location": "Boston, MA",              "results": 50, "region": "US",     "sites": ["linkedin"]},
+        {"label": "LinkedIn — New York NY (cardiovascular/preclinical)", "term": _CARDIO, "location": "New York, NY",            "results": 50, "region": "US",     "sites": ["linkedin"]},
+        {"label": "LinkedIn — Baltimore/DC (cardio/preclinical/NIH)",   "term": _CARDIO, "location": "Baltimore, MD",           "results": 50, "region": "US",     "sites": ["linkedin"]},
+        {"label": "LinkedIn — San Francisco CA (cardiovascular/preclin)","term": _CARDIO, "location": "San Francisco, CA",       "results": 50, "region": "US",     "sites": ["linkedin"]},
+        {"label": "LinkedIn — San Diego CA (Salk/Scripps/UCSD)",        "term": _CARDIO, "location": "San Diego, CA",           "results": 50, "region": "US",     "sites": ["linkedin"]},
+        {"label": "LinkedIn — MASH/Metab/Senescence (global)",          "term": _METAB,  "location": "United States",           "results": 50, "region": "US",     "sites": ["linkedin"]},
+        {"label": "LinkedIn — Spatial Transcriptomics (global)",        "term": _SPATIAL,"location": "United States",           "results": 50, "region": "US",     "sites": ["linkedin"]},
     ]
 
 
@@ -895,8 +1082,8 @@ def pooja_hunt():
     alerts_sent = 0
     configs     = build_search_configs()
 
-    # ── Step 1: Parallel scrape ────────────────────────────────────────────
-    sprint(f"\n[Scrape] Launching {len(configs)} passes with {SCRAPE_WORKERS} parallel workers...")
+    # ── Step 1: Parallel scrape (Indeed + LinkedIn via jobspy) ───────────────
+    sprint(f"\n[Scrape] Launching {len(configs)} jobspy passes with {SCRAPE_WORKERS} parallel workers...")
     all_frames   = []
     blocked_passes = 0
 
@@ -918,11 +1105,30 @@ def pooja_hunt():
                 blocked_passes += 1
 
     if blocked_passes > 0:
-        sprint(f"\n[Warning] {blocked_passes}/{len(configs)} passes returned 0 results.")
+        sprint(f"\n[Warning] {blocked_passes}/{len(configs)} jobspy passes returned 0 results.")
         if blocked_passes == len(configs):
-            sprint("[Pooja Scanner] No results from any search pass. Likely IP block by Indeed.")
-            push_notification("Pooja Academic Scan", "Scan ran — 0 results from all passes (possible IP block).", "low")
-            return
+            sprint("[Pooja Scanner] All jobspy passes blocked — continuing with custom scrapers.")
+
+    # ── Step 1b: Custom scrapers — jobs.ac.uk + Nature Careers ───────────
+    sprint("\n[Custom Scrapers] Running jobs.ac.uk and Nature Careers...")
+    try:
+        df_jac = scrape_jobs_ac_uk()
+        if not df_jac.empty:
+            all_frames.append(df_jac)
+    except Exception as e:
+        sprint(f"  [jobs.ac.uk] Scraper failed: {e}")
+
+    try:
+        df_nat = scrape_nature_careers()
+        if not df_nat.empty:
+            all_frames.append(df_nat)
+    except Exception as e:
+        sprint(f"  [Nature Careers] Scraper failed: {e}")
+
+    if not all_frames:
+        sprint("[Pooja Scanner] No results from any source. Likely IP block.")
+        push_notification("Pooja Academic Scan", "Scan ran — 0 results from all sources.", "low")
+        return
 
     # ── Step 2: Combine + deduplicate ─────────────────────────────────────
     raw = pd.concat(all_frames, ignore_index=True)

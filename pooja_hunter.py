@@ -1,6 +1,6 @@
 """
 pooja_hunter.py — Pooja Choubey's Academic Job Scanner (Universities & Research Institutes)
-Ph.D. Molecular Genetics | Cardiovascular Biology | Preclinical | Translational Medicine
+Ph.D. Molecular Genetics | Cardiovascular Biology | Liver/MASH | Organoids | Cell Culture | Spatial Transcriptomics
 STRICTLY ISOLATED from DJ's audit scanner.
 """
 
@@ -37,19 +37,56 @@ GITHUB_REPO    = os.getenv("GITHUB_REPO", "djha786543-gif/Mobilejobnotifications
 CSV_PATH       = "Scored_Pooja_Leads.csv"
 GROQ_MODEL     = "llama-3.3-70b-versatile"
 GROQ_ENDPOINT  = "https://api.groq.com/openai/v1/chat/completions"
-HOURS_OLD      = 360   # 15 days (broader window — fewer postings than IT audit)
+HOURS_OLD      = 360   # 15 days
 MIN_SAVE_SCORE = 35
-MAX_ALERTS     = 10
-SCORE_LLM_TOP  = 60    # top N by title relevance → LLM batch (increased from 45)
-BATCH_SIZE     = 15    # jobs per Groq call
-SCRAPE_WORKERS = 8     # parallel scrape threads
-MAX_RESULTS    = 100   # cap per search pass — raised to match per-city config volumes
-MAX_RETRIES    = 1     # retries per search pass on 0 results
-RETRY_DELAY    = 10    # seconds between retries
+MAX_ALERTS     = 15    # raised for wider coverage
+SCORE_LLM_TOP  = 80    # top N by title relevance → LLM batch
+BATCH_SIZE     = 15
+SCRAPE_WORKERS = 8
+MAX_RESULTS    = 100
+MAX_RETRIES    = 1
+RETRY_DELAY    = 10
+
+# --- MUST-APPLY CONFIG ---
+MUST_APPLY_SCORE = 78   # score threshold → auto-flag as must-apply
+
+_ELITE_INSTITUTIONS = [
+    "karolinska", "embl", "max planck", "max-planck", "helmholtz",
+    "nih", "nhlbi", "niddk", "nih.gov", "nci",
+    "harvard", "mit", "stanford", "caltech", "yale", "columbia",
+    "johns hopkins", "ucsf", "ucsd", "ucla", "penn", "duke",
+    "broad institute", "salk", "scripps",
+    "crick", "babraham", "mrc", "wellcome", "bhf",
+    "dkfz", "charité", "charite", "eth zurich", "epfl",
+    "pasteur", "inserm", "cnrs", "weizmann",
+    "gladstone", "dana-farber", "mayo clinic", "vanderbilt",
+    "hubrecht", "lumc", "ku leuven", "vib", "dtu",
+    "scilife", "novo nordisk foundation",
+]
+
+# Perfect-niche keywords → must-apply even at score 70+
+_MUST_APPLY_CORE_KW = [
+    "peripartum cardiomyopathy", "cardiomyopathy", "heart failure",
+    "mash", "nash", "steatohepatitis", "nafld",
+    "spatial transcriptomics", "xenium", "visium",
+    "ptrh2", "hepatic senescence", "cellular senescence",
+    "langendorff", "cardiac organoid", "liver organoid",
+    "in vivo cardiovascular", "cardiovascular mouse",
+    "cardiac fibrosis", "myocardial infarction model",
+]
+
+# Fellowship/grant types → flag regardless of score (high career value)
+_FELLOWSHIP_KW = [
+    "k99", "r00", "f32", "embo fellow", "marie curie", "msca",
+    "wellcome trust fellow", "bhf fellow", "hfsp fellow",
+    "humboldt fellow", "junior group leader", "independent fellow",
+    "group leader position", "tenure track", "tenure-track",
+    "starting group", "independent research group",
+]
 
 
 # ---------------------------------------------------------------------------
-# Title whitelist — research science and academic roles at universities / research institutes
+# Title whitelist — research science and academic roles
 # ---------------------------------------------------------------------------
 TITLE_WHITELIST = [
     # Core scientist titles
@@ -61,10 +98,10 @@ TITLE_WHITELIST = [
     r"\bassociate\s+(?:research\s+)?scientist\b",
     r"\br&d\s+scientist\b",
     r"\bscientific\s+researcher\b",
-    # Investigator equivalents (biotech/pharma term for Scientist)
+    # Investigator equivalents
     r"\bresearch\s+investigator\b",
     r"\bsenior\s+(?:research\s+)?investigator\b",
-    r"\bprincipal\s+(?:research\s+)?investigator\b(?!\s+\(pi\))",  # exclude academic PI
+    r"\bprincipal\s+(?:research\s+)?investigator\b(?!\s+\(pi\))",
     r"\bassociate\s+(?:research\s+)?investigator\b",
     r"\binvestigator\s+(?:i+|1|2|3)\b",
     # Specialty scientist
@@ -91,9 +128,29 @@ TITLE_WHITELIST = [
     r"\bfibrosis\s+(?:research|scientist)\b",
     r"\bgenomics\s+scientist\b",
     r"\btranscriptomics\s+scientist\b",
-    r"\bbiologist\b.*\b(?:cardiovascular|cardiac|preclinical|in\s+vivo|translational)\b",
-    r"\b(?:cardiovascular|cardiac|preclinical|in\s+vivo|translational)\b.*\bbiologist\b",
-    # Postdoctoral positions (academic/research institutions)
+    r"\bbiologist\b.*\b(?:cardiovascular|cardiac|preclinical|in\s+vivo|translational|hepatic|liver)\b",
+    r"\b(?:cardiovascular|cardiac|preclinical|in\s+vivo|translational|hepatic|liver)\b.*\bbiologist\b",
+    # Liver / hepatic / metabolic
+    r"\bliver\s+(?:biologist|research|researcher|scientist)\b",
+    r"\bhepatolog(?:ist|y\s+researcher)\b",
+    r"\bhepatic\s+(?:biologist|research|researcher)\b",
+    r"\bmetabolic\s+(?:disease\s+)?(?:biologist|researcher|scientist)\b",
+    r"\bmash\s+(?:research|researcher|scientist)\b",
+    r"\bnash\s+(?:research|researcher|scientist)\b",
+    r"\bsteatohepatitis\s+(?:research|researcher)\b",
+    # Organoid / iPSC / 3D models
+    r"\borganoid\s+(?:scientist|researcher|biologist)\b",
+    r"\bipsc\s+(?:scientist|researcher|biologist)\b",
+    r"\binduced\s+pluripotent\s+(?:stem\s+cell)?\s*(?:scientist|researcher)?\b",
+    r"\bstem\s+cell\s+(?:biologist|researcher|scientist)\b",
+    r"\borgans?\s+on\s+chip\b",
+    r"\bmicrophysiological\s+(?:systems?|model)\b",
+    r"\b3d\s+(?:cell\s+)?(?:culture|model|biology)\s+(?:scientist|researcher)?\b",
+    r"\bcardiac\s+organoid\b",
+    r"\bliver\s+organoid\b",
+    r"\bcardiomyocyte\s+(?:differentiation|biology|researcher)\b",
+    r"\bipsc-derived\b",
+    # Postdoctoral positions
     r"\bpostdoctoral\s+(?:fellow|scientist|researcher|associate|position)\b",
     r"\bpostdoc(?:toral)?\s+(?:fellow|researcher|associate)\b",
     r"\bpostdoc\b",
@@ -125,10 +182,10 @@ TITLE_WHITELIST = [
 TITLE_BLACKLIST = [
     r"\bsoftware\s+(?:engineer|developer)\b",
     r"\bdata\s+(?:engineer|architect)\b",
-    r"\bdata\s+scientist\b",                    # pure ML/AI data science
-    r"\bbioinformatician\b",                    # hardcore bioinformatics, no wet lab
+    r"\bdata\s+scientist\b",
+    r"\bbioinformatician\b",
     r"\bbioinformatics\s+(?:scientist|analyst|engineer|developer|specialist)\b",
-    r"\bcomputational\s+biolog(?:ist|y)\b",     # pure computational role
+    r"\bcomputational\s+biolog(?:ist|y)\b",
     r"\bcomputational\s+scientist\b",
     r"\bsales\b|\bmarketing\b",
     r"\bclinical\s+research\s+(?:coordinator|associate)\b",
@@ -142,14 +199,10 @@ TITLE_BLACKLIST = [
     r"\bhead\s+of\s+(?:research|biology|science|pharmacology)\b",
     r"\bcommercial\b.*\bscientist\b",
     r"\bmedical\s+science\s+liaison\b",
-    r"\bfield\s+application\s+scientist\b",  # sales-focused
+    r"\bfield\s+application\s+scientist\b",
     r"\bclinical\s+development\s+scientist\b",
     r"\bquality\s+control\s+scientist\b",
     r"\bmanufacturing\s+process\s+scientist\b",
-    # Non-biology sciences — prevent generic "Research Scientist" / "Senior Scientist"
-    # matching materials, physics, environmental, or other non-life-sciences domains.
-    # Note: word-boundary \b ensures "biochemist" is NOT matched by r"\bchemist\b",
-    # and "biophysicist" is NOT matched by r"\bphysicist\b".
     r"\bmaterials?\s+(?:scientist|science|engineer|engineering)\b",
     r"\bphysicist\b",
     r"\bphysics\s+(?:research|researcher|scientist)\b",
@@ -157,19 +210,17 @@ TITLE_BLACKLIST = [
     r"\bgeolog(?:y|ist)\b",
     r"\becolog(?:y|ist)\b",
     r"\bstatistician\b",
-    r"\bchemist\b",                             # \b: "biochemist" is NOT matched
+    r"\bchemist\b",
     r"\bchemical\s+engineer",
     r"\bepidemiolog(?:y|ist)\b",
     r"\bagricult(?:ure|ural)\s+scientist\b",
     r"\bfood\s+scientist\b",
     r"\bveterinar(?:y\s+scientist|ian)\b",
-    # NOTE: postdoc intentionally NOT blacklisted — Pooja needs academic US roles (J1)
+    # NOTE: postdoc intentionally NOT blacklisted
 ]
 
 # ---------------------------------------------------------------------------
 # J1-eligible US employer filter
-# Pooja is on J1 — corporate pharma/biotech cannot sponsor H1B immediately.
-# Only keep US positions at academic, government, or non-profit research orgs.
 # ---------------------------------------------------------------------------
 _US_J1_ELIGIBLE_RE = re.compile(
     r"universit|college\b|medical\s+center|medical\s+school|school\s+of\s+medicine"
@@ -189,8 +240,6 @@ _US_J1_ELIGIBLE_RE = re.compile(
 )
 
 def is_us_j1_eligible(company: str) -> bool:
-    """Return True if the company is an academic / government / non-profit
-    research institution suitable for Pooja's J1 visa status."""
     return bool(_US_J1_ELIGIBLE_RE.search(company))
 
 
@@ -198,18 +247,18 @@ _ACADEMIC_INST_RE = re.compile(
     r"universit|college\b|medical\s+cent(?:er|re)|medical\s+school|school\s+of\s+medicine"
     r"|health\s+(system|network|sciences|cent(?:er|re))|hospital\b"
     r"|\binstitut(?:e|o|um)\b|\binstituts?\b"
-    r"|\bumc\b|\bamc\b|\buclh\b|\bnhs\b"               # European medical center abbrevs
+    r"|\bumc\b|\bamc\b|\buclh\b|\bnhs\b"
     r"|research\s+cent(?:er|re)|research\s+institute|research\s+foundation"
     r"|national\s+(institute|laboratory|lab\b)"
     r"|\bnih\b|\bnci\b|\bnhlbi\b|\bniddk\b|\bnimh\b|\bcdc\b|\bfda\b|\busda\b"
     r"|karolinska|helmholtz|max.planck|max-planck|leibniz"
     r"|\bcnrs\b|\binserm\b|pasteur\b|\bcnio\b|\bcnic\b"
     r"|weizmann|\bembl\b|\bdkfz\b|\bvib\b|\bhubrecht\b"
-    r"|charité|charite|\bdzhk\b|\bbih\b|\bmdc\b"        # Berlin academic centres
-    r"|\bimba\b|\bimp\s+vienna\b|\bczb\b"               # Vienna
-    r"|\bfmi\b|\bepfl\b|\beth\s+zurich\b|\bsnf\b"       # Swiss
-    r"|scilife|\bki\b.*karolinska"                       # Karolinska / SciLifeLab
-    r"|\bnnf\b|\bdtu\b|novo\s+nordisk\s+foundation"     # Denmark
+    r"|charité|charite|\bdzhk\b|\bbih\b|\bmdc\b"
+    r"|\bimba\b|\bimp\s+vienna\b|\bczb\b"
+    r"|\bfmi\b|\bepfl\b|\beth\s+zurich\b|\bsnf\b"
+    r"|scilife|\bki\b.*karolinska"
+    r"|\bnnf\b|\bdtu\b|novo\s+nordisk\s+foundation"
     r"|veterans\s+affairs|\bvamc\b"
     r"|children'?s\b|pediatric\b|academic\s+medical"
     r"|\bhutchinson\b|\bhutch\b|dana.farber|\bscripps\b|\bsalk\b"
@@ -219,7 +268,8 @@ _ACADEMIC_INST_RE = re.compile(
     r"|stanford|ucsf\b|ucsd\b|ucla\b"
     r"|mit\b|caltech\b|carnegie\s+mellon|emory|vanderbilt|duke\s+university"
     r"|gladstone|garvan|wehi\b|monash|baker\s+(heart|institute)"
-    r"|wellcome\s+trust|crick\b|babraham|sanger\b|\bmrc\b",
+    r"|wellcome\s+trust|crick\b|babraham|sanger\b|\bmrc\b"
+    r"|hubrecht|\blumc\b|\bumcu\b|\bradboud\b|\bgroninge\b",
     re.IGNORECASE,
 )
 
@@ -237,18 +287,25 @@ def matches_title(title: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Title relevance pre-ranker — fast signal, no API call
+# Title relevance pre-ranker
 # ---------------------------------------------------------------------------
 _TITLE_HIGH = [
     "cardiovascular", "preclinical", "in vivo", "translational",
     "biomarker", "drug discovery", "pharmacolog", "cardiac",
     "cardiomyopathy", "heart failure", "fibrosis", "disease model",
     "mouse model", "transgenic",
+    # New high-relevance terms
+    "mash", "nash", "steatohepatitis", "liver disease", "hepatic",
+    "organoid", "cardiac organoid", "liver organoid", "ipsc",
+    "cardiomyocyte", "langendorff", "senescence",
 ]
 _TITLE_MED = [
     "research scientist", "senior scientist", "staff scientist",
     "principal scientist", "scientist ii", "scientist iii", "scientist 2",
     "scientist 3", "research investigator", "senior investigator",
+    # New medium terms
+    "cell biology", "molecular biology", "spatial transcriptomics",
+    "hepatologist", "liver biologist", "stem cell",
 ]
 
 def title_relevance(title: str) -> int:
@@ -314,7 +371,7 @@ def push_notification(title: str, message: str, priority: str = "default"):
 
 
 # ---------------------------------------------------------------------------
-# Keyword scorer — tuned for Pooja's cardiovascular/preclinical PhD profile
+# Keyword scorer — tuned for Pooja's full profile
 # ---------------------------------------------------------------------------
 def keyword_score(title: str, desc: str, location: str = "") -> int:
     t = title.lower()
@@ -346,6 +403,23 @@ def keyword_score(title: str, desc: str, location: str = "") -> int:
         "heart failure scientist":           16,
         "fibrosis scientist":                13,
         "disease model scientist":           14,
+        # New title cores
+        "liver scientist":                   15,
+        "liver biologist":                   15,
+        "hepatic scientist":                 14,
+        "hepatologist":                      13,
+        "mash scientist":                    17,
+        "nash scientist":                    17,
+        "metabolic disease scientist":       15,
+        "organoid scientist":                14,
+        "organoid biologist":                14,
+        "ipsc scientist":                    13,
+        "stem cell biologist":               12,
+        "cardiomyocyte biologist":           16,
+        "cardiac organoid":                  17,
+        "liver organoid":                    17,
+        "senescence scientist":              14,
+        "cell biology scientist":            11,
     }
     title_good = {
         "cardiovascular": 8, "cardiac": 7, "cardiomyopathy": 9,
@@ -356,6 +430,11 @@ def keyword_score(title: str, desc: str, location: str = "") -> int:
         "flow cytometry": 6, "molecular biology": 5,
         "cell biology": 5, "immunology": 5, "heart failure": 9,
         "fibrosis": 7, "myocardial": 8, "cardiomyocyte": 8,
+        # New good terms
+        "liver": 7, "hepatic": 7, "mash": 9, "nash": 9,
+        "steatohepatitis": 9, "organoid": 8, "ipsc": 7,
+        "stem cell": 6, "senescence": 7, "hepatocyte": 8,
+        "metabolic": 6, "obesity": 5,
     }
     title_pts  = sum(v for k, v in title_core.items() if k in t)
     title_pts += sum(v for k, v in title_good.items() if k in t)
@@ -363,7 +442,7 @@ def keyword_score(title: str, desc: str, location: str = "") -> int:
 
     # --- Description keyword signals ---
     desc_kw = {
-        # Core cardiovascular / cardiac
+        # === CARDIOVASCULAR / CARDIAC ===
         "cardiovascular":           9, "cardiac":               8,
         "cardiomyopathy":          10, "peripartum":           10,
         "heart failure":            9, "cardiomyocyte":         9,
@@ -375,8 +454,12 @@ def keyword_score(title: str, desc: str, location: str = "") -> int:
         "cardiac fibrosis":         9, "cardiac hypertrophy":   8,
         "pressure overload":        8, "tac model":             9,
         "myocardial infarction":    8, "mi model":              7,
+        "arrhythmia":               7, "atrial fibrillation":   7,
+        "ventricular":              6, "aortic stenosis":       7,
+        "dilated cardiomyopathy":  10, "hypertrophic cardiomyopathy": 10,
+        "right ventricular":        7, "pulmonary hypertension": 7,
 
-        # Preclinical / in vivo
+        # === PRECLINICAL / IN VIVO ===
         "preclinical":              9, "in vivo":               8,
         "mouse model":              9, "transgenic":            8,
         "knockout":                 7, "mouse colony":          8,
@@ -385,105 +468,142 @@ def keyword_score(title: str, desc: str, location: str = "") -> int:
         "subcutaneous":             5, "tissue harvest":        6,
         "organ harvest":            6, "survival surgery":      8,
         "osmotic pump":             7, "isoproterenol":         8,
-        "aortic banding":           9, "pressure overload":     8,
-        "echocardiographic":        8,
+        "aortic banding":           9, "echocardiographic":     8,
 
-        # Assays Pooja is expert in
-        "facs":                     7, "flow cytometry":        7,
-        "western blot":             6, "western blotting":      6,
-        "elisa":                    6, "ihc":                   6,
-        "immunohistochemistry":     6, "icc":                   5,
-        "immunocytochemistry":      5, "qrt-pcr":               6,
-        "qpcr":                     5, "tunel":                 7,
-        "hydroxyproline":           7, "cell culture":          4,
-        "confocal":                 5, "immunofluorescence":    6,
-        "masson trichrome":         7, "sirius red":            7,
+        # === LIVER / HEPATIC / MASH / NASH ===
+        "mash":                     10, "nash":                 10,
+        "steatohepatitis":           10, "steatosis":            8,
+        "fatty liver":               8, "nafld":                 9,
+        "hepatic":                   8, "liver disease":         8,
+        "liver fibrosis":            9, "liver biology":         8,
+        "hepatocyte":                9, "primary hepatocyte":   10,
+        "hepatocyte isolation":     10, "kupffer cell":          8,
+        "hepatic stellate":          9, "cholangiocyte":         7,
+        "biliary":                   6, "bile duct":             6,
+        "hepatic senescence":       10, "liver organoid":       10,
+        "hepatic organoid":         10, "liver on chip":         9,
+        "asgr":                      7, "hcc":                   7,
+        "liver cancer":              6, "hepatocellular":        7,
+        "metabolic dysfunction":     8, "metabolic disease":     8,
+        "metabolic syndrome":        7, "obesity model":         8,
+        "diet-induced":              8, "high-fat diet":         8,
+        "hfd":                       7, "insulin resistance":    7,
+        "glucose tolerance":         7, "hyperglycemia":         6,
+        "adipose":                   6, "adipogenesis":          6,
 
-        # Omics / transcriptomics
-        "rna-seq":                  7, "rnaseq":                7,
-        "scrna-seq":                7, "single cell rna":       8,
-        "spatial transcriptomics":  9, "xenium":                9,
-        "visium":                   9, "seurat":                6,
-        "bulk rna":                 6, "transcriptomics":       7,
-        "ipa":                      6, "ingenuity":             6,
-        "bioinformatics":           4, "pathway analysis":      5,
-        "gene ontology":            5, "gsea":                  5,
-        "string":                   4, "graphpad":              4,
+        # === ORGANOIDS / iPSC / 3D MODELS ===
+        "organoid":                 10, "cardiac organoid":     11,
+        "heart organoid":           11, "liver organoid":       11,
+        "gut organoid":              8, "intestinal organoid":   8,
+        "ipsc":                     10, "ipsc-cm":              11,
+        "ipsc-derived":             10, "induced pluripotent":  10,
+        "cardiomyocyte differentiation": 10, "ipsc-cardiomyocyte": 11,
+        "stem cell differentiation": 9, "pluripotent stem cell": 9,
+        "organ-on-chip":            10, "microphysiological":   10,
+        "engineered heart tissue":   9, "3d cardiac":            9,
+        "3d liver":                  9, "3d cell model":         8,
+        "gastruloid":                7, "blastoid":              7,
+        "assembloid":                8,
 
-        # Translational / biomarker
-        "translational":            8, "biomarker":             8,
-        "biomarker discovery":      9, "therapeutic target":    9,
-        "target validation":        9, "target identification": 8,
-        "drug discovery":           8, "pharmacology":          7,
-        "pharmacokinetics":         6, "mechanism of action":   7,
-        "proof of concept":         6, "efficacy model":        8,
+        # === CELL CULTURE / PRIMARY CELLS ===
+        "primary cell culture":      8, "primary cardiomyocyte": 9,
+        "adult cardiomyocyte":       9, "neonatal cardiomyocyte": 8,
+        "cardiac fibroblast":        8, "myofibroblast":          7,
+        "fibroblast":                6, "myoblast":               6,
+        "patient-derived cell":      8, "patient-derived":        7,
+        "cell culture":              5, "in vitro model":         7,
+        "cell line":                 4, "cell-based assay":       6,
+        "phenotypic screen":         7,
 
-        # Molecular / genetics
-        "molecular genetics":       7, "molecular biology":     6,
-        "gene expression":          5, "protein expression":    5,
-        "signaling pathway":        6, "western":               5,
-        "ptrh2":                   10, "ptrh":                  8,
+        # === ASSAYS (Pooja's expertise) ===
+        "facs":                      7, "flow cytometry":        7,
+        "western blot":              6, "western blotting":      6,
+        "elisa":                     6, "ihc":                   6,
+        "immunohistochemistry":      6, "icc":                   5,
+        "immunocytochemistry":       5, "qrt-pcr":               6,
+        "qpcr":                      5, "tunel":                 7,
+        "hydroxyproline":            7, "cell culture":          4,
+        "confocal":                  5, "immunofluorescence":    6,
+        "masson trichrome":          7, "sirius red":            7,
+        "sa-β-gal":                  8, "sa-bgal":               8,
+        "senescence assay":          8, "senolytic":             8,
+        "p16":                       6, "p21":                   6,
+        "sasp":                      8,
 
-        # PhD requirement (strong match)
-        "ph.d. required":          10, "phd required":         10,
-        "ph.d required":           10, "ph.d. preferred":       8,
-        "phd preferred":            8, "doctorate required":    9,
-        "doctoral degree":          8, "advanced degree":       5,
+        # === OMICS / TRANSCRIPTOMICS ===
+        "rna-seq":                   7, "rnaseq":                7,
+        "scrna-seq":                 7, "single cell rna":       8,
+        "spatial transcriptomics":   9, "xenium":                9,
+        "visium":                    9, "seurat":                6,
+        "bulk rna":                  6, "transcriptomics":       7,
+        "ipa":                       6, "ingenuity":             6,
+        "bioinformatics":            4, "pathway analysis":      5,
+        "gene ontology":             5, "gsea":                  5,
+        "string":                    4, "graphpad":              4,
+        "deseq2":                    7, "scanpy":                6,
+        "ggplot2":                   4, "loupe browser":         6,
+        "xenium explorer":           7, "clc genomics":          5,
+        "metabolomics":              7, "lipidomics":            6,
+        "proteomics":                6,
 
-        # Academic institution signals (strong positive for academic search)
-        "university":               8, "universität":              8,
-        "research institute":       9, "research center":          9,
-        "research centre":          9, "medical school":           8,
-        "medical center":           8, "medical centre":           8,
-        "research hospital":        7, "academic medical":         8,
-        "postdoctoral fellowship":  9, "postdoc fellowship":       9,
-        "fellowship position":      8, "research fellowship":      8,
-        "group leader":             9, "junior group leader":      9,
-        "independent group":        8, "starting group":           8,
-        "tenure track":             9, "tenure-track":             9,
-        "assistant professor":      9, "associate professor":      8,
-        "lecturer position":        8, "research lecturer":        7,
-        "k99":                      8, "r00":                      7,
-        "k award":                  7, "nih grant":                6,
-        "grant funding":            6, "extramural":               6,
-        "phd students":             7, "graduate students":        7,
-        "mentoring students":       6, "supervise students":       6,
-        "embo":                     8, "hfsp":                     8,
-        "marie curie":              8, "msca":                     8,
-        "humboldt":                 7, "wellcome trust":           8,
-        "bhf":                      7, "mrc funded":               7,
-        # Visa/work permit for international candidates
-        "work permit":              6, "visa sponsorship":         7,
-        "relocation":               5,
+        # === TRANSLATIONAL / BIOMARKER ===
+        "translational":             8, "biomarker":             8,
+        "biomarker discovery":       9, "therapeutic target":    9,
+        "target validation":         9, "target identification": 8,
+        "drug discovery":            8, "pharmacology":          7,
+        "pharmacokinetics":          6, "mechanism of action":   7,
+        "proof of concept":          6, "efficacy model":        8,
 
-        # Senescence / aging (Pooja's MASH/PTRH2 program extends into senescence)
-        "senescence":               8, "cellular senescence":   9,
-        "sa-β-gal":                 7, "sa-bgal":               7,
-        "p16":                      5, "p21":                   5,
-        "sasp":                     7, "senolytic":             7,
-        "senolytics":               7, "aging":                 4,
-        "age-related":              5, "healthspan":            5,
+        # === MOLECULAR / GENETICS ===
+        "molecular genetics":        7, "molecular biology":     6,
+        "gene expression":           5, "protein expression":    5,
+        "signaling pathway":         6, "western":               5,
+        "ptrh2":                    10, "ptrh":                   8,
+        "heme oxygenase":            7, "hmox1":                  8,
 
-        # MASH / NASH / hepatic / metabolic disease (Catalyst Grant focus)
-        "mash":                     9, "nash":                  9,
-        "steatohepatitis":          9, "steatosis":             7,
-        "fatty liver":              7, "nafld":                 8,
-        "hepatic":                  7, "liver disease":         7,
-        "metabolic disease":        7, "metabolic dysfunction": 7,
-        "metabolic syndrome":       6, "obesity model":         7,
-        "diet-induced":             7, "high-fat diet":         7,
-        "hfd":                      6, "insulin resistance":    6,
+        # === SENESCENCE / AGING ===
+        "senescence":                8, "cellular senescence":   9,
+        "p16":                       5, "p21":                   5,
+        "sasp":                      7, "senolytic":             7,
+        "senolytics":                7, "aging":                 5,
+        "age-related":               5, "healthspan":            5,
+        "lifespan":                  4, "geroscience":           7,
 
-        # Omics tools (from CV — more specific than before)
-        "deseq2":                   7, "seurat":                6,
-        "scanpy":                   6, "ggplot2":               4,
-        "loupe browser":            6, "xenium explorer":       7,
-        "clc genomics":             5, "bulk rna":              6,
-        "metabolomics":             7, "lipidomics":            5,
+        # === ACADEMIC INSTITUTION SIGNALS ===
+        "university":                8, "universität":               8,
+        "research institute":        9, "research center":           9,
+        "research centre":           9, "medical school":            8,
+        "medical center":            8, "medical centre":            8,
+        "research hospital":         7, "academic medical":          8,
+        "postdoctoral fellowship":   9, "postdoc fellowship":        9,
+        "fellowship position":       8, "research fellowship":       8,
+        "group leader":              9, "junior group leader":       9,
+        "independent group":         8, "starting group":            8,
+        "tenure track":              9, "tenure-track":              9,
+        "assistant professor":       9, "associate professor":       8,
+        "lecturer position":         8, "research lecturer":         7,
+        "k99":                       8, "r00":                       7,
+        "k award":                   7, "nih grant":                 6,
+        "grant funding":             6, "extramural":                6,
+        "phd students":              7, "graduate students":         7,
+        "mentoring students":        6, "supervise students":        6,
+        "embo":                      8, "hfsp":                      8,
+        "marie curie":               8, "msca":                      8,
+        "humboldt":                  7, "wellcome trust":            8,
+        "bhf":                       7, "mrc funded":                7,
 
+        # === PhD REQUIREMENT ===
+        "ph.d. required":           10, "phd required":             10,
+        "ph.d required":            10, "ph.d. preferred":           8,
+        "phd preferred":             8, "doctorate required":        9,
+        "doctoral degree":           8, "advanced degree":           5,
+
+        # === VISA / RELOCATION ===
+        "work permit":               6, "visa sponsorship":          7,
+        "relocation":                5, "relocation package":        6,
     }
     desc_pts = sum(v for k, v in desc_kw.items() if k in d)
-    score += min(desc_pts, 42)
+    score += min(desc_pts, 46)   # raised cap (more domains now)
 
     # --- Seniority fit ---
     if re.search(r"\bsenior\b|\bstaff\b|\bsr\.\b", t):
@@ -492,20 +612,20 @@ def keyword_score(title: str, desc: str, location: str = "") -> int:
         score += 3
     if re.search(r"\bjunior\b|\bentry\s+level\b|\bscientist\s+i\b|\bscientist\s+1\b", t):
         score -= 8
-    # Postdoc at academic institution — actively desired for J1 US eligibility
     if re.search(r"\bpostdoc\b|\bpost-doc\b|\bpostdoctoral\b", t):
-        score += 10   # academic postdoc is a target role
+        score += 10
 
-    # Hard bioinformatics-only penalty — Pooja is a wet-lab scientist, not a pure analyst
+    # Hard bioinformatics-only penalty
     _WET_LAB_KW = ["mouse", "in vivo", "animal", "cell culture", "western blot",
                    "flow cytometry", "facs", "ihc", "elisa", "phenotyp", "echocard",
-                   "langendorff", "qpcr", "qrt-pcr", "confocal", "immunofluorescence"]
+                   "langendorff", "qpcr", "qrt-pcr", "confocal", "immunofluorescence",
+                   "hepatocyte", "organoid", "cardiomyocyte", "primary cell"]
     _BIOINF_HEAVY = ["bioinformatics", "pipeline", "workflow", "cloud", "aws", "hpc",
                      "kubernetes", "docker", "nextflow", "snakemake", "linux", "bash scripting"]
     has_wet = any(k in d for k in _WET_LAB_KW)
     has_bioinf = sum(1 for k in _BIOINF_HEAVY if k in d)
     if has_bioinf >= 3 and not has_wet:
-        score -= 25   # hardcore bioinformatics/computational, no wet-lab component
+        score -= 25
 
     # Hard seniority penalties
     if re.search(r"\bvp\b|\bvice\s+president\b", t):            score -= 30
@@ -517,7 +637,7 @@ def keyword_score(title: str, desc: str, location: str = "") -> int:
     if any(k in d for k in ["secret clearance", "top secret", "ts/sci", "clearance required"]):
         score -= 30
 
-    # Industry company / commercial penalty
+    # Industry / commercial penalty
     _INDUSTRY_SIGNALS = [
         "drug candidate", "ind filing", "clinical pipeline", "commercial pipeline",
         "gmp facility", "cmc development", "manufacturing process",
@@ -543,7 +663,37 @@ def keyword_score(title: str, desc: str, location: str = "") -> int:
 
 
 # ---------------------------------------------------------------------------
-# Batch LLM scorer — 15 jobs per Groq call
+# Must-Apply flag — no exceptions, Pooja applies to these
+# ---------------------------------------------------------------------------
+def is_must_apply(score: int, title: str, company: str, desc: str) -> bool:
+    """Return True if Pooja must apply — zero exceptions."""
+    if score >= MUST_APPLY_SCORE:
+        return True
+
+    t = title.lower()
+    d = (title + " " + desc).lower()
+    c = company.lower()
+
+    # At elite institution + decent score → must apply
+    at_elite = any(k in c for k in _ELITE_INSTITUTIONS)
+    if score >= 65 and at_elite:
+        return True
+
+    # Perfect niche match → must apply even at score 65+
+    core_match = any(k in d for k in _MUST_APPLY_CORE_KW)
+    if score >= 65 and core_match:
+        return True
+
+    # Fellowship/grant positions → always must apply (high career value)
+    fellowship_match = any(k in d for k in _FELLOWSHIP_KW)
+    if score >= 50 and fellowship_match:
+        return True
+
+    return False
+
+
+# ---------------------------------------------------------------------------
+# Batch LLM scorer
 # ---------------------------------------------------------------------------
 def llm_score_batch(batch: list[dict]) -> list[int | None]:
     if not GROQ_API_KEY or not batch:
@@ -564,59 +714,53 @@ def llm_score_batch(batch: list[dict]) -> list[int | None]:
         "CANDIDATE — Dr. Pooja Choubey, Ph.D. Molecular Genetics:\n"
         "CURRENT: Postdoctoral Scientist, Lundquist Institute / Harbor-UCLA Medical Center, "
         "Torrance CA (Matter Lab) — Sep 2025–Present\n"
-        "EDUCATION: Ph.D. Molecular Genetics, University of Delhi (2023) | M.Sc. Zoology | "
-        "B.Sc. (Hons.) Zoology — first position\n"
-        "PUBLICATIONS: 10 peer-reviewed articles + 1 book chapter; "
-        "co-first author Nature Communications 2026 (PTRH2/peripartum cardiomyopathy); "
-        "first-author JACC: Advances 2026 (PERCVD genetic screening trial); "
+        "EDUCATION: Ph.D. Molecular Genetics, University of Delhi (2023) | M.Sc. Zoology\n"
+        "PUBLICATIONS: 10 peer-reviewed articles; co-first author Nature Communications 2026 "
+        "(PTRH2/peripartum cardiomyopathy); first-author JACC: Advances 2026; "
         "first-author Cells 2026 (cardiac transcriptomics)\n"
-        "GRANT: PI on competitive intramural Postdoctoral Catalyst Grant (Oct 2026–Sep 2027) "
-        "on PTRH2-driven hepatic senescence in MASH — building towards K99/R00\n\n"
+        "GRANT: PI on competitive Postdoctoral Catalyst Grant (2026–27) on PTRH2-driven "
+        "hepatic senescence in MASH — building towards K99/R00\n\n"
 
-        "IN VIVO EXPERTISE (10+ years):\n"
-        "- Transgenic mouse colony: 200+ mice, 3 lines (Hmox1, Ptrh2)\n"
-        "- Cardiac phenotyping: Langendorff perfusion, echocardiography (Vevo F2), ECG, "
-        "adult cardiomyocyte isolation, contractility assays\n"
-        "- Disease models: peripartum cardiomyopathy, heart failure, MASH/NASH, obesity, "
-        "diet-induced liver disease, timed matings, embryo collection (E12.5–E18.5)\n"
-        "- Senescence: SA-β-gal, TUNEL, flow cytometry senescence panels\n\n"
+        "IN VIVO (10+ years): transgenic mouse colony 200+ mice (Hmox1, Ptrh2); "
+        "cardiac phenotyping (Langendorff perfusion, echocardiography Vevo F2, ECG, "
+        "adult cardiomyocyte isolation, contractility); disease models: peripartum cardiomyopathy, "
+        "heart failure, MASH/NASH, obesity/diet-induced liver disease, embryo collection E12.5-18.5; "
+        "senescence panels (SA-β-gal, TUNEL, flow cytometry)\n\n"
 
-        "CELLULAR & MOLECULAR ASSAYS:\n"
-        "- FACS/flow cytometry, Western blot, IHC, ICC, immunofluorescence, ELISA, qRT-PCR\n"
-        "- Confocal and Keyence imaging; histology (Masson trichrome, Sirius Red)\n"
-        "- Primary cell culture (cardiomyocytes, fibroblasts, myoblasts, patient-derived)\n\n"
+        "CELL CULTURE & ORGANOIDS: primary cardiomyocytes, cardiac fibroblasts, myoblasts, "
+        "hepatocytes, patient-derived cells (IMNEPD); experience with 3D cell models; "
+        "familiar with iPSC-derived cardiomyocyte and liver organoid approaches\n\n"
 
-        "OMICS & DATA ANALYSIS:\n"
-        "- Bulk RNA-seq, scRNA-seq (Seurat, Scanpy)\n"
-        "- 10x Visium & Xenium spatial transcriptomics; Loupe Browser; Xenium Explorer\n"
-        "- R (DESeq2, Seurat, ggplot2); Python (Scanpy, pandas); QIAGEN IPA; STRING\n\n"
+        "LIVER / MASH EXPERTISE: diet-induced MASH/NAFLD mouse models, hepatic senescence, "
+        "liver histology (Sirius Red, Oil Red O), hepatocyte isolation, metabolic phenotyping\n\n"
+
+        "ASSAYS: FACS/flow cytometry, Western blot, IHC/ICC, immunofluorescence, ELISA, "
+        "qRT-PCR, confocal/Keyence imaging, histology (Masson trichrome, Sirius Red), "
+        "SA-β-gal, TUNEL\n\n"
+
+        "OMICS: bulk RNA-seq, scRNA-seq (Seurat, Scanpy), 10x Visium & Xenium spatial "
+        "transcriptomics, R (DESeq2, ggplot2), Python (Scanpy, pandas), QIAGEN IPA, STRING\n\n"
 
         "TARGET ROLES (academic/research institutions ONLY):\n"
-        "1. Postdoctoral Fellow/Researcher at a university, medical school, research institute "
-        "or government lab (NIH) — WET-LAB focused; cardiovascular, cardiometabolic, "
-        "MASH/hepatic, senescence/aging, reproductive/placental, or spatial transcriptomics biology\n"
-        "2. Research Scientist / Staff Scientist / Research Fellow at a university or "
-        "non-profit research institute\n"
-        "3. Junior Group Leader / Assistant Professor / Lecturer — if at appropriate stage\n"
-        "NOT SUITABLE FOR: Pure computational/bioinformatics, clinical coordinator, "
-        "regulatory affairs, any industry role (pharma/biotech/CRO), VP/Director/Head of roles\n"
-        "CRITICAL WET-LAB REQUIREMENT: Role must require or strongly prefer wet-lab work "
-        "(mouse models, cardiac/metabolic phenotyping, cell biology, histology). "
-        "Score LOW for roles that are primarily computational with no bench component.\n\n"
+        "1. Postdoctoral Fellow/Researcher — wet-lab focused; cardiovascular, MASH/hepatic, "
+        "liver biology, organoid/iPSC models, senescence/aging, spatial transcriptomics\n"
+        "2. Research Scientist / Staff Scientist at university or non-profit research institute\n"
+        "3. Junior Group Leader / Assistant Professor at appropriate career stage\n"
+        "NOT SUITABLE FOR: pure computational/bioinformatics, clinical coordinator, "
+        "regulatory, industry (pharma/biotech/CRO), VP/Director/Head roles\n"
+        "CRITICAL WET-LAB REQUIREMENT: role must involve wet-lab bench work.\n\n"
 
-        "SCORING RUBRIC (BE STRICT — ACADEMIC FOCUS):\n"
-        "90–100: Explicitly hands-on wet-lab cardiovascular/cardiometabolic/MASH/senescence "
-        "research at a university or research institute; PhD required; strong overlap with "
-        "in vivo, cardiac phenotyping, spatial transcriptomics, or mouse models\n"
-        "70–89: Strong wet-lab academic role, PhD preferred, good overlap, adjacent area "
-        "(liver/metabolic, aging, reproductive biology, developmental biology)\n"
-        "50–69: Academic postdoc or research scientist, relevant techniques but missing "
-        "cardiovascular/preclinical focus, OR general molecular biology/cell biology\n"
-        "30–49: Academic role but mostly computational, OR wrong field, OR missing PhD\n"
-        "< 30: Industry role, QA/QC, manufacturing, clinical, software, pure bioinformatics\n\n"
-        "CRITICAL: Industry/pharma/biotech/CRO postings — score MAX 20.\n"
-        "CRITICAL: Pure bioinformatics/computational roles with no bench work — score MAX 30.\n"
-        "CRITICAL: Director, VP, Head of — score MAX 20.\n\n"
+        "SCORING RUBRIC (BE STRICT):\n"
+        "90–100: Hands-on wet-lab cardiovascular/MASH/liver/organoid/senescence research at "
+        "university or research institute; PhD required; strong overlap\n"
+        "75–89: Strong wet-lab academic role, good domain overlap, adjacent areas "
+        "(liver/metabolic, aging, reproductive biology, cell biology, iPSC)\n"
+        "55–74: Academic postdoc/scientist, relevant techniques but partial domain match\n"
+        "30–54: Academic but mostly computational, OR wrong field, OR missing PhD\n"
+        "< 30: Industry, QA/QC, manufacturing, clinical, software, pure bioinformatics\n\n"
+        "CRITICAL: Industry/pharma/biotech/CRO → score MAX 20.\n"
+        "CRITICAL: Pure bioinformatics/computational, no bench work → score MAX 30.\n"
+        "CRITICAL: Director, VP, Head of → score MAX 20.\n\n"
 
         "JOBS:\n" +
         "\n\n".join(blocks) +
@@ -632,7 +776,7 @@ def llm_score_batch(batch: list[dict]) -> list[int | None]:
                          "Content-Type": "application/json"},
                 json={"model": GROQ_MODEL,
                       "messages": [{"role": "user", "content": prompt}],
-                      "max_tokens": 150,
+                      "max_tokens": 200,
                       "temperature": 0},
                 timeout=30,
             )
@@ -667,15 +811,9 @@ def llm_score_batch(batch: list[dict]) -> list[int | None]:
 
 
 # ---------------------------------------------------------------------------
-# Robust scrape with retry + fallback sites (mirrors DJ's scrape_with_retry)
+# Robust scrape with retry + fallback
 # ---------------------------------------------------------------------------
 def scrape_with_retry(cfg: dict) -> pd.DataFrame:
-    """
-    Try Indeed first. If 0 results, retry up to MAX_RETRIES times.
-    If still 0, fall back to cfg['fallback_sites'] (one attempt each).
-    For US passes, passes country_indeed="USA" to prevent geo-blocking.
-    Returns labelled DataFrame or empty DataFrame.
-    """
     is_us = cfg.get("region", "US") == "US"
     base_kwargs = dict(
         search_term=cfg["term"],
@@ -683,8 +821,6 @@ def scrape_with_retry(cfg: dict) -> pd.DataFrame:
         results_wanted=min(cfg["results"], MAX_RESULTS),
         hours_old=HOURS_OLD,
     )
-    # Set country_indeed so jobspy hits the correct national Indeed site.
-    # Without this, all European passes default to indeed.com (US) → 0 results.
     if "country_indeed" in cfg:
         base_kwargs["country_indeed"] = cfg["country_indeed"]
     elif is_us:
@@ -696,7 +832,6 @@ def scrape_with_retry(cfg: dict) -> pd.DataFrame:
 
     sites = cfg.get("sites", ["indeed"])
 
-    # --- Primary: Indeed (with retry) ---
     for attempt in range(1 + MAX_RETRIES):
         try:
             df = scrape_jobs(site_name=sites, **base_kwargs)
@@ -713,12 +848,10 @@ def scrape_with_retry(cfg: dict) -> pd.DataFrame:
             if attempt < MAX_RETRIES:
                 time.sleep(RETRY_DELAY)
 
-    # --- Fallback: try other sites ---
     fallback_sites = cfg.get("fallback_sites", [])
     for site in fallback_sites:
         try:
             sprint(f"  → Trying fallback: {site}...")
-            # Strip country_indeed / hours_old for non-Indeed sites
             fb_kwargs = {k: v for k, v in base_kwargs.items()
                          if k not in ("country_indeed", "hours_old")}
             df = scrape_jobs(site_name=[site], **fb_kwargs)
@@ -732,16 +865,15 @@ def scrape_with_retry(cfg: dict) -> pd.DataFrame:
             sprint(f"  [{site} fallback error]: {e}")
         time.sleep(8)
 
-    sprint(f"  → 0 results from all sources (likely IP block or no new postings)")
+    sprint(f"  → 0 results from all sources")
     return pd.DataFrame()
 
 
 # ---------------------------------------------------------------------------
 # Custom scraper — jobs.ac.uk  (UK academic job board, RSS feed)
-# Covers all UK universities, research institutes, NHS trusts, MRC/BBSRC labs.
-# No API key needed — public RSS.
 # ---------------------------------------------------------------------------
 _JOBS_AC_UK_QUERIES = [
+    # Cardiovascular / cardiac
     "postdoctoral cardiovascular cardiac",
     "postdoctoral in vivo mouse model preclinical",
     "postdoctoral spatial transcriptomics single cell",
@@ -750,10 +882,27 @@ _JOBS_AC_UK_QUERIES = [
     "research fellow cardiovascular cardiac molecular biology",
     "group leader cardiovascular junior",
     "assistant professor cardiovascular molecular biology",
+    # Liver / hepatic / MASH
+    "postdoctoral liver hepatic biology metabolic",
+    "postdoctoral MASH NASH steatohepatitis liver",
+    "postdoctoral hepatocyte liver disease metabolic",
+    "research scientist liver hepatic disease",
+    "postdoctoral metabolic disease obesity liver mouse",
+    # Organoids / iPSC / cell culture
+    "postdoctoral organoid cardiac heart iPSC",
+    "postdoctoral organoid liver hepatic iPSC",
+    "postdoctoral iPSC induced pluripotent stem cell cardiomyocyte",
+    "postdoctoral cell culture primary cell cardiomyocyte",
+    "research scientist organoid iPSC cardiac",
+    # Senescence / aging
+    "postdoctoral senescence aging cellular cardiovascular",
+    "postdoctoral cellular senescence SASP aging biology",
+    # Spatial transcriptomics
+    "postdoctoral spatial transcriptomics Xenium Visium cardiovascular",
+    "postdoctoral single cell RNA sequencing cardiovascular",
 ]
 
 def scrape_jobs_ac_uk() -> pd.DataFrame:
-    """Scrape jobs.ac.uk RSS for UK academic biology positions."""
     sprint("\n[jobs.ac.uk] Scraping UK academic job board...")
     rows = []
     seen_urls: set[str] = set()
@@ -775,7 +924,6 @@ def scrape_jobs_ac_uk() -> pd.DataFrame:
                 if not link or link in seen_urls:
                     continue
                 seen_urls.add(link)
-                # Strip HTML tags from description
                 raw_desc = item.findtext("description") or ""
                 desc = re.sub(r"<[^>]+>", " ", raw_desc).strip()
                 rows.append({
@@ -804,22 +952,24 @@ def scrape_jobs_ac_uk() -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# Custom scraper — Nature Careers  (nature.com/naturecareers)
-# Global academic + research institute postings; strong cardiovascular coverage.
-# Uses their public search JSON API.
+# Custom scraper — Nature Careers
 # ---------------------------------------------------------------------------
 _NATURE_QUERIES = [
     "postdoctoral cardiovascular cardiac",
-    "postdoctoral in vivo mouse model preclinical",
-    "postdoctoral spatial transcriptomics",
-    "research scientist cardiovascular heart failure",
-    "postdoctoral MASH liver metabolic senescence",
+    "postdoctoral in vivo mouse model preclinical cardiovascular",
+    "postdoctoral spatial transcriptomics cardiovascular",
+    "research scientist cardiovascular heart failure mouse",
+    "postdoctoral MASH liver metabolic steatohepatitis",
+    "postdoctoral senescence aging cardiovascular liver",
     "group leader cardiovascular molecular biology",
     "assistant professor cardiovascular biology",
+    "postdoctoral organoid cardiac liver iPSC",
+    "postdoctoral hepatocyte liver disease metabolic",
+    "postdoctoral cell biology cardiovascular flow cytometry",
+    "postdoctoral transcriptomics single cell cardiovascular",
 ]
 
 def scrape_nature_careers() -> pd.DataFrame:
-    """Scrape Nature Careers for academic biology positions."""
     sprint("\n[Nature Careers] Scraping nature.com/naturecareers...")
     rows = []
     seen_urls: set[str] = set()
@@ -836,7 +986,6 @@ def scrape_nature_careers() -> pd.DataFrame:
         try:
             r = requests.get(url, headers=headers, timeout=20)
             if r.status_code != 200:
-                # Fallback: try RSS endpoint
                 rss_url = (
                     "https://www.nature.com/naturecareers/jobs/search/rss"
                     f"?q={quote_plus(q)}"
@@ -902,31 +1051,167 @@ def scrape_nature_careers() -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# Search configuration — domain-specific passes across Europe + US academic hubs
-#
-# Root problem with generic title-only searches: Indeed returns any "Research
-# Scientist" in any field (AI/ML, materials, physics…).  By embedding Pooja's
-# domain keywords directly in the search term, Indeed's own relevance engine
-# pre-filters to biology-relevant postings before our title/institution filters
-# even run.
-#
-# Three domain search strings:
-#   _CARDIO  — cardiovascular / cardiac / preclinical / in vivo / mouse models
-#   _METAB   — metabolic liver disease / MASH / NASH / senescence / aging
-#   _SPATIAL — spatial transcriptomics / single-cell / molecular & cell biology
-#
-# City strategy: 13 Europe + 10 US = 23 cities.
-# _CARDIO runs everywhere (Pooja's core 10+ years expertise).
-# _METAB + _SPATIAL run in top 10 high-volume hubs.
-# Total: ~36 passes.
+# Custom scraper — EurAxess  (European academic job portal, RSS)
+# Covers ALL EU countries: Germany, France, Netherlands, Sweden, Switzerland,
+# Belgium, Austria, Italy, Spain, Denmark, Norway, Finland, etc.
+# ---------------------------------------------------------------------------
+_EURAXESS_QUERIES = [
+    "postdoctoral cardiovascular cardiac molecular biology",
+    "postdoctoral in vivo mouse model preclinical cardiovascular",
+    "postdoctoral spatial transcriptomics cardiovascular cardiac",
+    "postdoctoral MASH liver metabolic steatohepatitis",
+    "postdoctoral senescence aging cardiovascular heart",
+    "postdoctoral organoid cardiac liver iPSC induced pluripotent",
+    "postdoctoral hepatocyte liver disease metabolic",
+    "postdoctoral cell biology cardiovascular flow cytometry",
+    "research scientist cardiovascular heart failure mouse",
+    "junior group leader cardiovascular molecular biology",
+    "group leader cardiovascular molecular biology independent",
+    "postdoctoral transcriptomics single cell cardiovascular",
+    "postdoctoral cardiomyopathy heart failure molecular",
+    "postdoctoral cardiac fibrosis senescence liver",
+    "researcher cardiovascular biology in vivo mouse",
+    "postdoctoral NASH NAFLD liver fibrosis hepatic",
+]
+
+def scrape_euraxess() -> pd.DataFrame:
+    """Scrape EurAxess RSS for EU academic research positions."""
+    sprint("\n[EurAxess] Scraping euraxess.ec.europa.eu...")
+    rows = []
+    seen_urls: set[str] = set()
+    base = "https://euraxess.ec.europa.eu/jobs/search/rss?keywords={q}"
+    headers = {"User-Agent": "Mozilla/5.0 (compatible; JobScanner/1.0)",
+               "Accept": "application/rss+xml, application/xml, text/xml"}
+
+    for q in _EURAXESS_QUERIES:
+        url = base.format(q=quote_plus(q))
+        try:
+            r = requests.get(url, headers=headers, timeout=25)
+            if r.status_code != 200:
+                sprint(f"  [EurAxess] HTTP {r.status_code} for '{q}'")
+                time.sleep(2)
+                continue
+            # EurAxess sometimes returns HTML on error — check
+            if b"<rss" not in r.content[:200] and b"<?xml" not in r.content[:200]:
+                sprint(f"  [EurAxess] Non-XML response for '{q}' (possibly CAPTCHA)")
+                time.sleep(5)
+                continue
+            root = ET.fromstring(r.content)
+            dc_ns = "http://purl.org/dc/elements/1.1/"
+            count_before = len(rows)
+            for item in root.findall(".//item"):
+                link = (item.findtext("link") or "").strip()
+                if not link or link in seen_urls:
+                    continue
+                seen_urls.add(link)
+                raw_desc = item.findtext("description") or ""
+                desc = re.sub(r"<[^>]+>", " ", raw_desc).strip()
+                institution = item.findtext(f"{{{dc_ns}}}publisher") or \
+                              item.findtext(f"{{{dc_ns}}}creator") or ""
+                location    = item.findtext(f"{{{dc_ns}}}coverage") or \
+                              item.findtext(f"{{{dc_ns}}}spatial") or ""
+                rows.append({
+                    "title":        (item.findtext("title") or "").strip(),
+                    "company":      institution.strip(),
+                    "location":     location.strip(),
+                    "job_url":      link,
+                    "description":  desc,
+                    "date_posted":  (item.findtext("pubDate") or "").strip(),
+                    "job_type":     "fulltime",
+                    "_search_pass": f"EurAxess — {q}",
+                    "_region":      "Europe",
+                })
+            sprint(f"  [EurAxess] '{q}' → {len(rows) - count_before} new")
+            time.sleep(2)
+        except ET.ParseError as e:
+            sprint(f"  [EurAxess] XML parse error for '{q}': {e}")
+        except Exception as e:
+            sprint(f"  [EurAxess] Error for '{q}': {e}")
+
+    if not rows:
+        return pd.DataFrame()
+    df = pd.DataFrame(rows)
+    sprint(f"  [EurAxess] Total: {len(df)} unique EU academic postings")
+    return df
+
+
+# ---------------------------------------------------------------------------
+# Custom scraper — HigherEdJobs RSS  (US academic, life sciences)
+# Covers US universities, medical schools, research institutes.
+# ---------------------------------------------------------------------------
+_HIGHERED_RSS_URLS = [
+    # Category 145 = Biology/Life Sciences
+    "https://www.higheredjobs.com/rss/jobfeed.cfm?JobCat=145&Keyword=cardiovascular+research",
+    "https://www.higheredjobs.com/rss/jobfeed.cfm?JobCat=145&Keyword=cardiac+biology+mouse",
+    "https://www.higheredjobs.com/rss/jobfeed.cfm?JobCat=145&Keyword=MASH+liver+metabolic",
+    "https://www.higheredjobs.com/rss/jobfeed.cfm?JobCat=145&Keyword=spatial+transcriptomics",
+    "https://www.higheredjobs.com/rss/jobfeed.cfm?JobCat=145&Keyword=in+vivo+cardiovascular+mouse",
+    "https://www.higheredjobs.com/rss/jobfeed.cfm?JobCat=145&Keyword=organoid+cardiac+iPSC",
+    "https://www.higheredjobs.com/rss/jobfeed.cfm?JobCat=145&Keyword=liver+organoid+hepatocyte",
+    "https://www.higheredjobs.com/rss/jobfeed.cfm?JobCat=145&Keyword=senescence+aging+cardiovascular",
+    "https://www.higheredjobs.com/rss/jobfeed.cfm?JobCat=145&Keyword=cardiomyocyte+flow+cytometry",
+    # Category 148 = Medical/Health Sciences
+    "https://www.higheredjobs.com/rss/jobfeed.cfm?JobCat=148&Keyword=cardiovascular+research+postdoc",
+    "https://www.higheredjobs.com/rss/jobfeed.cfm?JobCat=148&Keyword=liver+metabolic+disease+research",
+    "https://www.higheredjobs.com/rss/jobfeed.cfm?JobCat=148&Keyword=cardiac+mouse+model+preclinical",
+]
+
+def scrape_higheredjobs_rss() -> pd.DataFrame:
+    """Scrape HigherEdJobs RSS for US academic life science positions."""
+    sprint("\n[HigherEdJobs] Scraping higheredjobs.com RSS...")
+    rows = []
+    seen_urls: set[str] = set()
+    headers = {"User-Agent": "Mozilla/5.0 (compatible; JobScanner/1.0)"}
+
+    for url in _HIGHERED_RSS_URLS:
+        try:
+            r = requests.get(url, headers=headers, timeout=20)
+            if r.status_code != 200:
+                sprint(f"  [HigherEd] HTTP {r.status_code} for {url[-60:]}")
+                time.sleep(2)
+                continue
+            root = ET.fromstring(r.content)
+            count_before = len(rows)
+            for item in root.findall(".//item"):
+                link = (item.findtext("link") or "").strip()
+                if not link or link in seen_urls:
+                    continue
+                seen_urls.add(link)
+                raw_desc = item.findtext("description") or ""
+                desc = re.sub(r"<[^>]+>", " ", raw_desc).strip()
+                # HigherEdJobs encodes institution in title sometimes; extract if possible
+                raw_title = (item.findtext("title") or "").strip()
+                rows.append({
+                    "title":        raw_title,
+                    "company":      "",   # not in RSS, will be pulled from desc later
+                    "location":     "",
+                    "job_url":      link,
+                    "description":  desc,
+                    "date_posted":  (item.findtext("pubDate") or "").strip(),
+                    "job_type":     "fulltime",
+                    "_search_pass": f"HigherEdJobs — {url.split('Keyword=')[-1][:40]}",
+                    "_region":      "US",
+                })
+            sprint(f"  [HigherEdJobs] {url.split('Keyword=')[-1][:40]} → {len(rows) - count_before} new")
+            time.sleep(1)
+        except ET.ParseError as e:
+            sprint(f"  [HigherEdJobs] XML parse error: {e}")
+        except Exception as e:
+            sprint(f"  [HigherEdJobs] Error: {e}")
+
+    if not rows:
+        return pd.DataFrame()
+    df = pd.DataFrame(rows)
+    sprint(f"  [HigherEdJobs] Total: {len(df)} unique US academic postings")
+    return df
+
+
+# ---------------------------------------------------------------------------
+# Search configuration — domain-specific passes across Europe + US
 # ---------------------------------------------------------------------------
 def build_search_configs() -> list[dict]:
 
-    # Boolean OR groups: (role title) AND (domain keyword)
-    # Space-separated words without OR = AND in Indeed → returns 0 results.
-    # Parenthesised OR groups ensure Indeed matches job title OR domain term.
-
-    # Cardiovascular / preclinical / in vivo (Pooja's primary expertise)
+    # === DOMAIN 1: Cardiovascular / Cardiac / Preclinical / In Vivo ===
     _CARDIO = (
         '("Postdoctoral Fellow" OR "Postdoctoral Researcher" OR "Postdoc" OR '
         '"Research Fellow" OR "Research Scientist" OR "Staff Scientist" OR '
@@ -935,19 +1220,53 @@ def build_search_configs() -> list[dict]:
         '(cardiovascular OR cardiac OR "heart failure" OR cardiomyopathy OR '
         '"in vivo" OR preclinical OR "mouse model" OR transgenic OR '
         '"disease model" OR "cardiac phenotyping" OR Langendorff OR '
-        'echocardiography OR cardiomyocyte)'
+        'echocardiography OR cardiomyocyte OR "cardiac fibrosis")'
     )
 
-    # Metabolic liver disease / MASH / NASH / senescence (Pooja's current grant)
+    # === DOMAIN 2: Liver / Hepatic / MASH / NASH ===
+    _LIVER = (
+        '("Postdoctoral Fellow" OR "Postdoctoral Researcher" OR "Postdoc" OR '
+        '"Research Fellow" OR "Research Scientist" OR "Staff Scientist") '
+        '(MASH OR NASH OR steatohepatitis OR "fatty liver" OR NAFLD OR '
+        '"liver disease" OR "hepatic steatosis" OR hepatocyte OR '
+        '"liver fibrosis" OR "liver biology" OR "hepatic biology" OR '
+        '"liver organoid" OR "hepatic organoid" OR "primary hepatocyte" OR '
+        '"metabolic liver" OR "liver cancer" OR HCC OR '
+        '"metabolic dysfunction" OR "diet-induced" OR "high-fat diet")'
+    )
+
+    # === DOMAIN 3: Metabolic Disease / Senescence / Aging ===
     _METAB = (
         '("Postdoctoral Fellow" OR "Postdoctoral Researcher" OR "Postdoc" OR '
         '"Research Fellow" OR "Research Scientist" OR "Staff Scientist") '
         '(MASH OR NASH OR steatohepatitis OR "fatty liver" OR NAFLD OR '
         '"metabolic disease" OR senescence OR "cellular senescence" OR '
-        '"liver disease" OR "hepatic steatosis" OR aging OR "metabolic dysfunction")'
+        '"liver disease" OR "hepatic steatosis" OR aging OR "metabolic dysfunction" OR '
+        '"metabolic syndrome" OR obesity OR "adipose tissue" OR diabetes)'
     )
 
-    # Spatial transcriptomics / single-cell / molecular biology wet-lab
+    # === DOMAIN 4: Organoids / iPSC / 3D Cell Models ===
+    _ORGANOID = (
+        '("Postdoctoral Fellow" OR "Postdoctoral Researcher" OR "Postdoc" OR '
+        '"Research Fellow" OR "Research Scientist" OR "Staff Scientist") '
+        '(organoid OR "cardiac organoid" OR "heart organoid" OR "liver organoid" OR '
+        '"hepatic organoid" OR iPSC OR "induced pluripotent" OR '
+        '"cardiomyocyte differentiation" OR "iPSC-derived cardiomyocyte" OR '
+        '"organ-on-chip" OR "microphysiological" OR "3D cell model" OR '
+        '"stem cell cardiomyocyte" OR "engineered heart tissue")'
+    )
+
+    # === DOMAIN 5: Cell Culture / Primary Cells / Cardiomyocytes ===
+    _CELL_CULT = (
+        '("Postdoctoral Fellow" OR "Postdoctoral Researcher" OR "Postdoc" OR '
+        '"Research Fellow" OR "Research Scientist") '
+        '(cardiomyocyte OR "primary cardiomyocyte" OR "cardiac fibroblast" OR '
+        '"primary hepatocyte" OR "hepatocyte isolation" OR "cell culture" OR '
+        '"patient-derived" OR "primary cell" OR "cell biology" OR '
+        '"iPSC-CM" OR "neonatal cardiomyocyte")'
+    )
+
+    # === DOMAIN 6: Spatial Transcriptomics / scRNA-seq / Omics ===
     _SPATIAL = (
         '("Postdoctoral Fellow" OR "Postdoctoral Researcher" OR "Postdoc" OR '
         '"Research Fellow" OR "Research Scientist") '
@@ -970,105 +1289,250 @@ def build_search_configs() -> list[dict]:
         # ═══════════════════════════════════════════════════════════════════
         # EUROPE — UK
         # ═══════════════════════════════════════════════════════════════════
-        _eu("Cardio/Preclin — Cambridge UK (Crick/Sanger/Babraham/MRC)",     "Cambridge, United Kingdom",  _CARDIO, 100, "UK"),
-        _eu("Metab/Spatial  — Cambridge UK",                                  "Cambridge, United Kingdom",  _METAB,   75, "UK"),
-        _eu("Spatial/Omics  — Cambridge UK",                                  "Cambridge, United Kingdom",  _SPATIAL, 75, "UK"),
+        _eu("Cardio/Preclin — Cambridge UK",         "Cambridge, United Kingdom",  _CARDIO, 100, "UK"),
+        _eu("Liver/MASH    — Cambridge UK",           "Cambridge, United Kingdom",  _LIVER,   75, "UK"),
+        _eu("Metab/Senesc  — Cambridge UK",           "Cambridge, United Kingdom",  _METAB,   75, "UK"),
+        _eu("Organoid/iPSC — Cambridge UK",           "Cambridge, United Kingdom",  _ORGANOID,75, "UK"),
+        _eu("Spatial/Omics — Cambridge UK",           "Cambridge, United Kingdom",  _SPATIAL, 75, "UK"),
 
-        _eu("Cardio/Preclin — London UK (UCL/King's/Imperial/Wellcome)",      "London, United Kingdom",     _CARDIO, 100, "UK"),
-        _eu("Metab/Spatial  — London UK",                                     "London, United Kingdom",     _METAB,   75, "UK"),
-        _eu("Spatial/Omics  — London UK",                                     "London, United Kingdom",     _SPATIAL, 75, "UK"),
+        _eu("Cardio/Preclin — London UK",             "London, United Kingdom",     _CARDIO, 100, "UK"),
+        _eu("Liver/MASH    — London UK",              "London, United Kingdom",     _LIVER,   75, "UK"),
+        _eu("Metab/Senesc  — London UK",              "London, United Kingdom",     _METAB,   75, "UK"),
+        _eu("Organoid/iPSC — London UK",              "London, United Kingdom",     _ORGANOID,75, "UK"),
+        _eu("Spatial/Omics — London UK",              "London, United Kingdom",     _SPATIAL, 75, "UK"),
 
-        _eu("Cardio/Preclin — Oxford UK (RDM / Cardiovascular Dept)",         "Oxford, United Kingdom",     _CARDIO,  75, "UK"),
-        _eu("Cardio/Preclin — Edinburgh UK (BHF Centre / MRC HGU)",           "Edinburgh, United Kingdom",  _CARDIO,  75, "UK"),
-        _eu("Cardio/Preclin — Manchester UK",                                  "Manchester, United Kingdom", _CARDIO,  50, "UK"),
+        _eu("Cardio/Preclin — Oxford UK",             "Oxford, United Kingdom",     _CARDIO,  75, "UK"),
+        _eu("Liver/MASH    — Oxford UK",              "Oxford, United Kingdom",     _LIVER,   50, "UK"),
+        _eu("Cardio/Preclin — Edinburgh UK",          "Edinburgh, United Kingdom",  _CARDIO,  75, "UK"),
+        _eu("Liver/MASH    — Edinburgh UK",           "Edinburgh, United Kingdom",  _LIVER,   50, "UK"),
+        _eu("Cardio/Preclin — Manchester UK",         "Manchester, United Kingdom", _CARDIO,  75, "UK"),
+        _eu("Cardio/Preclin — Glasgow UK",            "Glasgow, United Kingdom",    _CARDIO,  50, "UK"),
+        _eu("Cardio/Preclin — Bristol UK",            "Bristol, United Kingdom",    _CARDIO,  50, "UK"),
+        _eu("Cardio/Preclin — Birmingham UK",         "Birmingham, United Kingdom", _CARDIO,  50, "UK"),
 
         # ═══════════════════════════════════════════════════════════════════
         # EUROPE — Germany
         # ═══════════════════════════════════════════════════════════════════
-        _eu("Cardio/Preclin — Berlin (MDC / Charité / BIH / DZHK)",          "Berlin, Germany",            _CARDIO, 100, "Germany"),
-        _eu("Metab/Spatial  — Berlin",                                         "Berlin, Germany",            _METAB,   75, "Germany"),
+        _eu("Cardio/Preclin — Berlin",                "Berlin, Germany",            _CARDIO, 100, "Germany"),
+        _eu("Liver/MASH    — Berlin",                 "Berlin, Germany",            _LIVER,   75, "Germany"),
+        _eu("Metab/Senesc  — Berlin",                 "Berlin, Germany",            _METAB,   75, "Germany"),
+        _eu("Organoid/iPSC — Berlin",                 "Berlin, Germany",            _ORGANOID,75, "Germany"),
 
-        _eu("Cardio/Preclin — Munich (Helmholtz / TUM / LMU / MPI Ageing)",  "Munich, Germany",            _CARDIO, 100, "Germany"),
-        _eu("Metab/Spatial  — Munich",                                         "Munich, Germany",            _METAB,   75, "Germany"),
+        _eu("Cardio/Preclin — Munich",                "Munich, Germany",            _CARDIO, 100, "Germany"),
+        _eu("Liver/MASH    — Munich",                 "Munich, Germany",            _LIVER,   75, "Germany"),
+        _eu("Metab/Senesc  — Munich",                 "Munich, Germany",            _METAB,   75, "Germany"),
+        _eu("Organoid/iPSC — Munich",                 "Munich, Germany",            _ORGANOID,75, "Germany"),
 
-        _eu("Cardio/Preclin — Heidelberg (EMBL / DKFZ / Heidelberg Uni)",    "Heidelberg, Germany",        _CARDIO,  75, "Germany"),
+        _eu("Cardio/Preclin — Heidelberg",            "Heidelberg, Germany",        _CARDIO,  75, "Germany"),
+        _eu("Liver/MASH    — Heidelberg",             "Heidelberg, Germany",        _LIVER,   50, "Germany"),
+        _eu("Cardio/Preclin — Hamburg",               "Hamburg, Germany",           _CARDIO,  75, "Germany"),
+        _eu("Liver/MASH    — Hamburg",                "Hamburg, Germany",           _LIVER,   50, "Germany"),
+        _eu("Cardio/Preclin — Frankfurt",             "Frankfurt, Germany",         _CARDIO,  50, "Germany"),
+        _eu("Cardio/Preclin — Cologne/Dusseldorf",    "Cologne, Germany",           _CARDIO,  50, "Germany"),
+        _eu("Cardio/Preclin — Goettingen",            "Gottingen, Germany",         _CARDIO,  50, "Germany"),
+        _eu("Liver/MASH    — Goettingen",             "Gottingen, Germany",         _LIVER,   50, "Germany"),
+        _eu("Cardio/Preclin — Freiburg",              "Freiburg, Germany",          _CARDIO,  50, "Germany"),
+        _eu("Cardio/Preclin — Dresden/Leipzig",       "Dresden, Germany",           _CARDIO,  50, "Germany"),
 
         # ═══════════════════════════════════════════════════════════════════
-        # EUROPE — Switzerland / Scandinavia / Netherlands / France / Ireland
+        # EUROPE — Switzerland
         # ═══════════════════════════════════════════════════════════════════
-        _eu("Cardio/Preclin — Basel/Zurich (ETH / Uni Zurich / FMI / EPFL)", "Basel, Switzerland",         _CARDIO, 100, "Switzerland"),
-        _eu("Metab/Spatial  — Basel/Zurich",                                   "Basel, Switzerland",         _METAB,   75, "Switzerland"),
+        _eu("Cardio/Preclin — Basel/Zurich",          "Basel, Switzerland",         _CARDIO, 100, "Switzerland"),
+        _eu("Liver/MASH    — Basel/Zurich",           "Basel, Switzerland",         _LIVER,   75, "Switzerland"),
+        _eu("Metab/Senesc  — Basel/Zurich",           "Basel, Switzerland",         _METAB,   75, "Switzerland"),
+        _eu("Organoid/iPSC — Basel/Zurich",           "Basel, Switzerland",         _ORGANOID,75, "Switzerland"),
 
-        _eu("Cardio/Preclin — Stockholm (Karolinska / Uppsala / SciLifeLab)", "Stockholm, Sweden",          _CARDIO, 100, "Sweden"),
-        _eu("Metab/Spatial  — Stockholm",                                      "Stockholm, Sweden",          _METAB,   75, "Sweden"),
+        _eu("Cardio/Preclin — Geneva/Lausanne",       "Geneva, Switzerland",        _CARDIO,  75, "Switzerland"),
+        _eu("Liver/MASH    — Geneva/Lausanne",        "Geneva, Switzerland",        _LIVER,   50, "Switzerland"),
 
-        _eu("Cardio/Preclin — Copenhagen (KU / NNF CBMR / reNEW / DTU)",      "Copenhagen, Denmark",        _CARDIO,  75, "Denmark"),
-        _eu("Cardio/Preclin — Oslo (UiO / Oslo Uni Hospital / NTNU)",         "Oslo, Norway",               _CARDIO,  75, "Norway"),
-        _eu("Cardio/Preclin — Helsinki (Uni Helsinki / HiLIFE / FIMM)",       "Helsinki, Finland",          _CARDIO,  50, "Finland"),
+        # ═══════════════════════════════════════════════════════════════════
+        # EUROPE — Scandinavia
+        # ═══════════════════════════════════════════════════════════════════
+        _eu("Cardio/Preclin — Stockholm",             "Stockholm, Sweden",          _CARDIO, 100, "Sweden"),
+        _eu("Liver/MASH    — Stockholm",              "Stockholm, Sweden",          _LIVER,   75, "Sweden"),
+        _eu("Metab/Senesc  — Stockholm",              "Stockholm, Sweden",          _METAB,   75, "Sweden"),
+        _eu("Organoid/iPSC — Stockholm",              "Stockholm, Sweden",          _ORGANOID,50, "Sweden"),
+        _eu("Cardio/Preclin — Gothenburg",            "Gothenburg, Sweden",         _CARDIO,  50, "Sweden"),
 
-        _eu("Cardio/Preclin — Vienna (MedUni Wien / IMBA / IMP / CeMM)",     "Vienna, Austria",            _CARDIO,  75, "Austria"),
-        _eu("Metab/Spatial  — Vienna",                                         "Vienna, Austria",            _METAB,   50, "Austria"),
+        _eu("Cardio/Preclin — Copenhagen",            "Copenhagen, Denmark",        _CARDIO,  75, "Denmark"),
+        _eu("Liver/MASH    — Copenhagen",             "Copenhagen, Denmark",        _LIVER,   75, "Denmark"),
+        _eu("Metab/Senesc  — Copenhagen",             "Copenhagen, Denmark",        _METAB,   75, "Denmark"),
+        _eu("Cardio/Preclin — Aarhus",                "Aarhus, Denmark",            _CARDIO,  50, "Denmark"),
+        _eu("Liver/MASH    — Aarhus",                 "Aarhus, Denmark",            _LIVER,   50, "Denmark"),
 
-        _eu("Cardio/Preclin — Amsterdam NL (Amsterdam UMC / Hubrecht / LUMC)","Amsterdam, Netherlands",     _CARDIO,  75, "Netherlands"),
-        _eu("Cardio/Preclin — Leuven/Brussels (KU Leuven / VIB / Ghent)",    "Leuven, Belgium",            _CARDIO,  75, "Belgium"),
+        _eu("Cardio/Preclin — Oslo",                  "Oslo, Norway",               _CARDIO,  75, "Norway"),
+        _eu("Liver/MASH    — Oslo",                   "Oslo, Norway",               _LIVER,   50, "Norway"),
+        _eu("Cardio/Preclin — Helsinki",              "Helsinki, Finland",          _CARDIO,  50, "Finland"),
 
-        _eu("Cardio/Preclin — Paris (Pasteur / INSERM / Institut Cochin)",    "Paris, France",              _CARDIO,  75, "France"),
-        _eu("Cardio/Preclin — Madrid/Barcelona (CNIC / CRG / IRB / CNIO)",   "Madrid, Spain",              _CARDIO,  75, "Spain"),
-        _eu("Cardio/Preclin — Milan (San Raffaele / Human Technopole)",       "Milan, Italy",               _CARDIO,  75, "Italy"),
-        _eu("Cardio/Preclin — Dublin IE (Trinity / RCSI / UCD)",              "Dublin, Ireland",            _CARDIO,  50, "Ireland"),
-        _eu("Cardio/Preclin — Luxembourg (LIH / LCSB / Uni Luxembourg)",      "Luxembourg City, Luxembourg", _CARDIO,  50, "Luxembourg"),
-        _eu("Cardio/Preclin — Israel (Weizmann / Hebrew Uni / Technion)",     "Tel Aviv, Israel",           _CARDIO,  50, "Israel"),
+        # ═══════════════════════════════════════════════════════════════════
+        # EUROPE — Netherlands / Belgium
+        # ═══════════════════════════════════════════════════════════════════
+        _eu("Cardio/Preclin — Amsterdam NL",          "Amsterdam, Netherlands",     _CARDIO,  75, "Netherlands"),
+        _eu("Liver/MASH    — Amsterdam NL",           "Amsterdam, Netherlands",     _LIVER,   75, "Netherlands"),
+        _eu("Organoid/iPSC — Amsterdam NL",           "Amsterdam, Netherlands",     _ORGANOID,75, "Netherlands"),
+        _eu("Cardio/Preclin — Utrecht NL",            "Utrecht, Netherlands",       _CARDIO,  75, "Netherlands"),
+        _eu("Liver/MASH    — Utrecht NL",             "Utrecht, Netherlands",       _LIVER,   50, "Netherlands"),
+        _eu("Organoid/iPSC — Utrecht NL",             "Utrecht, Netherlands",       _ORGANOID,75, "Netherlands"),
+        _eu("Cardio/Preclin — Leiden NL",             "Leiden, Netherlands",        _CARDIO,  50, "Netherlands"),
+        _eu("Cardio/Preclin — Groningen NL",          "Groningen, Netherlands",     _CARDIO,  50, "Netherlands"),
+        _eu("Liver/MASH    — Groningen NL",           "Groningen, Netherlands",     _LIVER,   50, "Netherlands"),
+        _eu("Cardio/Preclin — Nijmegen NL",           "Nijmegen, Netherlands",      _CARDIO,  50, "Netherlands"),
+
+        _eu("Cardio/Preclin — Leuven/Brussels",       "Leuven, Belgium",            _CARDIO,  75, "Belgium"),
+        _eu("Liver/MASH    — Leuven/Brussels",        "Leuven, Belgium",            _LIVER,   75, "Belgium"),
+        _eu("Organoid/iPSC — Leuven/Brussels",        "Leuven, Belgium",            _ORGANOID,50, "Belgium"),
+        _eu("Cardio/Preclin — Ghent",                 "Ghent, Belgium",             _CARDIO,  50, "Belgium"),
+        _eu("Liver/MASH    — Ghent",                  "Ghent, Belgium",             _LIVER,   50, "Belgium"),
+
+        # ═══════════════════════════════════════════════════════════════════
+        # EUROPE — Austria
+        # ═══════════════════════════════════════════════════════════════════
+        _eu("Cardio/Preclin — Vienna",                "Vienna, Austria",            _CARDIO,  75, "Austria"),
+        _eu("Liver/MASH    — Vienna",                 "Vienna, Austria",            _LIVER,   75, "Austria"),
+        _eu("Metab/Senesc  — Vienna",                 "Vienna, Austria",            _METAB,   50, "Austria"),
+        _eu("Organoid/iPSC — Vienna",                 "Vienna, Austria",            _ORGANOID,75, "Austria"),
+
+        # ═══════════════════════════════════════════════════════════════════
+        # EUROPE — France / Spain / Italy / Portugal / Ireland
+        # ═══════════════════════════════════════════════════════════════════
+        _eu("Cardio/Preclin — Paris",                 "Paris, France",              _CARDIO,  75, "France"),
+        _eu("Liver/MASH    — Paris",                  "Paris, France",              _LIVER,   75, "France"),
+        _eu("Cardio/Preclin — Lyon",                  "Lyon, France",               _CARDIO,  50, "France"),
+        _eu("Liver/MASH    — Lyon",                   "Lyon, France",               _LIVER,   50, "France"),
+
+        _eu("Cardio/Preclin — Madrid/Barcelona",      "Madrid, Spain",              _CARDIO,  75, "Spain"),
+        _eu("Liver/MASH    — Madrid/Barcelona",       "Madrid, Spain",              _LIVER,   75, "Spain"),
+        _eu("Cardio/Preclin — Barcelona",             "Barcelona, Spain",           _CARDIO,  50, "Spain"),
+        _eu("Liver/MASH    — Barcelona",              "Barcelona, Spain",           _LIVER,   50, "Spain"),
+
+        _eu("Cardio/Preclin — Milan",                 "Milan, Italy",               _CARDIO,  75, "Italy"),
+        _eu("Liver/MASH    — Milan",                  "Milan, Italy",               _LIVER,   75, "Italy"),
+        _eu("Cardio/Preclin — Rome",                  "Rome, Italy",                _CARDIO,  50, "Italy"),
+        _eu("Cardio/Preclin — Bologna",               "Bologna, Italy",             _CARDIO,  50, "Italy"),
+
+        _eu("Cardio/Preclin — Lisbon/Porto",          "Lisbon, Portugal",           _CARDIO,  50, "Portugal"),
+        _eu("Liver/MASH    — Lisbon/Porto",           "Lisbon, Portugal",           _LIVER,   50, "Portugal"),
+
+        _eu("Cardio/Preclin — Dublin",                "Dublin, Ireland",            _CARDIO,  50, "Ireland"),
+        _eu("Cardio/Preclin — Luxembourg",            "Luxembourg City, Luxembourg", _CARDIO, 50, "Luxembourg"),
+        _eu("Liver/MASH    — Luxembourg",             "Luxembourg City, Luxembourg", _LIVER,  50, "Luxembourg"),
+
+        # ═══════════════════════════════════════════════════════════════════
+        # EUROPE — Israel
+        # ═══════════════════════════════════════════════════════════════════
+        _eu("Cardio/Preclin — Israel",                "Tel Aviv, Israel",           _CARDIO,  50, "Israel"),
+        _eu("Liver/MASH    — Israel",                 "Tel Aviv, Israel",           _LIVER,   50, "Israel"),
 
         # ═══════════════════════════════════════════════════════════════════
         # US — Northeast
         # ═══════════════════════════════════════════════════════════════════
-        _us("Cardio/Preclin — Boston MA (Harvard/MGH/BWH/Tufts)",             "Boston, MA",                 _CARDIO, 100),
-        _us("Metab/Spatial  — Boston MA",                                      "Boston, MA",                 _METAB,   75),
-        _us("Spatial/Omics  — Boston MA",                                      "Boston, MA",                 _SPATIAL, 75),
+        _us("Cardio/Preclin — Boston MA",             "Boston, MA",                 _CARDIO, 100),
+        _us("Liver/MASH    — Boston MA",              "Boston, MA",                 _LIVER,   75),
+        _us("Metab/Senesc  — Boston MA",              "Boston, MA",                 _METAB,   75),
+        _us("Organoid/iPSC — Boston MA",              "Boston, MA",                 _ORGANOID,75),
+        _us("Spatial/Omics — Boston MA",              "Boston, MA",                 _SPATIAL, 75),
 
-        _us("Cardio/Preclin — New York NY (Columbia/Rockefeller/Sinai/NYU)",  "New York, NY",               _CARDIO, 100),
-        _us("Metab/Spatial  — New York NY",                                    "New York, NY",               _METAB,   75),
+        _us("Cardio/Preclin — New York NY",           "New York, NY",               _CARDIO, 100),
+        _us("Liver/MASH    — New York NY",            "New York, NY",               _LIVER,   75),
+        _us("Metab/Senesc  — New York NY",            "New York, NY",               _METAB,   75),
+        _us("Organoid/iPSC — New York NY",            "New York, NY",               _ORGANOID,75),
 
-        _us("Cardio/Preclin — Baltimore MD (Johns Hopkins / NIH / NHLBI)",    "Baltimore, MD",              _CARDIO, 100),
-        _us("Metab/Spatial  — Baltimore MD",                                   "Baltimore, MD",              _METAB,   75),
+        _us("Cardio/Preclin — Baltimore/NIH",         "Baltimore, MD",              _CARDIO, 100),
+        _us("Liver/MASH    — Baltimore/NIH",          "Baltimore, MD",              _LIVER,   75),
+        _us("Metab/Senesc  — Baltimore/NIH",          "Baltimore, MD",              _METAB,   75),
+        _us("Cardio/Preclin — Bethesda/NIH",          "Bethesda, MD",               _CARDIO, 100),
+        _us("Liver/MASH    — Bethesda/NIH",           "Bethesda, MD",               _LIVER,   75),
+        _us("Organoid/iPSC — Bethesda/NIH",           "Bethesda, MD",               _ORGANOID,75),
 
-        _us("Cardio/Preclin — Philadelphia PA (Penn / Wistar / Temple)",      "Philadelphia, PA",           _CARDIO,  75),
+        _us("Cardio/Preclin — Philadelphia PA",       "Philadelphia, PA",           _CARDIO,  75),
+        _us("Liver/MASH    — Philadelphia PA",        "Philadelphia, PA",           _LIVER,   75),
+        _us("Organoid/iPSC — Philadelphia PA",        "Philadelphia, PA",           _ORGANOID,50),
+
+        _us("Cardio/Preclin — New Haven CT",          "New Haven, CT",              _CARDIO,  75),
+        _us("Liver/MASH    — New Haven CT",           "New Haven, CT",              _LIVER,   50),
+        _us("Cardio/Preclin — Pittsburgh PA",         "Pittsburgh, PA",             _CARDIO,  75),
+        _us("Liver/MASH    — Pittsburgh PA",          "Pittsburgh, PA",             _LIVER,   50),
 
         # ═══════════════════════════════════════════════════════════════════
         # US — West Coast
         # ═══════════════════════════════════════════════════════════════════
-        _us("Cardio/Preclin — San Francisco CA (UCSF / Gladstone / Stanford)","San Francisco, CA",          _CARDIO, 100),
-        _us("Metab/Spatial  — San Francisco CA",                               "San Francisco, CA",          _METAB,   75),
+        _us("Cardio/Preclin — San Francisco CA",      "San Francisco, CA",          _CARDIO, 100),
+        _us("Liver/MASH    — San Francisco CA",       "San Francisco, CA",          _LIVER,   75),
+        _us("Metab/Senesc  — San Francisco CA",       "San Francisco, CA",          _METAB,   75),
+        _us("Organoid/iPSC — San Francisco CA",       "San Francisco, CA",          _ORGANOID,75),
 
-        _us("Cardio/Preclin — San Diego CA (Salk / Scripps / UCSD)",          "San Diego, CA",              _CARDIO, 100),
-        _us("Cardio/Preclin — Los Angeles CA (Cedars-Sinai / UCLA / USC)",    "Los Angeles, CA",            _CARDIO,  75),
-        _us("Cardio/Preclin — Seattle WA (UW / Fred Hutch / Allen Institute)","Seattle, WA",                _CARDIO,  75),
+        _us("Cardio/Preclin — San Diego CA",          "San Diego, CA",              _CARDIO, 100),
+        _us("Liver/MASH    — San Diego CA",           "San Diego, CA",              _LIVER,   75),
+        _us("Organoid/iPSC — San Diego CA",           "San Diego, CA",              _ORGANOID,75),
+
+        _us("Cardio/Preclin — Los Angeles CA",        "Los Angeles, CA",            _CARDIO,  75),
+        _us("Liver/MASH    — Los Angeles CA",         "Los Angeles, CA",            _LIVER,   75),
+        _us("Organoid/iPSC — Los Angeles CA",         "Los Angeles, CA",            _ORGANOID,75),
+
+        _us("Cardio/Preclin — Seattle WA",            "Seattle, WA",                _CARDIO,  75),
+        _us("Liver/MASH    — Seattle WA",             "Seattle, WA",                _LIVER,   50),
+        _us("Organoid/iPSC — Seattle WA",             "Seattle, WA",                _ORGANOID,50),
 
         # ═══════════════════════════════════════════════════════════════════
         # US — South / Midwest
         # ═══════════════════════════════════════════════════════════════════
-        _us("Cardio/Preclin — Houston TX (Baylor / Texas Heart / UTHealth)",  "Houston, TX",                _CARDIO,  75),
-        _us("Cardio/Preclin — Chicago IL (Northwestern / UChicago / Rush)",   "Chicago, IL",                _CARDIO,  75),
+        _us("Cardio/Preclin — Houston TX",            "Houston, TX",                _CARDIO,  75),
+        _us("Liver/MASH    — Houston TX",             "Houston, TX",                _LIVER,   75),
+        _us("Cardio/Preclin — Chicago IL",            "Chicago, IL",                _CARDIO,  75),
+        _us("Liver/MASH    — Chicago IL",             "Chicago, IL",                _LIVER,   75),
+        _us("Cardio/Preclin — Nashville TN",          "Nashville, TN",              _CARDIO,  75),
+        _us("Liver/MASH    — Nashville TN",           "Nashville, TN",              _LIVER,   75),
+        _us("Cardio/Preclin — St. Louis MO",          "St. Louis, MO",              _CARDIO,  75),
+        _us("Liver/MASH    — St. Louis MO",           "St. Louis, MO",              _LIVER,   50),
+        _us("Cardio/Preclin — Ann Arbor MI",          "Ann Arbor, MI",              _CARDIO,  75),
+        _us("Liver/MASH    — Ann Arbor MI",           "Ann Arbor, MI",              _LIVER,   50),
+        _us("Cardio/Preclin — Durham/Chapel Hill NC", "Durham, NC",                 _CARDIO,  75),
+        _us("Liver/MASH    — Durham NC",              "Durham, NC",                 _LIVER,   50),
+        _us("Cardio/Preclin — Cleveland OH",          "Cleveland, OH",              _CARDIO,  75),
+        _us("Liver/MASH    — Cleveland OH",           "Cleveland, OH",              _LIVER,   50),
+        _us("Cardio/Preclin — Atlanta GA",            "Atlanta, GA",                _CARDIO,  75),
+        _us("Cardio/Preclin — Denver CO",             "Denver, CO",                 _CARDIO,  50),
 
         # ═══════════════════════════════════════════════════════════════════
-        # LINKEDIN — global academic postings (no country_indeed needed)
-        # LinkedIn has strong coverage of postdoc/scientist roles posted by
-        # university labs, research institutes, and faculty directly.
+        # LINKEDIN — global academic postings (cardio + liver + organoid)
         # ═══════════════════════════════════════════════════════════════════
-        {"label": "LinkedIn — London UK (cardiovascular/preclinical)",   "term": _CARDIO, "location": "London, United Kingdom",   "results": 50, "region": "Europe", "sites": ["linkedin"]},
-        {"label": "LinkedIn — Cambridge UK (cardiovascular/preclinical)","term": _CARDIO, "location": "Cambridge, United Kingdom","results": 50, "region": "Europe", "sites": ["linkedin"]},
-        {"label": "LinkedIn — Germany (cardiovascular/preclinical)",     "term": _CARDIO, "location": "Germany",                  "results": 50, "region": "Europe", "sites": ["linkedin"]},
-        {"label": "LinkedIn — Switzerland (cardiovascular/preclinical)", "term": _CARDIO, "location": "Switzerland",              "results": 50, "region": "Europe", "sites": ["linkedin"]},
-        {"label": "LinkedIn — Netherlands/Belgium (cardio/preclinical)", "term": _CARDIO, "location": "Netherlands",             "results": 50, "region": "Europe", "sites": ["linkedin"]},
-        {"label": "LinkedIn — Scandinavia (cardiovascular/preclinical)", "term": _CARDIO, "location": "Sweden",                  "results": 50, "region": "Europe", "sites": ["linkedin"]},
-        {"label": "LinkedIn — France/Spain (cardiovascular/preclinical)","term": _CARDIO, "location": "France",                  "results": 50, "region": "Europe", "sites": ["linkedin"]},
-        {"label": "LinkedIn — Boston MA (cardiovascular/preclinical)",   "term": _CARDIO, "location": "Boston, MA",              "results": 50, "region": "US",     "sites": ["linkedin"]},
-        {"label": "LinkedIn — New York NY (cardiovascular/preclinical)", "term": _CARDIO, "location": "New York, NY",            "results": 50, "region": "US",     "sites": ["linkedin"]},
-        {"label": "LinkedIn — Baltimore/DC (cardio/preclinical/NIH)",   "term": _CARDIO, "location": "Baltimore, MD",           "results": 50, "region": "US",     "sites": ["linkedin"]},
-        {"label": "LinkedIn — San Francisco CA (cardiovascular/preclin)","term": _CARDIO, "location": "San Francisco, CA",       "results": 50, "region": "US",     "sites": ["linkedin"]},
-        {"label": "LinkedIn — San Diego CA (Salk/Scripps/UCSD)",        "term": _CARDIO, "location": "San Diego, CA",           "results": 50, "region": "US",     "sites": ["linkedin"]},
-        {"label": "LinkedIn — MASH/Metab/Senescence (global)",          "term": _METAB,  "location": "United States",           "results": 50, "region": "US",     "sites": ["linkedin"]},
-        {"label": "LinkedIn — Spatial Transcriptomics (global)",        "term": _SPATIAL,"location": "United States",           "results": 50, "region": "US",     "sites": ["linkedin"]},
+        {"label": "LinkedIn — London UK (cardiovascular)",     "term": _CARDIO,   "location": "London, United Kingdom",   "results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — London UK (liver/MASH)",         "term": _LIVER,    "location": "London, United Kingdom",   "results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — London UK (organoid/iPSC)",      "term": _ORGANOID, "location": "London, United Kingdom",   "results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — Cambridge UK (cardiovascular)",  "term": _CARDIO,   "location": "Cambridge, United Kingdom","results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — Cambridge UK (liver/MASH)",      "term": _LIVER,    "location": "Cambridge, United Kingdom","results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — Germany (cardiovascular)",       "term": _CARDIO,   "location": "Germany",                  "results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — Germany (liver/MASH)",           "term": _LIVER,    "location": "Germany",                  "results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — Germany (organoid/iPSC)",        "term": _ORGANOID, "location": "Germany",                  "results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — Switzerland (cardiovascular)",   "term": _CARDIO,   "location": "Switzerland",              "results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — Switzerland (liver/MASH)",       "term": _LIVER,    "location": "Switzerland",              "results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — Netherlands/Belgium (cardio)",   "term": _CARDIO,   "location": "Netherlands",              "results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — Netherlands/Belgium (liver)",    "term": _LIVER,    "location": "Netherlands",              "results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — Netherlands (organoid)",         "term": _ORGANOID, "location": "Netherlands",              "results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — Scandinavia (cardiovascular)",   "term": _CARDIO,   "location": "Sweden",                   "results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — Scandinavia (liver/MASH)",       "term": _LIVER,    "location": "Sweden",                   "results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — France/Spain (cardiovascular)",  "term": _CARDIO,   "location": "France",                   "results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — France/Spain (liver)",           "term": _LIVER,    "location": "France",                   "results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — Austria (cardiovascular)",       "term": _CARDIO,   "location": "Austria",                  "results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — Austria (organoid/iPSC)",        "term": _ORGANOID, "location": "Austria",                  "results": 50, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — Boston MA (cardiovascular)",     "term": _CARDIO,   "location": "Boston, MA",               "results": 50, "region": "US",     "sites": ["linkedin"]},
+        {"label": "LinkedIn — Boston MA (liver/MASH)",         "term": _LIVER,    "location": "Boston, MA",               "results": 50, "region": "US",     "sites": ["linkedin"]},
+        {"label": "LinkedIn — Boston MA (organoid/iPSC)",      "term": _ORGANOID, "location": "Boston, MA",               "results": 50, "region": "US",     "sites": ["linkedin"]},
+        {"label": "LinkedIn — New York NY (cardiovascular)",   "term": _CARDIO,   "location": "New York, NY",             "results": 50, "region": "US",     "sites": ["linkedin"]},
+        {"label": "LinkedIn — New York NY (liver/MASH)",       "term": _LIVER,    "location": "New York, NY",             "results": 50, "region": "US",     "sites": ["linkedin"]},
+        {"label": "LinkedIn — Baltimore/NIH (cardio)",         "term": _CARDIO,   "location": "Baltimore, MD",            "results": 50, "region": "US",     "sites": ["linkedin"]},
+        {"label": "LinkedIn — Bethesda/NIH (liver/MASH)",      "term": _LIVER,    "location": "Bethesda, MD",             "results": 50, "region": "US",     "sites": ["linkedin"]},
+        {"label": "LinkedIn — San Francisco CA (cardio)",      "term": _CARDIO,   "location": "San Francisco, CA",        "results": 50, "region": "US",     "sites": ["linkedin"]},
+        {"label": "LinkedIn — San Francisco CA (liver/MASH)",  "term": _LIVER,    "location": "San Francisco, CA",        "results": 50, "region": "US",     "sites": ["linkedin"]},
+        {"label": "LinkedIn — San Diego CA (cardiovascular)",  "term": _CARDIO,   "location": "San Diego, CA",            "results": 50, "region": "US",     "sites": ["linkedin"]},
+        {"label": "LinkedIn — San Diego CA (organoid/iPSC)",   "term": _ORGANOID, "location": "San Diego, CA",            "results": 50, "region": "US",     "sites": ["linkedin"]},
+        {"label": "LinkedIn — MASH/Metab/Senescence (global)", "term": _METAB,    "location": "United States",            "results": 50, "region": "US",     "sites": ["linkedin"]},
+        {"label": "LinkedIn — Liver/MASH (global US)",         "term": _LIVER,    "location": "United States",            "results": 75, "region": "US",     "sites": ["linkedin"]},
+        {"label": "LinkedIn — Organoid/iPSC (global US)",      "term": _ORGANOID, "location": "United States",            "results": 75, "region": "US",     "sites": ["linkedin"]},
+        {"label": "LinkedIn — Cell Culture/Cardiomyo (global)","term": _CELL_CULT,"location": "United States",            "results": 50, "region": "US",     "sites": ["linkedin"]},
+        {"label": "LinkedIn — Spatial Transcriptomics (global)","term": _SPATIAL, "location": "United States",            "results": 50, "region": "US",     "sites": ["linkedin"]},
+        {"label": "LinkedIn — Liver/MASH Europe (global)",     "term": _LIVER,    "location": "Europe",                   "results": 75, "region": "Europe", "sites": ["linkedin"]},
+        {"label": "LinkedIn — Organoid/iPSC Europe (global)",  "term": _ORGANOID, "location": "Europe",                   "results": 75, "region": "Europe", "sites": ["linkedin"]},
     ]
 
 
@@ -1076,14 +1540,17 @@ def build_search_configs() -> list[dict]:
 # Main hunt
 # ---------------------------------------------------------------------------
 def pooja_hunt():
-    sprint(f"\n{'='*60}")
-    sprint(f"[Pooja Scanner] Academic Job Hunt (Universities & Research Institutes) — {datetime.now().strftime('%Y-%m-%d %H:%M')}")
-    sprint(f"{'='*60}")
-    alerts_sent = 0
-    configs     = build_search_configs()
+    sprint(f"\n{'='*70}")
+    sprint(f"[Pooja Scanner] Academic Job Hunt — {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    sprint(f"Domains: Cardiology · Liver/MASH · Organoids · Cell Culture · Spatial Transcriptomics")
+    sprint(f"Regions: Europe (25+ countries) + US (20+ academic hubs)")
+    sprint(f"{'='*70}")
+    alerts_sent  = 0
+    must_apply_sent = 0
+    configs      = build_search_configs()
 
-    # ── Step 1: Parallel scrape (Indeed + LinkedIn via jobspy) ───────────────
-    sprint(f"\n[Scrape] Launching {len(configs)} jobspy passes with {SCRAPE_WORKERS} parallel workers...")
+    # ── Step 1: Parallel scrape (Indeed + LinkedIn via jobspy) ──────────────
+    sprint(f"\n[Scrape] Launching {len(configs)} jobspy passes with {SCRAPE_WORKERS} workers...")
     all_frames   = []
     blocked_passes = 0
 
@@ -1109,40 +1576,37 @@ def pooja_hunt():
         if blocked_passes == len(configs):
             sprint("[Pooja Scanner] All jobspy passes blocked — continuing with custom scrapers.")
 
-    # ── Step 1b: Custom scrapers — jobs.ac.uk + Nature Careers ───────────
-    sprint("\n[Custom Scrapers] Running jobs.ac.uk and Nature Careers...")
-    try:
-        df_jac = scrape_jobs_ac_uk()
-        if not df_jac.empty:
-            all_frames.append(df_jac)
-    except Exception as e:
-        sprint(f"  [jobs.ac.uk] Scraper failed: {e}")
-
-    try:
-        df_nat = scrape_nature_careers()
-        if not df_nat.empty:
-            all_frames.append(df_nat)
-    except Exception as e:
-        sprint(f"  [Nature Careers] Scraper failed: {e}")
+    # ── Step 1b: Custom scrapers ─────────────────────────────────────────
+    sprint("\n[Custom Scrapers] Running jobs.ac.uk · Nature Careers · EurAxess · HigherEdJobs...")
+    for scraper_fn, name in [
+        (scrape_jobs_ac_uk,       "jobs.ac.uk"),
+        (scrape_nature_careers,   "Nature Careers"),
+        (scrape_euraxess,         "EurAxess"),
+        (scrape_higheredjobs_rss, "HigherEdJobs"),
+    ]:
+        try:
+            df_custom = scraper_fn()
+            if not df_custom.empty:
+                all_frames.append(df_custom)
+                sprint(f"  [{name}] Added {len(df_custom)} results")
+        except Exception as e:
+            sprint(f"  [{name}] Scraper failed: {e}")
 
     if not all_frames:
         sprint("[Pooja Scanner] No results from any source. Likely IP block.")
         push_notification("Pooja Academic Scan", "Scan ran — 0 results from all sources.", "low")
         return
 
-    # ── Step 2: Combine + deduplicate ─────────────────────────────────────
+    # ── Step 2: Combine + deduplicate ────────────────────────────────────
     raw = pd.concat(all_frames, ignore_index=True)
     sprint(f"\n[Dedup] {len(raw)} total raw → ", end="")
 
     if "job_url" in raw.columns:
         def _norm_url(u: str) -> str:
             u = str(u).strip().lower()
-            # Indeed job IDs live in the query string (?jk=...) — keep them.
-            # For all other sites the ID is in the path, so stripping is safe.
             if "indeed.com" in u:
                 return u
             return u.split("?")[0]
-
         raw["_url_norm"] = raw["job_url"].apply(_norm_url)
         raw = raw.drop_duplicates(subset=["_url_norm"], keep="first")
 
@@ -1153,20 +1617,15 @@ def pooja_hunt():
     raw = raw.drop_duplicates(subset=["_title_co"], keep="first")
     sprint(f"{len(raw)} after dedup")
 
-    # ── Step 3: Title filter ───────────────────────────────────────────────
+    # ── Step 3: Title filter ─────────────────────────────────────────────
     raw["title_lower"] = raw["title"].str.lower().fillna("")
     mask     = raw["title_lower"].apply(matches_title)
     filtered = raw[mask].copy()
     sprint(f"[Filter] {len(raw)} → {len(filtered)} passed title filter "
            f"(removed {len(raw) - len(filtered)} non-science jobs)")
 
-    # ── Step 3b: Academic institution filter (ALL regions) ───────────────
-    # We want ONLY academic/research/government institutions worldwide.
+    # ── Step 3b: Academic institution filter ────────────────────────────
     all_academic  = filtered["company"].fillna("").apply(is_academic_institution)
-    # For unrecognised companies, check description for institutional-posting signals.
-    # IMPORTANT: use specific phrases that only appear in institutional job ads,
-    # NOT generic phrases like "university" or "research institute" that appear
-    # in candidate requirements ("PhD from a university") in industry postings.
     _acad_desc_re = re.compile(
         r"postdoctoral\s+(?:fellow|researcher|associate|position|opening|opportunity)"
         r"|postdoc\s+(?:position|opening|fellow|fellowship)"
@@ -1184,24 +1643,21 @@ def pooja_hunt():
         re.IGNORECASE,
     )
     desc_academic = filtered["description"].fillna("").apply(lambda d: bool(_acad_desc_re.search(d)))
-
     academic_mask = all_academic | desc_academic
     non_academic  = filtered[~academic_mask]
     filtered      = filtered[academic_mask].copy()
 
-    sprint(f"[Acad Filter] {len(academic_mask)} → {len(filtered)} kept "
+    sprint(f"[Acad Filter] → {len(filtered)} kept "
            f"({len(non_academic)} non-academic/industry removed)")
 
     if filtered.empty:
         push_notification("Pooja Academic Hunt", "Scan done — 0 academic roles found.", "low")
         return
 
-    # ── Step 4: Pre-rank by title relevance; split LLM vs keyword pool ────
+    # ── Step 4: Pre-rank by title relevance ─────────────────────────────
     filtered["_title_rel"] = filtered["title"].apply(title_relevance)
     if "date_posted" in filtered.columns:
-        filtered = filtered.sort_values(
-            ["_title_rel", "date_posted"], ascending=[False, False]
-        )
+        filtered = filtered.sort_values(["_title_rel", "date_posted"], ascending=[False, False])
     else:
         filtered = filtered.sort_values("_title_rel", ascending=False)
 
@@ -1209,7 +1665,7 @@ def pooja_hunt():
     keyword_pool = filtered.iloc[SCORE_LLM_TOP:].copy()
     sprint(f"[Score]  {len(llm_pool)} → LLM batch  |  {len(keyword_pool)} → keyword scorer\n")
 
-    # ── Step 5a: LLM batch scoring ────────────────────────────────────────
+    # ── Step 5a: LLM batch scoring ───────────────────────────────────────
     score_map: dict[str, tuple[int, str]] = {}
     llm_rows = list(llm_pool.iterrows())
     for b_start in range(0, len(llm_rows), BATCH_SIZE):
@@ -1239,7 +1695,7 @@ def pooja_hunt():
                 )
         time.sleep(2)
 
-    # ── Step 5b: Keyword scoring for remainder ────────────────────────────
+    # ── Step 5b: Keyword scoring for remainder ──────────────────────────
     for _, row in keyword_pool.iterrows():
         url = str(row.get("job_url", ""))
         score_map[url] = (
@@ -1251,8 +1707,10 @@ def pooja_hunt():
             "keyword",
         )
 
-    # ── Step 6: Collect results, alerts, CSV ──────────────────────────────
-    scored_list = []
+    # ── Step 6: Collect results, must-apply flags, alerts, CSV ──────────
+    scored_list     = []
+    must_apply_jobs = []
+
     for _, row in filtered.iterrows():
         title    = str(row.get("title", "Unknown"))
         company  = str(row.get("company", "Unknown"))
@@ -1260,18 +1718,34 @@ def pooja_hunt():
         url      = str(row.get("job_url", ""))
         src      = str(row.get("_search_pass", ""))
         region   = str(row.get("_region", "US"))
+        desc     = str(row.get("description", ""))
 
         score, method = score_map.get(url, (0, "keyword"))
 
-        if score >= 80:   tag = "STRONG"
+        must_apply = is_must_apply(score, title, company, desc)
+
+        if score >= 85:   tag = "ELITE "
+        elif score >= 80: tag = "STRONG"
         elif score >= 70: tag = "HIGH  "
         elif score >= 50: tag = "fair  "
         else:             tag = "low   "
 
-        sprint(f"  [{score:3d}][{tag}][{method}] {title[:48]:<48} @ {company[:25]}")
+        ma_marker = " ★MUST★" if must_apply else ""
+        sprint(f"  [{score:3d}][{tag}][{method}] {title[:46]:<46} @ {company[:22]}{ma_marker}")
 
-        if score >= 60 and alerts_sent < MAX_ALERTS:
-            priority = "urgent" if score >= 82 else "high"
+        # Must-apply urgent push (separate from regular alerts)
+        if must_apply and must_apply_sent < 10:
+            push_notification(
+                title=f"★MUST APPLY★ {score}% — {title[:45]}",
+                message=f"{company}\n{location}\n{url}",
+                priority="urgent",
+            )
+            must_apply_jobs.append(f"{score}% {title[:40]} @ {company[:20]}")
+            must_apply_sent += 1
+
+        # Regular alerts for high-scoring non-must-apply jobs
+        elif score >= 65 and not must_apply and alerts_sent < MAX_ALERTS:
+            priority = "high" if score >= 75 else "default"
             push_notification(
                 title=f"{score}% — {title[:48]}",
                 message=f"{company}\n{location}\n{url}",
@@ -1281,17 +1755,18 @@ def pooja_hunt():
 
         if score >= MIN_SAVE_SCORE:
             scored_list.append({
-                "Score":     score,
-                "Title":     title,
-                "Company":   company,
-                "Location":  location,
-                "Type":      row.get("job_type", ""),
-                "Link":      url,
-                "Posted":    str(row.get("date_posted", "")),
-                "ScoredBy":  method,
-                "Source":    src,
-                "Region":    region,
-                "ScannedAt": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "Score":      score,
+                "MustApply":  "YES" if must_apply else "",
+                "Title":      title,
+                "Company":    company,
+                "Location":   location,
+                "Type":       row.get("job_type", ""),
+                "Link":       url,
+                "Posted":     str(row.get("date_posted", "")),
+                "ScoredBy":   method,
+                "Source":     src,
+                "Region":     region,
+                "ScannedAt":  datetime.now().strftime("%Y-%m-%d %H:%M"),
             })
 
     if not scored_list:
@@ -1299,34 +1774,48 @@ def pooja_hunt():
         push_notification("Pooja Academic Scan", "Scan done — no jobs cleared score threshold.", "low")
         return
 
-    # ── Step 7: Merge + save CSV ──────────────────────────────────────────
+    # ── Step 7: Merge + save CSV ─────────────────────────────────────────
     new_df = pd.DataFrame(scored_list)
 
     if os.path.exists(CSV_PATH):
         existing = pd.read_csv(CSV_PATH, encoding="utf-8-sig")
+        # Ensure MustApply column exists in legacy CSV
+        if "MustApply" not in existing.columns:
+            existing["MustApply"] = ""
         combined = pd.concat([existing, new_df], ignore_index=True)
         combined = combined.drop_duplicates(subset=["Link"], keep="last")
     else:
         combined = new_df
 
-    combined = combined.sort_values("Score", ascending=False)
+    # Sort: must-apply first, then by score
+    combined["_ma_sort"] = (combined["MustApply"] == "YES").astype(int)
+    combined = combined.sort_values(["_ma_sort", "Score"], ascending=[False, False])
+    combined = combined.drop(columns=["_ma_sort"])
     combined.to_csv(CSV_PATH, index=False, encoding="utf-8-sig")
     save_csv_to_github(CSV_PATH)
 
-    strong = len(new_df[new_df["Score"] >= 80])
-    high   = len(new_df[new_df["Score"] >= 70])
-    sprint(f"\n{'='*60}")
-    sprint(f"[Done] {len(new_df)} new leads  |  {strong} strong (80+)  |  {high} high (70+)")
-    sprint(f"       {len(combined)} total in CSV  |  {alerts_sent} alerts sent")
-    sprint(f"{'='*60}\n")
+    strong      = len(new_df[new_df["Score"] >= 80])
+    high        = len(new_df[new_df["Score"] >= 70])
+    must_count  = len(new_df[new_df["MustApply"] == "YES"])
+
+    sprint(f"\n{'='*70}")
+    sprint(f"[Done] {len(new_df)} new leads  |  {must_count} MUST-APPLY  |  {strong} strong (80+)  |  {high} high (70+)")
+    sprint(f"       {len(combined)} total in CSV  |  {must_apply_sent} must-apply alerts  |  {alerts_sent} regular alerts")
+    sprint(f"{'='*70}\n")
+
+    if must_apply_jobs:
+        sprint("[MUST APPLY JOBS THIS SCAN:]")
+        for m in must_apply_jobs:
+            sprint(f"  ★ {m}")
 
     push_notification(
         title="Pooja Academic Scan Complete",
         message=(
+            f"★ {must_count} MUST-APPLY ★\n"
             f"{len(new_df)} new leads  |  {strong} strong (80+)  |  {high} high (70+)\n"
-            f"{alerts_sent} alerts  |  {len(combined)} total leads"
+            f"{alerts_sent} regular alerts  |  {len(combined)} total leads"
         ),
-        priority="low",
+        priority="high" if must_count > 0 else "low",
     )
 
 

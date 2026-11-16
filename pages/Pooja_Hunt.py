@@ -40,7 +40,7 @@ inject_pwa("Pooja Academic Hunt")
 # Header
 # ---------------------------------------------------------------------------
 st.title("🔬 Pooja's Academic Hunt")
-st.caption("Postdoctoral Researcher · Cardiovascular Biology · Spatial Transcriptomics · Universities & Research Institutes")
+st.caption("Postdoctoral Researcher · Cardiovascular · Liver/MASH · Organoids · Cell Culture · Spatial Transcriptomics · Europe + US")
 
 with st.expander("📲 Install as App on your phone", expanded=False):
     st.markdown("""
@@ -211,17 +211,18 @@ def render_cards(jobs: pd.DataFrame, key_prefix: str):
 # ---------------------------------------------------------------------------
 # Table renderer
 # ---------------------------------------------------------------------------
-SHOW_COLS = ["Score", "Agent?", "Band", "Title", "Company", "Location", "Region",
+SHOW_COLS = ["Score", "MustApply", "Agent?", "Band", "Title", "Company", "Location", "Region",
              "Type", "Posted", "ScoredBy", "Link"]
 _COL_CFG = {
-    "Score":    st.column_config.ProgressColumn("Match %", format="%d%%", min_value=0, max_value=100),
-    "Agent?":   st.column_config.TextColumn("Agent?", width="small"),
-    "Band":     st.column_config.TextColumn("Band", width="small"),
-    "Region":   st.column_config.TextColumn("Region", width="small"),
-    "Link":     st.column_config.LinkColumn("Apply", display_text="Apply"),
-    "Posted":   st.column_config.TextColumn("Posted"),
-    "ScoredBy": st.column_config.TextColumn("Scored By", width="small"),
-    "Source":   st.column_config.TextColumn("Search Pass", width="medium"),
+    "Score":     st.column_config.ProgressColumn("Match %", format="%d%%", min_value=0, max_value=100),
+    "MustApply": st.column_config.TextColumn("★ Must", width="small"),
+    "Agent?":    st.column_config.TextColumn("Agent?", width="small"),
+    "Band":      st.column_config.TextColumn("Band", width="small"),
+    "Region":    st.column_config.TextColumn("Region", width="small"),
+    "Link":      st.column_config.LinkColumn("Apply", display_text="Apply"),
+    "Posted":    st.column_config.TextColumn("Posted"),
+    "ScoredBy":  st.column_config.TextColumn("Scored By", width="small"),
+    "Source":    st.column_config.TextColumn("Search Pass", width="medium"),
 }
 
 def render_table(jobs: pd.DataFrame):
@@ -246,6 +247,10 @@ if os.path.exists(CSV_PATH):
     if "Region" not in df.columns:
         df["Region"] = "US"
 
+    # Ensure MustApply column exists for older CSVs
+    if "MustApply" not in df.columns:
+        df["MustApply"] = ""
+
     # Rolling 15-day window — matches the scraper's hours_old=360 setting
     _cutoff_15d = datetime.now() - timedelta(days=15)
     _has_date   = df["PostedDate"].notna()
@@ -261,19 +266,55 @@ if os.path.exists(CSV_PATH):
         latest_scan_dt  = None
     new_scan_count = int(df["IsNew"].sum())
 
-    # --- Metrics — 3 per row ---
-    hub_count = int(df["Location"].apply(is_academic_hub).sum())
+    # --- Metrics ---
+    hub_count      = int(df["Location"].apply(is_academic_hub).sum())
+    must_apply_cnt = int((df["MustApply"] == "YES").sum())
 
     m1, m2, m3 = st.columns(3)
-    m1.metric("Total",           len(df))
+    m1.metric("★ Must Apply",    must_apply_cnt)
     m2.metric("Elite 85+",       len(df[df["Score"] >= 85]))
     m3.metric("Strong 75–84",    len(df[(df["Score"] >= 75) & (df["Score"] < 85)]))
     m4, m5, m6 = st.columns(3)
     m4.metric("High 65–74",      len(df[(df["Score"] >= 65) & (df["Score"] < 75)]))
     m5.metric("New This Scan",   new_scan_count)
-    m6.metric("Hub Roles",       hub_count)
+    m6.metric("Total",           len(df))
 
     st.write("")
+
+    # ── 🚨 MUST APPLY section (always at top — zero exceptions) ──────────
+    _must_df = df[df["MustApply"] == "YES"].copy().sort_values("Score", ascending=False)
+    if not _must_df.empty:
+        st.markdown(
+            "<div style='background:#1a0000;border:2px solid #ff1744;border-radius:8px;"
+            "padding:12px 16px;margin-bottom:12px'>"
+            "<span style='color:#ff1744;font-size:1.1rem;font-weight:700'>🚨 MUST APPLY — "
+            f"{len(_must_df)} positions · No exceptions</span></div>",
+            unsafe_allow_html=True,
+        )
+        for _i, (_, _mrow) in enumerate(_must_df.iterrows()):
+            _mscore = int(_mrow.get("Score", 0))
+            with st.container(border=True):
+                _lc, _rc = st.columns([1, 5])
+                with _lc:
+                    st.markdown(
+                        f"<div style='text-align:center;padding-top:4px'>"
+                        f"<span style='font-size:1.4rem;font-weight:700;color:#ff1744'>{_mscore}%</span><br>"
+                        f"<span style='font-size:0.6rem;color:#ff9800'>★ MUST APPLY</span>"
+                        f"</div>",
+                        unsafe_allow_html=True,
+                    )
+                with _rc:
+                    st.markdown(f"**{_mrow.get('Title', '')}**")
+                    st.markdown(f"{_mrow.get('Company', '')}  ·  {_mrow.get('Location', '')}")
+                    _mmeta = "  ·  ".join(
+                        str(x) for x in [_mrow.get("Region"), _mrow.get("Type"), _mrow.get("Posted")]
+                        if x and str(x) not in ("nan", "None", "")
+                    )
+                    st.caption(_mmeta)
+                _mlink = _mrow.get("Link", "")
+                if _mlink:
+                    st.link_button("★ Apply NOW →", _mlink, use_container_width=True, type="primary")
+        st.divider()
 
     # --- New Opportunities section (latest scan only) ---
     _new_base = df[df["IsNew"]].copy()
@@ -453,23 +494,28 @@ else:
         icon="🔔",
     )
     st.markdown("""
-**Multi-source scan — domain-focused, academic & research institutes only:**
-
-Each source is searched with Pooja's specific wet-lab domains, not generic job titles.
+**Multi-source scan — 6 domains, academic & research institutes only:**
 
 🔬 **Domain 1 — Cardiovascular / Cardiac / In Vivo / Preclinical / Mouse Models**
-🫀 **Domain 2 — Metabolic Liver Disease / MASH / NASH / Senescence / Aging**
-🧬 **Domain 3 — Spatial Transcriptomics / scRNA-seq / Molecular & Cell Biology**
+🫀 **Domain 2 — Liver / Hepatic / MASH / NASH / Hepatocyte Biology**
+🧪 **Domain 3 — Metabolic Disease / Senescence / Aging**
+🫧 **Domain 4 — Organoids / iPSC / 3D Cell Models / Cardiomyocyte Differentiation**
+🔭 **Domain 5 — Cell Culture / Primary Cells / Cardiomyocytes / Patient-Derived**
+🧬 **Domain 6 — Spatial Transcriptomics (Xenium/Visium) / scRNA-seq / Molecular Biology**
 
-**Sources scraped each run:**
-- **Indeed** (national sites per country) — cardiovascular/preclinical biology postdocs & scientists
-- **LinkedIn** — academic postdoc & research scientist postings globally
+**Sources scraped each run (6 sources):**
+- **Indeed** — national sites per country, domain-focused searches
+- **LinkedIn** — global academic postdoc & research scientist postings
 - **jobs.ac.uk** — all UK universities, MRC/BBSRC/BHF-funded labs, NHS research trusts
-- **Nature Careers** — global academic & research institute postings (nature.com/naturecareers)
+- **Nature Careers** — global academic & research institute postings
+- **EurAxess** — official EU academic job portal (all 27 EU countries + EEA)
+- **HigherEdJobs** — US university/medical school life sciences positions
 
-🇬🇧🇩🇪🇨🇭🇸🇪🇩🇰🇳🇴🇫🇮🇦🇹🇧🇪🇳🇱🇫🇷🇪🇸🇮🇹🇮🇪🇱🇺🇮🇱 **Europe:** Cambridge UK · London · Oxford · Edinburgh · Manchester · Berlin · Munich · Heidelberg · Basel/Zurich · Stockholm · Copenhagen · Oslo · Helsinki · Vienna · Leuven/Brussels · Amsterdam · Paris · Madrid/Barcelona · Milan · Dublin · Luxembourg · Tel Aviv
+🚨 **Must-Apply logic:** Jobs scoring 78+ or at elite institutions (Karolinska, EMBL, NIH, Harvard…) are auto-flagged — urgent push notifications + pinned at top of results.
 
-🇺🇸 **US:** Boston/Cambridge MA · New York NY · Baltimore/DC (NIH) · Philadelphia PA · San Francisco Bay Area · San Diego CA · Los Angeles CA · Seattle WA · Houston TX · Chicago IL
+🇬🇧🇩🇪🇨🇭🇸🇪🇩🇰🇳🇴🇫🇮🇦🇹🇧🇪🇳🇱🇫🇷🇪🇸🇮🇹🇵🇹🇮🇪🇱🇺🇮🇱 **Europe (25+ countries):** Cambridge · London · Oxford · Edinburgh · Manchester · Glasgow · Bristol · Berlin · Munich · Heidelberg · Hamburg · Frankfurt · Cologne · Göttingen · Freiburg · Dresden · Basel/Zurich · Geneva · Stockholm · Gothenburg · Copenhagen · Aarhus · Oslo · Helsinki · Amsterdam · Utrecht · Leiden · Groningen · Nijmegen · Leuven/Brussels · Ghent · Vienna · Paris · Lyon · Madrid · Barcelona · Milan · Rome · Bologna · Lisbon · Dublin · Luxembourg · Tel Aviv
+
+🇺🇸 **US (20+ hubs):** Boston/Cambridge MA · New York NY · Baltimore MD · Bethesda/NIH MD · Philadelphia PA · New Haven CT · Pittsburgh PA · San Francisco CA · San Diego CA · Los Angeles CA · Seattle WA · Houston TX · Chicago IL · Nashville TN · St. Louis MO · Ann Arbor MI · Durham/Chapel Hill NC · Cleveland OH · Atlanta GA · Denver CO
 
 **No industry/pharma/CRO results.** Academic, government, and non-profit research institutions only.
 """)
